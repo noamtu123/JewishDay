@@ -1,0 +1,68 @@
+package com.turel.jewishdaynext.model
+
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.sqrt
+import java.lang.Math.toDegrees
+import java.lang.Math.toRadians
+import java.time.ZoneId
+
+private const val EARTH_RADIUS_KM = 6371.0
+
+val jerusalemLocation = JewishLocation(
+    name = "Jerusalem",
+    latitude = 31.7767,
+    longitude = 35.2345,
+    elevationMeters = 754.0,
+    zoneId = ZoneId.of("Asia/Jerusalem"),
+)
+
+data class MizrachInfo(
+    val fromLocationName: String,
+    val bearingDegrees: Int,
+    val distanceKm: Int,
+)
+
+fun mizrachInfo(from: JewishLocation = defaultJerusalemLocation): MizrachInfo {
+    val fromLatitude = toRadians(from.latitude)
+    val toLatitude = toRadians(jerusalemLocation.latitude)
+    val longitudeDelta = toRadians(jerusalemLocation.longitude - from.longitude)
+
+    val y = sin(longitudeDelta) * cos(toLatitude)
+    val x = cos(fromLatitude) * sin(toLatitude) -
+        sin(fromLatitude) * cos(toLatitude) * cos(longitudeDelta)
+    val bearing = (toDegrees(atan2(y, x)) + 360.0) % 360.0
+
+    val distance = haversineDistanceKm(
+        from.latitude,
+        from.longitude,
+        jerusalemLocation.latitude,
+        jerusalemLocation.longitude,
+    )
+
+    return MizrachInfo(
+        fromLocationName = from.name,
+        bearingDegrees = ((bearing.roundToInt() % 360) + 360) % 360,
+        distanceKm = distance.roundToInt(),
+    )
+}
+
+private fun haversineDistanceKm(
+    fromLatitude: Double,
+    fromLongitude: Double,
+    toLatitude: Double,
+    toLongitude: Double,
+): Double {
+    val latitudeDelta = toRadians(toLatitude - fromLatitude)
+    val longitudeDelta = toRadians(toLongitude - fromLongitude)
+    val fromLatitudeRadians = toRadians(fromLatitude)
+    val toLatitudeRadians = toRadians(toLatitude)
+
+    val a = sin(latitudeDelta / 2) * sin(latitudeDelta / 2) +
+        cos(fromLatitudeRadians) * cos(toLatitudeRadians) *
+        sin(longitudeDelta / 2) * sin(longitudeDelta / 2)
+    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return EARTH_RADIUS_KM * c
+}
