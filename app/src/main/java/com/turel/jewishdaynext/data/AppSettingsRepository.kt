@@ -45,6 +45,20 @@ val defaultSavedPlace = SavedPlace(
     zoneId = defaultJerusalemLocation.zoneId,
 )
 
+enum class AppThemeOption(val storageValue: String) {
+    Classic("classic"),
+    BlueWhite("blue_white"),
+    IsraelSky("israel_sky"),
+    JerusalemStone("jerusalem_stone"),
+    AmoledBlack("amoled_black"),
+    ;
+
+    companion object {
+        fun fromStorageValue(value: String?): AppThemeOption? =
+            entries.firstOrNull { it.storageValue == value }
+    }
+}
+
 data class AppSettings(
     val dailyDateNotificationEnabled: Boolean = false,
     val hebrewDateStatusIconEnabled: Boolean = false,
@@ -52,8 +66,7 @@ data class AppSettings(
     val preferHebrewDates: Boolean = false,
     val useHebrewInterface: Boolean = false,
     val use24HourTime: Boolean = true,
-    val blueWhiteTheme: Boolean = false,
-    val amoledBlackTheme: Boolean = false,
+    val themeOption: AppThemeOption = AppThemeOption.Classic,
     val savedPlaces: List<SavedPlace> = listOf(defaultSavedPlace),
     val selectedPlaceId: String = defaultSavedPlace.id,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
@@ -70,8 +83,7 @@ interface AppSettingsRepository {
     suspend fun setPreferHebrewDates(enabled: Boolean)
     suspend fun setUseHebrewInterface(enabled: Boolean)
     suspend fun setUse24HourTime(enabled: Boolean)
-    suspend fun setBlueWhiteTheme(enabled: Boolean)
-    suspend fun setAmoledBlackTheme(enabled: Boolean)
+    suspend fun setThemeOption(themeOption: AppThemeOption)
     suspend fun savePlace(place: SavedPlace)
     suspend fun selectPlace(placeId: String)
     suspend fun deletePlace(placeId: String)
@@ -100,6 +112,12 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 .orEmpty()
                 .mapNotNull(::decodeSavedPlace)
                 .let { places -> (listOf(defaultSavedPlace) + places).distinctBy(SavedPlace::id) }
+            val themeOption = AppThemeOption.fromStorageValue(preferences[ThemeOption])
+                ?: when {
+                    preferences[AmoledBlackTheme] == true -> AppThemeOption.AmoledBlack
+                    preferences[BlueWhiteTheme] == true -> AppThemeOption.BlueWhite
+                    else -> AppThemeOption.Classic
+                }
             AppSettings(
                 dailyDateNotificationEnabled = preferences[DailyDateNotificationEnabled] ?: false,
                 hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: false,
@@ -107,8 +125,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 preferHebrewDates = preferences[PreferHebrewDates] ?: false,
                 useHebrewInterface = preferences[UseHebrewInterface] ?: false,
                 use24HourTime = preferences[Use24HourTime] ?: true,
-                blueWhiteTheme = preferences[BlueWhiteTheme] ?: false,
-                amoledBlackTheme = preferences[AmoledBlackTheme] ?: false,
+                themeOption = themeOption,
                 savedPlaces = savedPlaces,
                 selectedPlaceId = preferences[SelectedPlaceId] ?: defaultSavedPlace.id,
                 zmanimSettings = ZmanimCalculationSettings(
@@ -159,15 +176,11 @@ class DataStoreAppSettingsRepository @Inject constructor(
         }
     }
 
-    override suspend fun setBlueWhiteTheme(enabled: Boolean) {
+    override suspend fun setThemeOption(themeOption: AppThemeOption) {
         dataStore.edit { preferences ->
-            preferences[BlueWhiteTheme] = enabled
-        }
-    }
-
-    override suspend fun setAmoledBlackTheme(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[AmoledBlackTheme] = enabled
+            preferences[ThemeOption] = themeOption.storageValue
+            preferences.remove(BlueWhiteTheme)
+            preferences.remove(AmoledBlackTheme)
         }
     }
 
@@ -243,6 +256,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val PreferHebrewDates = booleanPreferencesKey("prefer_hebrew_dates")
         val UseHebrewInterface = booleanPreferencesKey("use_hebrew_interface")
         val Use24HourTime = booleanPreferencesKey("use_24_hour_time")
+        val ThemeOption = stringPreferencesKey("theme_option")
         val BlueWhiteTheme = booleanPreferencesKey("blue_white_theme")
         val AmoledBlackTheme = booleanPreferencesKey("amoled_black_theme")
         val SavedPlaces = stringSetPreferencesKey("saved_places")

@@ -16,11 +16,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,11 +36,11 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turel.jewishdaynext.R
+import com.turel.jewishdaynext.data.AppThemeOption
 import com.turel.jewishdaynext.ui.components.InfoCard
 import com.turel.jewishdaynext.ui.components.ScreenPaddingValues
 import com.turel.jewishdaynext.ui.components.ScreenSurface
 import com.turel.jewishdaynext.ui.components.readableWidth
-import com.turel.jewishdaynext.ui.localizedLocationName
 import com.turel.jewishdaynext.ui.localizedString
 
 @Composable
@@ -49,6 +51,7 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var pendingNotificationTarget by remember { mutableStateOf<NotificationPermissionTarget?>(null) }
+    var showThemeDialog by remember { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -169,54 +172,11 @@ fun SettingsScreen(
                         onCheckedChange = viewModel::setUse24HourTime,
                     )
                     SettingsDivider()
-                    SettingsSwitchRow(
-                        label = localizedString(R.string.settings_blue_white_theme, R.string.settings_blue_white_theme_hebrew),
-                        description = localizedString(
-                            R.string.settings_blue_white_theme_description,
-                            R.string.settings_blue_white_theme_description_hebrew,
-                        ),
-                        checked = uiState.blueWhiteTheme,
-                        onCheckedChange = viewModel::setBlueWhiteTheme,
+                    SettingsChoiceRow(
+                        label = localizedString(R.string.settings_theme, R.string.settings_theme_hebrew),
+                        value = uiState.themeOption.localizedLabel(),
+                        onClick = { showThemeDialog = true },
                     )
-                    SettingsDivider()
-                    SettingsSwitchRow(
-                        label = localizedString(R.string.settings_amoled_theme, R.string.settings_amoled_theme_hebrew),
-                        description = localizedString(
-                            R.string.settings_amoled_theme_description,
-                            R.string.settings_amoled_theme_description_hebrew,
-                        ),
-                        checked = uiState.amoledBlackTheme,
-                        onCheckedChange = viewModel::setAmoledBlackTheme,
-                    )
-                }
-            }
-            item {
-                InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = localizedString(R.string.settings_calculation_place, R.string.settings_calculation_place_hebrew),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = localizedString(
-                            R.string.settings_calculation_place_description,
-                            R.string.settings_calculation_place_description_hebrew,
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    uiState.savedPlaces.forEachIndexed { index, place ->
-                        SettingsPlaceRow(
-                            label = localizedLocationName(place.name),
-                            selected = place.id == uiState.selectedPlaceId,
-                            onClick = { viewModel.selectPlace(place.id) },
-                        )
-                        if (index != uiState.savedPlaces.lastIndex) {
-                            SettingsDivider()
-                        }
-                    }
                 }
             }
             item {
@@ -285,6 +245,33 @@ fun SettingsScreen(
                 }
             }
         }
+    }
+
+    if (showThemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { Text(localizedString(R.string.settings_theme, R.string.settings_theme_hebrew)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    AppThemeOption.entries.forEach { themeOption ->
+                        ThemeOptionRow(
+                            label = themeOption.localizedLabel(),
+                            selected = themeOption == uiState.themeOption,
+                            onClick = {
+                                viewModel.setThemeOption(themeOption)
+                                showThemeDialog = false
+                            },
+                        )
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showThemeDialog = false }) {
+                    Text(localizedString(R.string.locations_cancel, R.string.locations_cancel_hebrew))
+                }
+            },
+        )
     }
 }
 
@@ -374,8 +361,22 @@ private fun SettingsChoiceRow(
     }
 }
 
+private fun Int.nextIn(values: List<Int>): Int {
+    val index = values.indexOf(this).takeIf { it >= 0 } ?: 0
+    return values[(index + 1) % values.size]
+}
+
 @Composable
-private fun SettingsPlaceRow(
+private fun AppThemeOption.localizedLabel(): String = when (this) {
+    AppThemeOption.Classic -> localizedString(R.string.theme_classic, R.string.theme_classic_hebrew)
+    AppThemeOption.BlueWhite -> localizedString(R.string.theme_blue_white, R.string.theme_blue_white_hebrew)
+    AppThemeOption.IsraelSky -> localizedString(R.string.theme_israel_sky, R.string.theme_israel_sky_hebrew)
+    AppThemeOption.JerusalemStone -> localizedString(R.string.theme_jerusalem_stone, R.string.theme_jerusalem_stone_hebrew)
+    AppThemeOption.AmoledBlack -> localizedString(R.string.theme_amoled_black, R.string.theme_amoled_black_hebrew)
+}
+
+@Composable
+private fun ThemeOptionRow(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
@@ -385,7 +386,7 @@ private fun SettingsPlaceRow(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp),
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = onClick)
@@ -396,9 +397,4 @@ private fun SettingsPlaceRow(
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
-}
-
-private fun Int.nextIn(values: List<Int>): Int {
-    val index = values.indexOf(this).takeIf { it >= 0 } ?: 0
-    return values[(index + 1) % values.size]
 }

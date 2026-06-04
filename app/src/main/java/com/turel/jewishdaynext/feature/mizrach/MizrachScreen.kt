@@ -1,21 +1,14 @@
 package com.turel.jewishdaynext.feature.mizrach
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Context
-import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.view.Surface
-import android.view.WindowManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -49,35 +42,38 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.turel.jewishdaynext.R
-import com.turel.jewishdaynext.model.JewishLocation
+import com.turel.jewishdaynext.data.hasLocationPermission
 import com.turel.jewishdaynext.model.MizrachInfo
-import com.turel.jewishdaynext.model.mizrachInfo
 import com.turel.jewishdaynext.ui.components.InfoCard
 import com.turel.jewishdaynext.ui.components.ScreenPaddingValues
 import com.turel.jewishdaynext.ui.components.ScreenSurface
 import com.turel.jewishdaynext.ui.components.ValuePill
 import com.turel.jewishdaynext.ui.components.readableWidth
 import com.turel.jewishdaynext.ui.localizedString
-import java.time.ZoneId
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 @Composable
 fun MizrachScreen(
     modifier: Modifier = Modifier,
+    viewModel: MizrachViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     var hasLocationPermission by remember { mutableStateOf(context.hasLocationPermission()) }
-    var currentLocation by remember { mutableStateOf<JewishLocation?>(null) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val compassSensorState = rememberCompassSensorState()
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
         hasLocationPermission = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (hasLocationPermission) viewModel.refreshCurrentLocation()
     }
 
     LaunchedEffect(Unit) {
@@ -91,17 +87,14 @@ fun MizrachScreen(
         }
     }
 
-    TrackCurrentLocation(
-        enabled = hasLocationPermission,
-        onLocationChanged = { currentLocation = it },
-    )
-
-    val mizrach = currentLocation?.let(::mizrachInfo)
+    LaunchedEffect(hasLocationPermission) {
+        if (hasLocationPermission) viewModel.refreshCurrentLocation()
+    }
 
     MizrachContent(
-        mizrach = mizrach,
+        mizrach = uiState.mizrachInfo,
         hasLocationPermission = hasLocationPermission,
-        hasCurrentLocation = currentLocation != null,
+        hasCurrentLocation = uiState.hasCurrentLocation,
         compassSensorState = compassSensorState,
         onRequestLocation = {
             permissionLauncher.launch(
@@ -117,7 +110,7 @@ fun MizrachScreen(
 
 @Composable
 private fun MizrachContent(
-    mizrach: MizrachInfo?,
+    mizrach: MizrachInfo,
     hasLocationPermission: Boolean,
     hasCurrentLocation: Boolean,
     compassSensorState: CompassSensorState,
@@ -145,7 +138,7 @@ private fun MizrachContent(
                     )
                 }
             }
-            if (hasCurrentLocation && mizrach != null) {
+            if (hasCurrentLocation) {
                 item {
                     MizrachHeader(mizrach = mizrach)
                 }
@@ -408,18 +401,14 @@ private fun rememberCompassSensorState(): CompassSensorState {
             onDispose { }
         } else {
             val rotationMatrix = FloatArray(9)
-            val remappedRotationMatrix = FloatArray(9)
-            val orientation = FloatArray(3)
             val gravity = FloatArray(3)
             val geomagnetic = FloatArray(3)
             var hasGravity = false
             var hasGeomagnetic = false
 
             fun updateHeadingFromMatrix(accuracy: Int?) {
-                val matrix = rotationMatrix.remapForDisplay(context, remappedRotationMatrix)
-                SensorManager.getOrientation(matrix, orientation)
                 sensorState = CompassSensorState(
-                    headingDegrees = normalizeDegrees(Math.toDegrees(orientation[0].toDouble()).toFloat()),
+                    headingDegrees = rotationMatrix.pointingHeadingDegrees(),
                     accuracy = accuracy,
                 )
             }
@@ -467,84 +456,27 @@ private fun rememberCompassSensorState(): CompassSensorState {
     return sensorState
 }
 
-private fun FloatArray.remapForDisplay(
-    context: Context,
-    output: FloatArray,
-): FloatArray {
-    val rotation = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-        context.display?.rotation ?: Surface.ROTATION_0
-    } else {
-        @Suppress("DEPRECATION")
-        (context.getSystemService(Context.WINDOW_SERVICE) as WindowManager).defaultDisplay.rotation
-    }
-
-    return when (rotation) {
-        Surface.ROTATION_90 -> {
-            SensorManager.remapCoordinateSystem(this, SensorManager.AXIS_Y, SensorManager.AXIS_MINUS_X, output)
-            output
-        }
-        Surface.ROTATION_180 -> {
-            SensorManager.remapCoordinateSystem(this, SensorManager.AXIS_MINUS_X, SensorManager.AXIS_MINUS_Y, output)
-            output
-        }
-        Surface.ROTATION_270 -> {
-            SensorManager.remapCoordinateSystem(this, SensorManager.AXIS_MINUS_Y, SensorManager.AXIS_X, output)
-            output
-        }
-        else -> this
-    }
+private fun FloatArray.pointingHeadingDegrees(): Float? {
+    val topEdge = horizontalVectorHeading(east = this[1], north = this[4])
+    val backCamera = horizontalVectorHeading(east = -this[2], north = -this[5])
+    val best = listOfNotNull(topEdge, backCamera).maxByOrNull { it.horizontalStrength }
+    return best?.takeIf { it.horizontalStrength >= 0.12f }?.headingDegrees
 }
 
-@SuppressLint("MissingPermission")
-@Composable
-private fun TrackCurrentLocation(
-    enabled: Boolean,
-    onLocationChanged: (JewishLocation) -> Unit,
-) {
-    val context = LocalContext.current
-    val currentLocationName = localizedString(R.string.mizrach_current_location, R.string.mizrach_current_location_hebrew)
-
-    DisposableEffect(context, enabled, currentLocationName) {
-        if (!enabled || !context.hasLocationPermission()) {
-            onDispose { }
-        } else {
-            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-            val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
-                .filter(locationManager::isProviderEnabled)
-            val listener = LocationListener { location ->
-                onLocationChanged(location.toJewishLocation(currentLocationName))
-            }
-
-            providers
-                .mapNotNull(locationManager::getLastKnownLocation)
-                .maxByOrNull(Location::getTime)
-                ?.let { onLocationChanged(it.toJewishLocation(currentLocationName)) }
-
-            providers.forEach { provider ->
-                locationManager.requestLocationUpdates(
-                    provider,
-                    2_000L,
-                    5f,
-                    listener,
-                )
-            }
-
-            onDispose { locationManager.removeUpdates(listener) }
-        }
-    }
-}
-
-private fun Context.hasLocationPermission(): Boolean =
-    ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-
-private fun Location.toJewishLocation(name: String): JewishLocation = JewishLocation(
-    name = name,
-    latitude = latitude,
-    longitude = longitude,
-    elevationMeters = if (hasAltitude()) altitude else 0.0,
-    zoneId = ZoneId.systemDefault(),
+private data class HorizontalHeading(
+    val headingDegrees: Float,
+    val horizontalStrength: Float,
 )
+
+private fun horizontalVectorHeading(east: Float, north: Float): HorizontalHeading? {
+    val horizontalStrength = sqrt(east * east + north * north)
+    if (horizontalStrength == 0f) return null
+
+    return HorizontalHeading(
+        headingDegrees = normalizeDegrees(Math.toDegrees(atan2(east, north).toDouble()).toFloat()),
+        horizontalStrength = horizontalStrength,
+    )
+}
 
 private fun normalizeDegrees(degrees: Float): Float = ((degrees % 360f) + 360f) % 360f
 

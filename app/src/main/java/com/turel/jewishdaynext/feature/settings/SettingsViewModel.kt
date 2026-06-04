@@ -2,6 +2,7 @@ package com.turel.jewishdaynext.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.turel.jewishdaynext.data.AppThemeOption
 import com.turel.jewishdaynext.data.AppSettingsRepository
 import com.turel.jewishdaynext.data.SavedPlace
 import com.turel.jewishdaynext.model.ZmanimCalculationSettings
@@ -23,8 +24,7 @@ data class SettingsUiState(
     val preferHebrewDates: Boolean = false,
     val useHebrewInterface: Boolean = false,
     val use24HourTime: Boolean = true,
-    val blueWhiteTheme: Boolean = false,
-    val amoledBlackTheme: Boolean = false,
+    val themeOption: AppThemeOption = AppThemeOption.Classic,
     val savedPlaces: List<SavedPlace> = emptyList(),
     val selectedPlaceId: String = "",
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
@@ -45,8 +45,7 @@ class SettingsViewModel @Inject constructor(
                 preferHebrewDates = settings.preferHebrewDates,
                 useHebrewInterface = settings.useHebrewInterface,
                 use24HourTime = settings.use24HourTime,
-                blueWhiteTheme = settings.blueWhiteTheme,
-                amoledBlackTheme = settings.amoledBlackTheme,
+                themeOption = settings.themeOption,
                 savedPlaces = settings.savedPlaces,
                 selectedPlaceId = settings.selectedPlaceId,
                 zmanimSettings = settings.zmanimSettings,
@@ -101,15 +100,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setBlueWhiteTheme(enabled: Boolean) {
+    fun setThemeOption(themeOption: AppThemeOption) {
         viewModelScope.launch {
-            appSettingsRepository.setBlueWhiteTheme(enabled)
-        }
-    }
-
-    fun setAmoledBlackTheme(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsRepository.setAmoledBlackTheme(enabled)
+            appSettingsRepository.setThemeOption(themeOption)
         }
     }
 

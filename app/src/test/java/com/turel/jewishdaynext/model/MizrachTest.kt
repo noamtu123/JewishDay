@@ -7,10 +7,10 @@ import org.junit.Test
 
 class MizrachTest {
     @Test
-    fun jerusalemToJerusalemIsZeroDistance() {
-        val info = mizrachInfo(jerusalemLocation)
+    fun kodeshHakodashimToKodeshHakodashimIsZeroDistance() {
+        val info = mizrachInfo(kodeshHakodashimLocation)
 
-        assertEquals("Jerusalem", info.fromLocationName)
+        assertEquals("Kodesh HaKodashim", info.fromLocationName)
         assertEquals(0, info.distanceKm)
         assertEquals(0, info.bearingDegrees)
     }
