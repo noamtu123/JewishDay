@@ -5,7 +5,28 @@ import androidx.lifecycle.viewModelScope
 import com.turel.jewishdaynext.data.AppThemeOption
 import com.turel.jewishdaynext.data.AppSettingsRepository
 import com.turel.jewishdaynext.data.SavedPlace
+import com.turel.jewishdaynext.model.AlotHashacharMethod
+import com.turel.jewishdaynext.model.BainHashmashotMethod
+import com.turel.jewishdaynext.model.CandleLightingMethod
+import com.turel.jewishdaynext.model.ChametzMethod
+import com.turel.jewishdaynext.model.ChatzotMethod
+import com.turel.jewishdaynext.model.FastDayMethod
+import com.turel.jewishdaynext.model.HighLatitudeHandling
+import com.turel.jewishdaynext.model.MinchaGedolaMethod
+import com.turel.jewishdaynext.model.MinchaKetanaMethod
+import com.turel.jewishdaynext.model.MisheyakirMethod
+import com.turel.jewishdaynext.model.MotzeiShabbatMethod
+import com.turel.jewishdaynext.model.PlagHaminchaMethod
+import com.turel.jewishdaynext.model.RabbeinuTamMethod
+import com.turel.jewishdaynext.model.SamuchLeMinchaKetanaMethod
+import com.turel.jewishdaynext.model.SofZmanShemaMethod
+import com.turel.jewishdaynext.model.SofZmanTefillahMethod
+import com.turel.jewishdaynext.model.SunriseMethod
+import com.turel.jewishdaynext.model.SunsetMethod
+import com.turel.jewishdaynext.model.TzeitHakochavimMethod
 import com.turel.jewishdaynext.model.ZmanimCalculationSettings
+import com.turel.jewishdaynext.model.ZmanimPreset
+import com.turel.jewishdaynext.model.defaultSettings
 import com.turel.jewishdaynext.notification.DailyNotificationScheduler
 import com.turel.jewishdaynext.notification.DateStatusIconScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -113,32 +134,97 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun setZmanimPreset(preset: ZmanimPreset) {
+        viewModelScope.launch {
+            val current = uiState.value.zmanimSettings
+            appSettingsRepository.setZmanimSettings(preset.defaultSettings(current.inIsrael))
+        }
+    }
+
     fun setInIsrael(enabled: Boolean) {
-        viewModelScope.launch { appSettingsRepository.setInIsrael(enabled) }
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, inIsrael = enabled) }
     }
 
-    fun setUseMgaForShemaAndTefila(enabled: Boolean) {
-        viewModelScope.launch { appSettingsRepository.setUseMgaForShemaAndTefila(enabled) }
+    fun setHighLatitudeHandling(method: HighLatitudeHandling) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, highLatitudeHandling = method) }
     }
 
-    fun setUseSeaLevelSunrise(enabled: Boolean) {
-        viewModelScope.launch { appSettingsRepository.setUseSeaLevelSunrise(enabled) }
+    fun setAlotHashacharMethod(method: AlotHashacharMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, alotHashacharMethod = method) }
     }
 
-    fun setUseSeaLevelSunset(enabled: Boolean) {
-        viewModelScope.launch { appSettingsRepository.setUseSeaLevelSunset(enabled) }
+    fun setMisheyakirMethod(method: MisheyakirMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, misheyakirMethod = method) }
     }
 
-    fun setAlotHashacharOffsetMinutes(minutes: Int) {
-        viewModelScope.launch { appSettingsRepository.setAlotHashacharOffsetMinutes(minutes) }
+    fun setSunriseMethod(method: SunriseMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sunriseMethod = method) }
     }
 
-    fun setPlagHaminchaOffsetMinutes(minutes: Int) {
-        viewModelScope.launch { appSettingsRepository.setPlagHaminchaOffsetMinutes(minutes) }
+    fun setSofZmanShemaMethod(method: SofZmanShemaMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sofZmanShemaMethod = method) }
     }
 
-    fun setCandleLightingOffsetMinutes(minutes: Int) {
-        viewModelScope.launch { appSettingsRepository.setCandleLightingOffsetMinutes(minutes) }
+    fun setSofZmanTefillahMethod(method: SofZmanTefillahMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sofZmanTefillahMethod = method) }
+    }
+
+    fun setChatzotMethod(method: ChatzotMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, chatzotMethod = method) }
+    }
+
+    fun setMinchaGedolaMethod(method: MinchaGedolaMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, minchaGedolaMethod = method) }
+    }
+
+    fun setSamuchLeMinchaKetanaMethod(method: SamuchLeMinchaKetanaMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, samuchLeMinchaKetanaMethod = method) }
+    }
+
+    fun setMinchaKetanaMethod(method: MinchaKetanaMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, minchaKetanaMethod = method) }
+    }
+
+    fun setPlagHaminchaMethod(method: PlagHaminchaMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, plagHaminchaMethod = method) }
+    }
+
+    fun setSunsetMethod(method: SunsetMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sunsetMethod = method) }
+    }
+
+    fun setTzeitHakochavimMethod(method: TzeitHakochavimMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, tzeitHakochavimMethod = method) }
+    }
+
+    fun setCandleLightingMethod(method: CandleLightingMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, candleLightingMethod = method) }
+    }
+
+    fun setMotzeiShabbatMethod(method: MotzeiShabbatMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, motzeiShabbatMethod = method) }
+    }
+
+    fun setRabbeinuTamMethod(method: RabbeinuTamMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, rabbeinuTamMethod = method) }
+    }
+
+    fun setBainHashmashotMethod(method: BainHashmashotMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, bainHashmashotMethod = method) }
+    }
+
+    fun setFastDayMethod(method: FastDayMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, fastDayMethod = method) }
+    }
+
+    fun setChametzMethod(method: ChametzMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, chametzMethod = method) }
+    }
+
+    private fun updateZmanimSettings(transform: (ZmanimCalculationSettings) -> ZmanimCalculationSettings) {
+        viewModelScope.launch {
+            appSettingsRepository.setZmanimSettings(transform(uiState.value.zmanimSettings))
+        }
     }
 
     private suspend fun syncDateStatusIcons() {

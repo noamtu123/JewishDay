@@ -113,6 +113,12 @@
     <string name="settings_calculation_place_description_hebrew">בחר מיקום שמור, או הוסף מקומות במסך מקומות.</string>
     <string name="settings_zmanim_options">Zmanim calculation options</string>
     <string name="settings_zmanim_options_hebrew">אפשרויות חישוב זמנים</string>
+    <string name="settings_zmanim_preset">Preset</string>
+    <string name="settings_zmanim_preset_hebrew">פרופיל</string>
+    <string name="settings_advanced_zmanim">Detailed Calculation Methods</string>
+    <string name="settings_advanced_zmanim_hebrew">שיטות חישוב מפורטות</string>
+    <string name="settings_advanced_zmanim_description">Choose the exact halachic method for each displayed zman.</string>
+    <string name="settings_advanced_zmanim_description_hebrew">בחר את שיטת ההלכה המדויקת לכל זמן מוצג.</string>
     <string name="settings_in_israel">Use Israel calendar rules</string>
     <string name="settings_in_israel_hebrew">חשב לפי ארץ ישראל</string>
     <string name="settings_in_israel_description">Use Israeli Yom Tov and parsha rules.</string>
