@@ -3,13 +3,14 @@ package com.turel.jewishdaynext.feature.zmanim
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turel.jewishdaynext.data.AppSettingsRepository
+import com.turel.jewishdaynext.data.CurrentLocationRepository
 import com.turel.jewishdaynext.data.JewishDayRepository
 import com.turel.jewishdaynext.model.ZmanimDay
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 data class ZmanimUiState(
@@ -21,14 +22,18 @@ data class ZmanimUiState(
 class ZmanimViewModel @Inject constructor(
     jewishDayRepository: JewishDayRepository,
     appSettingsRepository: AppSettingsRepository,
+    currentLocationRepository: CurrentLocationRepository,
 ) : ViewModel() {
     private val initialZmanim = jewishDayRepository.getZmanim()
 
-    val uiState: StateFlow<ZmanimUiState> = appSettingsRepository.settings
-        .map { settings ->
+    val uiState: StateFlow<ZmanimUiState> = combine(
+        appSettingsRepository.settings,
+        currentLocationRepository.currentLocation,
+    ) { settings, currentLocation ->
+            val calculationLocation = currentLocation ?: currentLocationRepository.currentLocationOrDefault()
             ZmanimUiState(
                 zmanimDay = jewishDayRepository.getZmanim(
-                    location = settings.selectedPlace.toJewishLocation(),
+                    location = calculationLocation,
                     settings = settings.zmanimSettings,
                 ),
                 use24HourTime = settings.use24HourTime,

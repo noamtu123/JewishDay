@@ -6,6 +6,7 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.turel.jewishdaynext.data.AppSettings
 import com.turel.jewishdaynext.data.AppSettingsRepository
+import com.turel.jewishdaynext.data.CurrentLocationRepository
 import com.turel.jewishdaynext.data.JewishDayRepository
 import com.turel.jewishdaynext.model.JewishLocation
 import com.turel.jewishdaynext.model.ZmanimCalculationSettings
@@ -24,6 +25,7 @@ class DateStatusIconWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParameters: WorkerParameters,
     private val appSettingsRepository: AppSettingsRepository,
+    private val currentLocationRepository: CurrentLocationRepository,
     private val jewishDayRepository: JewishDayRepository,
     private val dateStatusIconNotifier: DateStatusIconNotifier,
     private val dateStatusIconScheduler: DateStatusIconScheduler,
@@ -38,8 +40,10 @@ class DateStatusIconWorker @AssistedInject constructor(
             return Result.success()
         }
 
+        currentLocationRepository.refreshCurrentLocation()
+        val location = currentLocationRepository.currentLocationOrDefault()
         val dayInfo = jewishDayRepository.getToday(
-            location = settings.selectedPlace.toJewishLocation(),
+            location = location,
             settings = settings.zmanimSettings,
         )
         dateStatusIconNotifier.show(
@@ -47,12 +51,15 @@ class DateStatusIconWorker @AssistedInject constructor(
             showHebrew = showHebrew,
             showEnglish = showEnglish,
         )
-        dateStatusIconScheduler.scheduleNext(nextUpdateDelay(settings, clock.instant()))
+        dateStatusIconScheduler.scheduleNext(nextUpdateDelay(settings, location, clock.instant()))
         return Result.success()
     }
 
-    private fun nextUpdateDelay(settings: AppSettings, now: Instant): Duration {
-        val location = settings.selectedPlace.toJewishLocation()
+    private fun nextUpdateDelay(
+        settings: AppSettings,
+        location: JewishLocation,
+        now: Instant,
+    ): Duration {
         val candidates = buildList {
             if (settings.englishDateStatusIconEnabled) {
                 add(nextGregorianMidnight(location, now))

@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.turel.jewishdaynext.data.AppThemeOption
 
 private val LightColors = lightColorScheme(
     primary = Color(0xFF315B46),
@@ -108,6 +109,52 @@ private val BlueWhiteColors = lightColorScheme(
     outlineVariant = Color(0xFFC9D8E8),
 )
 
+private val IsraelSkyColors = lightColorScheme(
+    primary = Color(0xFF0D47A1),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFD6E8FF),
+    onPrimaryContainer = Color(0xFF001B3F),
+    secondary = Color(0xFF4A6FA5),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFD9E8FF),
+    onSecondaryContainer = Color(0xFF061B33),
+    tertiary = Color(0xFF0087C7),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFC9EEFF),
+    onTertiaryContainer = Color(0xFF001F2D),
+    background = Color(0xFFF8FBFF),
+    onBackground = Color(0xFF101923),
+    surface = Color.White,
+    onSurface = Color(0xFF101923),
+    surfaceVariant = Color(0xFFE4F1FF),
+    onSurfaceVariant = Color(0xFF486071),
+    outline = Color(0xFF6D8092),
+    outlineVariant = Color(0xFFC8D8E8),
+)
+
+private val JerusalemStoneColors = lightColorScheme(
+    primary = Color(0xFF1565C0),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFD7E8FF),
+    onPrimaryContainer = Color(0xFF001B3E),
+    secondary = Color(0xFF8A6F38),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFFFE9B1),
+    onSecondaryContainer = Color(0xFF2A1F00),
+    tertiary = Color(0xFF006C8F),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFC5EFFF),
+    onTertiaryContainer = Color(0xFF001F2D),
+    background = Color(0xFFFFFBF2),
+    onBackground = Color(0xFF1F1B13),
+    surface = Color(0xFFFFFCF7),
+    onSurface = Color(0xFF1F1B13),
+    surfaceVariant = Color(0xFFF2E7D0),
+    onSurfaceVariant = Color(0xFF625B4B),
+    outline = Color(0xFF817867),
+    outlineVariant = Color(0xFFE0D5BE),
+)
+
 private val BaseTypography = Typography()
 
 private val AppTypography = Typography(
@@ -148,13 +195,14 @@ private val AppShapes = Shapes(
 fun JewishDayNextTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
-    blueWhite: Boolean = false,
-    amoledBlack: Boolean = false,
+    themeOption: AppThemeOption = AppThemeOption.Classic,
     content: @Composable () -> Unit,
 ) {
     val colorScheme = when {
-        amoledBlack -> AmoledColors
-        blueWhite -> BlueWhiteColors
+        themeOption == AppThemeOption.AmoledBlack -> AmoledColors
+        themeOption == AppThemeOption.BlueWhite -> BlueWhiteColors
+        themeOption == AppThemeOption.IsraelSky -> IsraelSkyColors
+        themeOption == AppThemeOption.JerusalemStone -> JerusalemStoneColors
 
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

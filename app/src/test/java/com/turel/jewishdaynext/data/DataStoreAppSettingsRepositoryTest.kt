@@ -37,8 +37,7 @@ class DataStoreAppSettingsRepositoryTest {
             repository.setPreferHebrewDates(true)
             repository.setUseHebrewInterface(true)
             repository.setUse24HourTime(false)
-            repository.setBlueWhiteTheme(true)
-            repository.setAmoledBlackTheme(true)
+            repository.setThemeOption(AppThemeOption.IsraelSky)
 
             assertEquals(
                 AppSettings(
@@ -48,8 +47,7 @@ class DataStoreAppSettingsRepositoryTest {
                     preferHebrewDates = true,
                     useHebrewInterface = true,
                     use24HourTime = false,
-                    blueWhiteTheme = true,
-                    amoledBlackTheme = true,
+                    themeOption = AppThemeOption.IsraelSky,
                 ),
                 repository.settings.first(),
             )
