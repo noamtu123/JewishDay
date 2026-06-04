@@ -3,13 +3,14 @@ package com.turel.jewishdaynext.feature.today
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turel.jewishdaynext.data.AppSettingsRepository
+import com.turel.jewishdaynext.data.CurrentLocationRepository
 import com.turel.jewishdaynext.data.JewishDayRepository
 import com.turel.jewishdaynext.model.JewishDayInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 data class TodayUiState(
@@ -21,17 +22,21 @@ data class TodayUiState(
 class TodayViewModel @Inject constructor(
     jewishDayRepository: JewishDayRepository,
     appSettingsRepository: AppSettingsRepository,
+    currentLocationRepository: CurrentLocationRepository,
 ) : ViewModel() {
     private val dayInfo = jewishDayRepository.getToday()
 
-    val uiState: StateFlow<TodayUiState> = appSettingsRepository.settings
-        .map { settings ->
+    val uiState: StateFlow<TodayUiState> = combine(
+        appSettingsRepository.settings,
+        currentLocationRepository.currentLocation,
+    ) { settings, currentLocation ->
+            val calculationLocation = currentLocation ?: currentLocationRepository.currentLocationOrDefault()
             TodayUiState(
                 dayInfo = jewishDayRepository.getToday(
-                    location = settings.selectedPlace.toJewishLocation(),
+                    location = calculationLocation,
                     settings = settings.zmanimSettings,
                 ),
-                preferHebrewDates = settings.preferHebrewDates || settings.useHebrewInterface,
+                preferHebrewDates = settings.preferHebrewDates,
             )
         }
         .stateIn(

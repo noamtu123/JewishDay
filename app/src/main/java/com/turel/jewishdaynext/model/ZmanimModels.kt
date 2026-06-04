@@ -3,6 +3,7 @@ package com.turel.jewishdaynext.model
 import com.kosherjava.zmanim.ComplexZmanimCalendar
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
+import com.kosherjava.zmanim.hebrewcalendar.YerushalmiYomiCalculator
 import com.kosherjava.zmanim.util.GeoLocation
 import java.time.Instant
 import java.time.LocalDate
@@ -125,16 +126,142 @@ fun zmanimForDate(
                 ),
             ),
             ZmanimGroup(
-                title = "Learning & Place",
-                titleHebrew = "לימוד ומקום",
+                title = "Daily Learning",
+                titleHebrew = "לימוד יומי",
+                items = dailyLearningItems(
+                    jewishCalendar = jewishCalendar,
+                    englishFormatter = englishFormatter,
+                    hebrewFormatter = hebrewFormatter,
+                ),
+            ),
+            ZmanimGroup(
+                title = "Location",
+                titleHebrew = "מיקום",
                 items = listOf(
-                    ZmanItem("Daf Yomi", "דף יומי", null, "Bavli", "בבלי", englishFormatter.formatDafYomiBavli(jewishCalendar.dafYomiBavli), hebrewFormatter.formatDafYomiBavli(jewishCalendar.dafYomiBavli)),
-                    ZmanItem("Location", "מיקום", null, "Calculation place", "מקום החישוב", location.name, location.name),
+                    ZmanItem("Current Location", "מיקום נוכחי", null, "Automatic device location", "מיקום אוטומטי מהמכשיר", location.name, location.name),
                     ZmanItem("Coordinates", "קואורדינטות", null, "Latitude, longitude", "קו רוחב וקו אורך", "%.4f, %.4f".format(location.latitude, location.longitude), "%.4f, %.4f".format(location.latitude, location.longitude)),
                 ),
             ),
         ),
     )
+}
+
+private fun dailyLearningItems(
+    jewishCalendar: JewishCalendar,
+    englishFormatter: HebrewDateFormatter,
+    hebrewFormatter: HebrewDateFormatter,
+): List<ZmanItem> = buildList {
+    add(
+        ZmanItem(
+            title = "Daf Yomi Bavli",
+            titleHebrew = "דף יומי בבלי",
+            time = null,
+            description = "KosherJava Daf Yomi cycle",
+            descriptionHebrew = "מחזור דף יומי של KosherJava",
+            value = englishFormatter.formatDafYomiBavli(jewishCalendar.dafYomiBavli),
+            valueHebrew = hebrewFormatter.formatDafYomiBavli(jewishCalendar.dafYomiBavli),
+        ),
+    )
+    val yerushalmiDaf = runCatching { YerushalmiYomiCalculator.getDafYomiYerushalmi(jewishCalendar) }.getOrNull()
+    if (yerushalmiDaf != null) {
+        add(
+            ZmanItem(
+                title = "Daf Yomi Yerushalmi",
+                titleHebrew = "דף יומי ירושלמי",
+                time = null,
+                description = "KosherJava Yerushalmi cycle",
+                descriptionHebrew = "מחזור ירושלמי של KosherJava",
+                value = englishFormatter.formatDafYomiYerushalmi(yerushalmiDaf),
+                valueHebrew = hebrewFormatter.formatDafYomiYerushalmi(yerushalmiDaf),
+            ),
+        )
+    }
+    add(
+        ZmanItem(
+            title = "Tehillim Yomi",
+            titleHebrew = "תהילים יומי",
+            time = null,
+            description = "Monthly Tehillim division by Hebrew date",
+            descriptionHebrew = "חלוקה חודשית לפי היום בחודש העברי",
+            value = jewishCalendar.tehillimYomiEnglish(),
+            valueHebrew = jewishCalendar.tehillimYomiHebrew(hebrewFormatter),
+        ),
+    )
+    addCyclePlaceholder("Rambam Yomi", "רמב״ם יומי")
+    addCyclePlaceholder("Shmirat HaLashon Yomi", "שמירת הלשון יומי")
+    addCyclePlaceholder("Halacha Yomit", "הלכה יומית")
+}
+
+private fun MutableList<ZmanItem>.addCyclePlaceholder(title: String, titleHebrew: String) {
+    add(
+        ZmanItem(
+            title = title,
+            titleHebrew = titleHebrew,
+            time = null,
+            description = "Needs a verified program cycle before calculation",
+            descriptionHebrew = "נדרש מקור מחזור מדויק לפני חישוב",
+            value = "Not calculated yet",
+            valueHebrew = "עדיין לא מחושב",
+        ),
+    )
+}
+
+private fun JewishCalendar.tehillimYomiEnglish(): String {
+    val range = tehillimRangeForDay(jewishDayOfMonth, daysInJewishMonth)
+    return if (range.verseStart == null) {
+        "Psalms ${range.chapterStart}-${range.chapterEnd}"
+    } else {
+        "Psalm ${range.chapterStart}:${range.verseStart}-${range.verseEnd}"
+    }
+}
+
+private fun JewishCalendar.tehillimYomiHebrew(formatter: HebrewDateFormatter): String {
+    val range = tehillimRangeForDay(jewishDayOfMonth, daysInJewishMonth)
+    return if (range.verseStart == null) {
+        "תהילים ${formatter.formatHebrewNumber(range.chapterStart)}-${formatter.formatHebrewNumber(range.chapterEnd)}"
+    } else {
+        "תהילים ${formatter.formatHebrewNumber(range.chapterStart)}:${formatter.formatHebrewNumber(range.verseStart)}-${formatter.formatHebrewNumber(range.verseEnd ?: range.verseStart)}"
+    }
+}
+
+private data class TehillimRange(
+    val chapterStart: Int,
+    val chapterEnd: Int,
+    val verseStart: Int? = null,
+    val verseEnd: Int? = null,
+)
+
+private fun tehillimRangeForDay(dayOfMonth: Int, daysInMonth: Int): TehillimRange = when (dayOfMonth) {
+    1 -> TehillimRange(1, 9)
+    2 -> TehillimRange(10, 17)
+    3 -> TehillimRange(18, 22)
+    4 -> TehillimRange(23, 28)
+    5 -> TehillimRange(29, 34)
+    6 -> TehillimRange(35, 38)
+    7 -> TehillimRange(39, 43)
+    8 -> TehillimRange(44, 48)
+    9 -> TehillimRange(49, 54)
+    10 -> TehillimRange(55, 59)
+    11 -> TehillimRange(60, 65)
+    12 -> TehillimRange(66, 68)
+    13 -> TehillimRange(69, 71)
+    14 -> TehillimRange(72, 76)
+    15 -> TehillimRange(77, 78)
+    16 -> TehillimRange(79, 82)
+    17 -> TehillimRange(83, 87)
+    18 -> TehillimRange(88, 89)
+    19 -> TehillimRange(90, 96)
+    20 -> TehillimRange(97, 103)
+    21 -> TehillimRange(104, 105)
+    22 -> TehillimRange(106, 107)
+    23 -> TehillimRange(108, 112)
+    24 -> TehillimRange(113, 118)
+    25 -> TehillimRange(119, 119, 1, 96)
+    26 -> TehillimRange(119, 119, 97, 176)
+    27 -> TehillimRange(120, 134)
+    28 -> TehillimRange(135, 139)
+    29 -> if (daysInMonth == 29) TehillimRange(140, 150) else TehillimRange(140, 144)
+    else -> TehillimRange(145, 150)
 }
 
 private fun ComplexZmanimCalendar.alotHashachar(offsetMinutes: Int) = when (offsetMinutes) {

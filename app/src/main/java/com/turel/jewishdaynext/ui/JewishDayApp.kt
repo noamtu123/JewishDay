@@ -1,9 +1,13 @@
 package com.turel.jewishdaynext.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -21,6 +25,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination
@@ -31,8 +36,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.turel.jewishdaynext.R
 import com.turel.jewishdaynext.feature.about.AboutScreen
-import com.turel.jewishdaynext.feature.locations.LocationsScreen
 import com.turel.jewishdaynext.feature.mizrach.MizrachScreen
 import com.turel.jewishdaynext.feature.settings.SettingsScreen
 import com.turel.jewishdaynext.feature.today.TodayScreen
@@ -50,6 +55,7 @@ fun JewishDayApp(useHebrewInterface: Boolean = false) {
 @Composable
 private fun JewishDayNavHost(useHebrewInterface: Boolean) {
     val navController = rememberNavController()
+    val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentAppDestination = remember(currentDestination) {
@@ -80,6 +86,10 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean) {
                             scrolledContainerColor = MaterialTheme.colorScheme.background,
                         ),
                         actions = {
+                            val reportLabel = localizedString(R.string.report_issue, R.string.report_issue_hebrew)
+                            IconButton(onClick = { context.openFeedbackEmail() }) {
+                                Icon(Icons.Outlined.BugReport, contentDescription = reportLabel)
+                            }
                             if (currentAppDestination != AppDestination.Settings) {
                                 val settingsLabel = stringResource(AppDestination.Settings.labelRes(useHebrewInterface))
                                 IconButton(onClick = { navController.navigateSecondaryTo(AppDestination.Settings.route) }) {
@@ -113,13 +123,20 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean) {
                     composable(AppDestination.Today.route) { TodayScreen() }
                     composable(AppDestination.Zmanim.route) { ZmanimScreen() }
                     composable(AppDestination.Mizrach.route) { MizrachScreen() }
-                    composable(AppDestination.Locations.route) { LocationsScreen() }
                     composable(AppDestination.Settings.route) { SettingsScreen() }
                     composable(AppDestination.About.route) { AboutScreen() }
                 }
             }
         }
     }
+}
+
+private fun android.content.Context.openFeedbackEmail() {
+    val intent = Intent(Intent.ACTION_SENDTO).apply {
+        data = Uri.parse("mailto:jewishdayapp@gmail.com")
+        putExtra(Intent.EXTRA_SUBJECT, "JewishDay bug report / feature request")
+    }
+    runCatching { startActivity(intent) }
 }
 
 @Composable

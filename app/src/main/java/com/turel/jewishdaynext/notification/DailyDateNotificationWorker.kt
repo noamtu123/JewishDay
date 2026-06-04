@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.hilt.work.HiltWorker
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -16,19 +17,32 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.turel.jewishdaynext.MainActivity
 import com.turel.jewishdaynext.R
-import com.turel.jewishdaynext.model.jewishDayInfo
-import java.time.LocalDate
+import com.turel.jewishdaynext.data.AppSettingsRepository
+import com.turel.jewishdaynext.data.CurrentLocationRepository
+import com.turel.jewishdaynext.data.JewishDayRepository
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
+import kotlinx.coroutines.flow.first
 
-class DailyDateNotificationWorker(
-    appContext: Context,
-    workerParameters: WorkerParameters,
+@HiltWorker
+class DailyDateNotificationWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParameters: WorkerParameters,
+    private val appSettingsRepository: AppSettingsRepository,
+    private val currentLocationRepository: CurrentLocationRepository,
+    private val jewishDayRepository: JewishDayRepository,
 ) : CoroutineWorker(appContext, workerParameters) {
     @SuppressLint("MissingPermission")
     override suspend fun doWork(): Result {
         if (!applicationContext.canPostNotifications()) return Result.success()
 
         ensureNotificationChannel()
-        val dayInfo = jewishDayInfo(LocalDate.now())
+        val settings = appSettingsRepository.settings.first()
+        currentLocationRepository.refreshCurrentLocation()
+        val dayInfo = jewishDayRepository.getToday(
+            location = currentLocationRepository.currentLocationOrDefault(),
+            settings = settings.zmanimSettings,
+        )
         val intent = Intent(applicationContext, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
             applicationContext,

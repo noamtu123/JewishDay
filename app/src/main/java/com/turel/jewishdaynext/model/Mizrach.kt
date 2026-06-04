@@ -11,11 +11,11 @@ import java.time.ZoneId
 
 private const val EARTH_RADIUS_KM = 6371.0
 
-val jerusalemLocation = JewishLocation(
-    name = "Jerusalem",
-    latitude = 31.7767,
-    longitude = 35.2345,
-    elevationMeters = 754.0,
+val kodeshHakodashimLocation = JewishLocation(
+    name = "Kodesh HaKodashim",
+    latitude = 31.7781,
+    longitude = 35.2354,
+    elevationMeters = 740.0,
     zoneId = ZoneId.of("Asia/Jerusalem"),
 )
 
@@ -27,8 +27,8 @@ data class MizrachInfo(
 
 fun mizrachInfo(from: JewishLocation = defaultJerusalemLocation): MizrachInfo {
     val fromLatitude = toRadians(from.latitude)
-    val toLatitude = toRadians(jerusalemLocation.latitude)
-    val longitudeDelta = toRadians(jerusalemLocation.longitude - from.longitude)
+    val toLatitude = toRadians(kodeshHakodashimLocation.latitude)
+    val longitudeDelta = toRadians(kodeshHakodashimLocation.longitude - from.longitude)
 
     val y = sin(longitudeDelta) * cos(toLatitude)
     val x = cos(fromLatitude) * sin(toLatitude) -
@@ -38,8 +38,8 @@ fun mizrachInfo(from: JewishLocation = defaultJerusalemLocation): MizrachInfo {
     val distance = haversineDistanceKm(
         from.latitude,
         from.longitude,
-        jerusalemLocation.latitude,
-        jerusalemLocation.longitude,
+        kodeshHakodashimLocation.latitude,
+        kodeshHakodashimLocation.longitude,
     )
 
     return MizrachInfo(
