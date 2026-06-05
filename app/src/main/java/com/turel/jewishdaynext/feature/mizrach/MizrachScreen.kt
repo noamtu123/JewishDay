@@ -6,6 +6,7 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.SystemClock
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -59,6 +60,9 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+private const val CompassSensorUpdateIntervalMillis = 100L
+private const val CompassHeadingChangeThresholdDegrees = 1f
+
 @Composable
 fun MizrachScreen(
     modifier: Modifier = Modifier,
@@ -67,24 +71,13 @@ fun MizrachScreen(
     val context = LocalContext.current
     var hasLocationPermission by remember { mutableStateOf(context.hasLocationPermission()) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val compassSensorState = rememberCompassSensorState()
+    val compassSensorState = rememberCompassSensorState(enabled = hasLocationPermission && uiState.hasCurrentLocation)
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
         hasLocationPermission = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (hasLocationPermission) viewModel.refreshCurrentLocation()
-    }
-
-    LaunchedEffect(Unit) {
-        if (!hasLocationPermission) {
-            permissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION,
-                ),
-            )
-        }
     }
 
     LaunchedEffect(hasLocationPermission) {
@@ -368,88 +361,106 @@ private fun VibrateWhenAligned(aligned: Boolean) {
             } ?: return@LaunchedEffect
             if (!vibrator.hasVibrator()) return@LaunchedEffect
 
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                vibrator.vibrate(
-                    VibrationEffect.createWaveform(
-                        longArrayOf(0L, 90L, 70L, 120L),
-                        intArrayOf(0, VibrationEffect.DEFAULT_AMPLITUDE, 0, VibrationEffect.DEFAULT_AMPLITUDE),
-                        -1,
-                    ),
-                )
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(longArrayOf(0L, 90L, 70L, 120L), -1)
-            }
+            vibrator.vibrate(
+                VibrationEffect.createWaveform(
+                    longArrayOf(0L, 90L, 70L, 120L),
+                    intArrayOf(0, VibrationEffect.DEFAULT_AMPLITUDE, 0, VibrationEffect.DEFAULT_AMPLITUDE),
+                    -1,
+                ),
+            )
         }
     }
 }
 
 @Composable
-private fun rememberCompassSensorState(): CompassSensorState {
+private fun rememberCompassSensorState(enabled: Boolean): CompassSensorState {
     val context = LocalContext.current
     var sensorState by remember { mutableStateOf(CompassSensorState()) }
 
-    DisposableEffect(context) {
-        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        val rotationVector = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
-            ?: sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR)
-        val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        val magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
-
-        if (rotationVector == null && (accelerometer == null || magnetometer == null)) {
+    DisposableEffect(context, enabled) {
+        if (!enabled) {
             sensorState = CompassSensorState()
             onDispose { }
         } else {
-            val rotationMatrix = FloatArray(9)
-            val gravity = FloatArray(3)
-            val geomagnetic = FloatArray(3)
-            var hasGravity = false
-            var hasGeomagnetic = false
+            val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+            val rotationVector = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+                ?: sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR)
+            val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            val magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
 
-            fun updateHeadingFromMatrix(accuracy: Int?) {
-                sensorState = CompassSensorState(
-                    headingDegrees = rotationMatrix.pointingHeadingDegrees(),
-                    accuracy = accuracy,
-                )
-            }
+            if (rotationVector == null && (accelerometer == null || magnetometer == null)) {
+                sensorState = CompassSensorState()
+                onDispose { }
+            } else {
+                val rotationMatrix = FloatArray(9)
+                val gravity = FloatArray(3)
+                val geomagnetic = FloatArray(3)
+                var hasGravity = false
+                var hasGeomagnetic = false
+                var lastPublishedHeadingDegrees: Float? = null
+                var lastPublishedAccuracy: Int? = null
+                var lastPublishedAtMillis = 0L
 
-            val listener = object : SensorEventListener {
-                override fun onSensorChanged(event: SensorEvent) {
-                    when (event.sensor.type) {
-                        Sensor.TYPE_ROTATION_VECTOR,
-                        Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR,
-                        -> {
-                            SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
-                            updateHeadingFromMatrix(event.accuracy)
-                        }
-                        Sensor.TYPE_ACCELEROMETER -> {
-                            event.values.copyInto(gravity, endIndex = 3)
-                            hasGravity = true
-                            if (hasGeomagnetic && SensorManager.getRotationMatrix(rotationMatrix, null, gravity, geomagnetic)) {
-                                updateHeadingFromMatrix(event.accuracy)
-                            }
-                        }
-                        Sensor.TYPE_MAGNETIC_FIELD -> {
-                            event.values.copyInto(geomagnetic, endIndex = 3)
-                            hasGeomagnetic = true
-                            if (hasGravity && SensorManager.getRotationMatrix(rotationMatrix, null, gravity, geomagnetic)) {
-                                updateHeadingFromMatrix(event.accuracy)
-                            }
-                        }
+                fun updateHeadingFromMatrix(accuracy: Int?) {
+                    val heading = rotationMatrix.pointingHeadingDegrees()
+                    val now = SystemClock.elapsedRealtime()
+                    val previousHeading = lastPublishedHeadingDegrees
+                    val headingChanged = previousHeading == null || heading == null ||
+                        smallestAngleDistance(normalizeDegrees(heading - previousHeading)) >= CompassHeadingChangeThresholdDegrees
+                    val accuracyChanged = accuracy != lastPublishedAccuracy
+
+                    if (accuracyChanged || (headingChanged && now - lastPublishedAtMillis >= CompassSensorUpdateIntervalMillis)) {
+                        lastPublishedHeadingDegrees = heading
+                        lastPublishedAccuracy = accuracy
+                        lastPublishedAtMillis = now
+                        sensorState = CompassSensorState(
+                            headingDegrees = heading,
+                            accuracy = accuracy,
+                        )
                     }
                 }
 
-                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-                    sensorState = sensorState.copy(accuracy = accuracy)
+                val listener = object : SensorEventListener {
+                    override fun onSensorChanged(event: SensorEvent) {
+                        when (event.sensor.type) {
+                            Sensor.TYPE_ROTATION_VECTOR,
+                            Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR,
+                            -> {
+                                SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
+                                updateHeadingFromMatrix(event.accuracy)
+                            }
+                            Sensor.TYPE_ACCELEROMETER -> {
+                                event.values.copyInto(gravity, endIndex = 3)
+                                hasGravity = true
+                                if (hasGeomagnetic && SensorManager.getRotationMatrix(rotationMatrix, null, gravity, geomagnetic)) {
+                                    updateHeadingFromMatrix(event.accuracy)
+                                }
+                            }
+                            Sensor.TYPE_MAGNETIC_FIELD -> {
+                                event.values.copyInto(geomagnetic, endIndex = 3)
+                                hasGeomagnetic = true
+                                if (hasGravity && SensorManager.getRotationMatrix(rotationMatrix, null, gravity, geomagnetic)) {
+                                    updateHeadingFromMatrix(event.accuracy)
+                                }
+                            }
+                        }
+                    }
+
+                    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+                        if (accuracy != lastPublishedAccuracy) {
+                            lastPublishedAccuracy = accuracy
+                            sensorState = sensorState.copy(accuracy = accuracy)
+                        }
+                    }
                 }
+                if (rotationVector != null) {
+                    sensorManager.registerListener(listener, rotationVector, SensorManager.SENSOR_DELAY_UI)
+                } else {
+                    sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_UI)
+                    sensorManager.registerListener(listener, magnetometer, SensorManager.SENSOR_DELAY_UI)
+                }
+                onDispose { sensorManager.unregisterListener(listener) }
             }
-            if (rotationVector != null) {
-                sensorManager.registerListener(listener, rotationVector, SensorManager.SENSOR_DELAY_UI)
-            } else {
-                sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_UI)
-                sensorManager.registerListener(listener, magnetometer, SensorManager.SENSOR_DELAY_UI)
-            }
-            onDispose { sensorManager.unregisterListener(listener) }
         }
     }
 

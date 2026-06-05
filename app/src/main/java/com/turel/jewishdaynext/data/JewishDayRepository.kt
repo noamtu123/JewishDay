@@ -8,6 +8,7 @@ import com.turel.jewishdaynext.model.ZmanimDay
 import com.turel.jewishdaynext.model.defaultJerusalemLocation
 import com.turel.jewishdaynext.model.jewishDayInfo
 import com.turel.jewishdaynext.model.mizrachInfo
+import com.turel.jewishdaynext.model.tzeitForDate
 import com.turel.jewishdaynext.model.zmanimForDate
 import java.time.Clock
 import java.time.Instant
@@ -64,9 +65,5 @@ class DefaultJewishDayRepository @Inject constructor(
         location: JewishLocation,
         date: LocalDate,
         settings: ZmanimCalculationSettings,
-    ): Instant? = zmanimForDate(location, date, settings)
-        .groups
-        .flatMap { it.items }
-        .firstOrNull { it.title == "Tzeit" }
-        ?.time
+    ): Instant? = tzeitForDate(location, date, settings)
 }

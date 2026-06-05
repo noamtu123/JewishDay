@@ -50,7 +50,7 @@ fun TodayScreen(
 
 @Composable
 private fun TodayContent(
-    dayInfo: JewishDayInfo,
+    dayInfo: JewishDayInfo?,
     preferHebrewDates: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -67,11 +67,15 @@ private fun TodayContent(
                 TodayHero(modifier = Modifier.fillMaxWidth())
             }
             item {
-                JewishDateCard(
-                    dayInfo = dayInfo,
-                    preferHebrewDates = preferHebrewDates,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                if (dayInfo == null) {
+                    TodayLoadingCard(modifier = Modifier.fillMaxWidth())
+                } else {
+                    JewishDateCard(
+                        dayInfo = dayInfo,
+                        preferHebrewDates = preferHebrewDates,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
         }
     }
@@ -96,6 +100,21 @@ private fun TodayHero(modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun TodayLoadingCard(modifier: Modifier = Modifier) {
+    InfoCard(
+        modifier = modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        elevation = 0.dp,
+    ) {
+        Text(
+            text = localizedString(R.string.today_loading, R.string.today_loading_hebrew),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
         )
     }
 }

@@ -1,7 +1,6 @@
 package com.turel.jewishdaynext.ui
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -133,7 +133,7 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean) {
 
 private fun android.content.Context.openFeedbackEmail() {
     val intent = Intent(Intent.ACTION_SENDTO).apply {
-        data = Uri.parse("mailto:jewishdayapp@gmail.com")
+        data = "mailto:jewishdayapp@gmail.com".toUri()
         putExtra(Intent.EXTRA_SUBJECT, "JewishDay bug report / feature request")
     }
     runCatching { startActivity(intent) }

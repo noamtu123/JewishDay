@@ -17,6 +17,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import com.turel.jewishdaynext.MainActivity
 import com.turel.jewishdaynext.R
 import com.turel.jewishdaynext.model.JewishDayInfo
@@ -123,7 +124,7 @@ class DateStatusIconNotifier @Inject constructor(
 
     private fun dateIconBitmap(text: String): Bitmap {
         val size = 96
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
