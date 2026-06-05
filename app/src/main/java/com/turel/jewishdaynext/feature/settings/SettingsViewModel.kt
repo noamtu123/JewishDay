@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turel.jewishdaynext.data.AppThemeOption
 import com.turel.jewishdaynext.data.AppSettingsRepository
-import com.turel.jewishdaynext.data.SavedPlace
 import com.turel.jewishdaynext.model.AlotHashacharMethod
 import com.turel.jewishdaynext.model.BainHashmashotMethod
 import com.turel.jewishdaynext.model.CandleLightingMethod
@@ -46,8 +45,6 @@ data class SettingsUiState(
     val useHebrewInterface: Boolean = false,
     val use24HourTime: Boolean = true,
     val themeOption: AppThemeOption = AppThemeOption.Classic,
-    val savedPlaces: List<SavedPlace> = emptyList(),
-    val selectedPlaceId: String = "",
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
 )
 
@@ -67,8 +64,6 @@ class SettingsViewModel @Inject constructor(
                 useHebrewInterface = settings.useHebrewInterface,
                 use24HourTime = settings.use24HourTime,
                 themeOption = settings.themeOption,
-                savedPlaces = settings.savedPlaces,
-                selectedPlaceId = settings.selectedPlaceId,
                 zmanimSettings = settings.zmanimSettings,
             )
         }
@@ -124,13 +119,6 @@ class SettingsViewModel @Inject constructor(
     fun setThemeOption(themeOption: AppThemeOption) {
         viewModelScope.launch {
             appSettingsRepository.setThemeOption(themeOption)
-        }
-    }
-
-    fun selectPlace(placeId: String) {
-        viewModelScope.launch {
-            appSettingsRepository.selectPlace(placeId)
-            syncDateStatusIcons()
         }
     }
 

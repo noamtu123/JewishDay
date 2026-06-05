@@ -1,3 +1,11 @@
 <resources>
-    <style name="Theme.JewishDayNext" parent="android:style/Theme.Material.NoActionBar" />
+    <style name="Theme.JewishDay" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowBackground">@color/app_launch_background</item>
+        <item name="android:colorAccent">@color/app_launch_primary</item>
+        <item name="android:statusBarColor">@color/app_launch_background</item>
+        <item name="android:navigationBarColor">@color/app_launch_background</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
 </resources>

@@ -7,7 +7,9 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import com.turel.jewishdaynext.model.JewishLocation
 import com.turel.jewishdaynext.model.defaultJerusalemLocation
@@ -24,7 +26,11 @@ class CurrentLocationRepository @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val _currentLocation = MutableStateFlow<JewishLocation?>(null)
+    private var activeLocationListener: LocationListener? = null
+    private var activeTimeout: Runnable? = null
+    private var lastSuccessfulFreshLocationElapsed = 0L
     val currentLocation: StateFlow<JewishLocation?> = _currentLocation.asStateFlow()
 
     fun refreshCurrentLocation() {
@@ -49,8 +55,16 @@ class CurrentLocationRepository @Inject constructor(
     }
 
     @SuppressLint("MissingPermission")
+    @Synchronized
     private fun requestSingleUpdate() {
         if (!context.hasLocationPermission()) return
+        val now = SystemClock.elapsedRealtime()
+        if (activeLocationListener != null) return
+        if (
+            _currentLocation.value != null &&
+            lastSuccessfulFreshLocationElapsed > 0L &&
+            now - lastSuccessfulFreshLocationElapsed < FreshLocationRequestThrottleMillis
+        ) return
 
         val providers = enabledProviders()
         if (providers.isEmpty()) return
@@ -58,17 +72,36 @@ class CurrentLocationRepository @Inject constructor(
         val listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
                 _currentLocation.value = location.toJewishLocation()
-                locationManager.removeUpdates(this)
+                lastSuccessfulFreshLocationElapsed = SystemClock.elapsedRealtime()
+                finishLocationRequest(this)
             }
         }
+        val timeout = Runnable { finishLocationRequest(listener) }
+        activeLocationListener = listener
+        activeTimeout = timeout
         providers.forEach { provider ->
-            locationManager.requestSingleUpdate(provider, listener, Looper.getMainLooper())
+            locationManager.requestLocationUpdates(provider, 0L, 0f, listener, Looper.getMainLooper())
         }
+        mainHandler.postDelayed(timeout, SingleUpdateTimeoutMillis)
+    }
+
+    @Synchronized
+    private fun finishLocationRequest(listener: LocationListener) {
+        if (activeLocationListener !== listener) return
+        locationManager.removeUpdates(listener)
+        activeTimeout?.let(mainHandler::removeCallbacks)
+        activeLocationListener = null
+        activeTimeout = null
     }
 
     private fun enabledProviders(): List<String> =
         listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
             .filter(locationManager::isProviderEnabled)
+
+    private companion object {
+        const val SingleUpdateTimeoutMillis = 30_000L
+        const val FreshLocationRequestThrottleMillis = 5 * 60 * 1_000L
+    }
 }
 
 fun Context.hasLocationPermission(): Boolean =

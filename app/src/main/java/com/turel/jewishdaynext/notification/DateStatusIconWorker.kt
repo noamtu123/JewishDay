@@ -10,7 +10,7 @@ import com.turel.jewishdaynext.data.CurrentLocationRepository
 import com.turel.jewishdaynext.data.JewishDayRepository
 import com.turel.jewishdaynext.model.JewishLocation
 import com.turel.jewishdaynext.model.ZmanimCalculationSettings
-import com.turel.jewishdaynext.model.zmanimForDate
+import com.turel.jewishdaynext.model.tzeitForDate
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.time.Clock
@@ -40,7 +40,6 @@ class DateStatusIconWorker @AssistedInject constructor(
             return Result.success()
         }
 
-        currentLocationRepository.refreshCurrentLocation()
         val location = currentLocationRepository.currentLocationOrDefault()
         val dayInfo = jewishDayRepository.getToday(
             location = location,
@@ -96,9 +95,5 @@ class DateStatusIconWorker @AssistedInject constructor(
         location: JewishLocation,
         date: LocalDate,
         settings: ZmanimCalculationSettings,
-    ): Instant? = zmanimForDate(location, date, settings)
-        .groups
-        .flatMap { it.items }
-        .firstOrNull { it.title == "Tzeit" }
-        ?.time
+    ): Instant? = tzeitForDate(location, date, settings)
 }
