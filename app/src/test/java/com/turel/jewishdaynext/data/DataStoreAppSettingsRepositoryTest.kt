@@ -23,7 +23,6 @@ import com.turel.jewishdaynext.model.TzeitHakochavimMethod
 import com.turel.jewishdaynext.model.ZmanimCalculationSettings
 import com.turel.jewishdaynext.model.ZmanimPreset
 import java.io.File
-import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,15 +41,18 @@ class DataStoreAppSettingsRepositoryTest {
     @Test
     fun settingsDefaultToDisabledAndPersistUpdates() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val startupSettingsCache = FakeStartupSettingsCache()
         val repository = DataStoreAppSettingsRepository(
             PreferenceDataStoreFactory.create(
                 scope = scope,
                 produceFile = { File(temporaryFolder.newFolder(), "settings.preferences_pb") },
             ),
+            startupSettingsCache,
         )
 
         try {
             assertEquals(AppSettings(), repository.settings.first())
+            assertEquals(RootUiSettings(), repository.rootUiSettings.first())
 
             repository.setDailyDateNotificationEnabled(true)
             repository.setHebrewDateStatusIconEnabled(true)
@@ -72,6 +74,20 @@ class DataStoreAppSettingsRepositoryTest {
                 ),
                 repository.settings.first(),
             )
+            assertEquals(
+                RootUiSettings(
+                    themeOption = AppThemeOption.IsraelSky,
+                    useHebrewInterface = true,
+                ),
+                repository.rootUiSettings.first(),
+            )
+            assertEquals(
+                RootUiSettings(
+                    themeOption = AppThemeOption.IsraelSky,
+                    useHebrewInterface = true,
+                ),
+                startupSettingsCache.read(),
+            )
         } finally {
             scope.cancel()
         }
@@ -85,6 +101,7 @@ class DataStoreAppSettingsRepositoryTest {
                 scope = scope,
                 produceFile = { File(temporaryFolder.newFolder(), "zmanim.preferences_pb") },
             ),
+            FakeStartupSettingsCache(),
         )
         val zmanimSettings = ZmanimCalculationSettings(
             preset = ZmanimPreset.Custom,
@@ -120,69 +137,14 @@ class DataStoreAppSettingsRepositoryTest {
         }
     }
 
-    @Test
-    fun savedPlacesPersistAndSelectedPlaceFallsBackAfterDelete() = runBlocking {
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        val repository = DataStoreAppSettingsRepository(
-            PreferenceDataStoreFactory.create(
-                scope = scope,
-                produceFile = { File(temporaryFolder.newFolder(), "places.preferences_pb") },
-            ),
-        )
-        val home = SavedPlace(
-            id = "home",
-            name = "Home",
-            latitude = 40.7128,
-            longitude = -74.0060,
-            elevationMeters = 10.0,
-            zoneId = ZoneId.of("America/New_York"),
-        )
+    private class FakeStartupSettingsCache : StartupSettingsCache {
+        private var settings: RootUiSettings? = null
 
-        try {
-            repository.savePlace(home)
+        override fun read(): RootUiSettings? = settings
 
-            val settingsWithHome = repository.settings.first()
-            assertEquals(home, settingsWithHome.selectedPlace)
-            assertEquals(listOf(defaultSavedPlace, home), settingsWithHome.savedPlaces)
-
-            repository.deletePlace(home.id)
-
-            val settingsAfterDelete = repository.settings.first()
-            assertEquals(defaultSavedPlace, settingsAfterDelete.selectedPlace)
-            assertEquals(listOf(defaultSavedPlace), settingsAfterDelete.savedPlaces)
-        } finally {
-            scope.cancel()
+        override fun write(settings: RootUiSettings) {
+            this.settings = settings
         }
     }
 
-    @Test
-    fun savingSamePlaceReplacesExistingEntry() = runBlocking {
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        val repository = DataStoreAppSettingsRepository(
-            PreferenceDataStoreFactory.create(
-                scope = scope,
-                produceFile = { File(temporaryFolder.newFolder(), "dedupe.preferences_pb") },
-            ),
-        )
-        val home = SavedPlace(
-            id = "home",
-            name = "Home",
-            latitude = 40.7128,
-            longitude = -74.0060,
-            elevationMeters = 10.0,
-            zoneId = ZoneId.of("America/New_York"),
-        )
-        val updatedHome = home.copy(id = "updated_home", elevationMeters = 12.0)
-
-        try {
-            repository.savePlace(home)
-            repository.savePlace(updatedHome)
-
-            val settings = repository.settings.first()
-            assertEquals(updatedHome, settings.selectedPlace)
-            assertEquals(listOf(defaultSavedPlace, updatedHome), settings.savedPlaces)
-        } finally {
-            scope.cancel()
-        }
-    }
 }

@@ -244,7 +244,7 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showThemeDialog = false }) {
-                    Text(localizedString(R.string.locations_cancel, R.string.locations_cancel_hebrew))
+                    Text(localizedString(R.string.settings_cancel, R.string.settings_cancel_hebrew))
                 }
             },
         )
@@ -271,7 +271,7 @@ fun SettingsScreen(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showZmanimPresetDialog = false }) {
-                    Text(localizedString(R.string.locations_cancel, R.string.locations_cancel_hebrew))
+                    Text(localizedString(R.string.settings_cancel, R.string.settings_cancel_hebrew))
                 }
             },
         )
@@ -537,7 +537,7 @@ private fun AdvancedZmanimChoices(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { activePicker = null }) {
-                    Text(localizedString(R.string.locations_cancel, R.string.locations_cancel_hebrew))
+                    Text(localizedString(R.string.settings_cancel, R.string.settings_cancel_hebrew))
                 }
             },
         )

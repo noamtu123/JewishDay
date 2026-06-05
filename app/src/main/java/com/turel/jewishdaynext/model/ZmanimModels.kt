@@ -40,23 +40,7 @@ fun zmanimForDate(
     date: LocalDate,
     settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
 ): ZmanimDay {
-    val timeZone = TimeZone.getTimeZone(location.zoneId)
-    val geoLocation = GeoLocation(
-        location.name,
-        location.latitude,
-        location.longitude,
-        location.elevationMeters,
-        timeZone,
-    )
-    val calculationDate = GregorianCalendar(timeZone).apply {
-        clear()
-        set(date.year, date.monthValue - 1, date.dayOfMonth)
-    }
-    val calendar = ComplexZmanimCalendar(geoLocation).apply {
-        setCalendar(calculationDate)
-        candleLightingOffset = settings.candleLightingMethod.offsetMinutes.toDouble()
-        ateretTorahSunsetOffset = settings.ateretTorahSunsetOffsetMinutes.toDouble()
-    }
+    val calendar = complexZmanimCalendar(location, date, settings)
     val jewishCalendar = JewishCalendar(date).apply {
         isUseModernHolidays = true
         setInIsrael(settings.inIsrael)
@@ -139,6 +123,38 @@ fun zmanimForDate(
             ),
         ),
     )
+}
+
+fun tzeitForDate(
+    location: JewishLocation = defaultJerusalemLocation,
+    date: LocalDate,
+    settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
+): Instant? = complexZmanimCalendar(location, date, settings)
+    .tzeit(settings)
+    ?.toInstant()
+
+private fun complexZmanimCalendar(
+    location: JewishLocation,
+    date: LocalDate,
+    settings: ZmanimCalculationSettings,
+): ComplexZmanimCalendar {
+    val timeZone = TimeZone.getTimeZone(location.zoneId)
+    val geoLocation = GeoLocation(
+        location.name,
+        location.latitude,
+        location.longitude,
+        location.elevationMeters,
+        timeZone,
+    )
+    val calculationDate = GregorianCalendar(timeZone).apply {
+        clear()
+        set(date.year, date.monthValue - 1, date.dayOfMonth)
+    }
+    return ComplexZmanimCalendar(geoLocation).apply {
+        setCalendar(calculationDate)
+        candleLightingOffset = settings.candleLightingMethod.offsetMinutes.toDouble()
+        ateretTorahSunsetOffset = settings.ateretTorahSunsetOffsetMinutes.toDouble()
+    }
 }
 
 private fun dailyLearningItems(

@@ -44,4 +44,17 @@ class ZmanimModelsTest {
         assertTrue(zmanimDay.groups.all { it.items.isNotEmpty() })
         assertFalse(zmanimDay.groups.flatMap { it.items }.any { it.time == null && it.value == null })
     }
+
+    @Test
+    fun directTzeitMatchesDisplayedTzeitRow() {
+        val date = LocalDate.of(2026, 5, 29)
+        val settings = ZmanimCalculationSettings()
+        val displayedTzeit = zmanimForDate(date = date, settings = settings)
+            .groups
+            .flatMap { it.items }
+            .first { it.title == "Tzeit" }
+            .time
+
+        assertEquals(displayedTzeit, tzeitForDate(date = date, settings = settings))
+    }
 }

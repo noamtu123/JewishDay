@@ -7,8 +7,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
-import com.turel.jewishdaynext.model.JewishLocation
 import com.turel.jewishdaynext.model.AlotHashacharMethod
 import com.turel.jewishdaynext.model.BainHashmashotMethod
 import com.turel.jewishdaynext.model.CandleLightingMethod
@@ -30,40 +28,13 @@ import com.turel.jewishdaynext.model.SunsetMethod
 import com.turel.jewishdaynext.model.TzeitHakochavimMethod
 import com.turel.jewishdaynext.model.ZmanimCalculationSettings
 import com.turel.jewishdaynext.model.ZmanimPreset
-import com.turel.jewishdaynext.model.defaultJerusalemLocation
 import java.io.IOException
-import java.time.ZoneId
 import javax.inject.Inject
-import kotlin.math.abs
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-
-data class SavedPlace(
-    val id: String,
-    val name: String,
-    val latitude: Double,
-    val longitude: Double,
-    val elevationMeters: Double,
-    val zoneId: ZoneId,
-) {
-    fun toJewishLocation(): JewishLocation = JewishLocation(
-        name = name,
-        latitude = latitude,
-        longitude = longitude,
-        elevationMeters = elevationMeters,
-        zoneId = zoneId,
-    )
-}
-
-val defaultSavedPlace = SavedPlace(
-    id = "jerusalem",
-    name = defaultJerusalemLocation.name,
-    latitude = defaultJerusalemLocation.latitude,
-    longitude = defaultJerusalemLocation.longitude,
-    elevationMeters = defaultJerusalemLocation.elevationMeters,
-    zoneId = defaultJerusalemLocation.zoneId,
-)
+import kotlinx.coroutines.flow.onEach
 
 enum class AppThemeOption(val storageValue: String) {
     Classic("classic"),
@@ -87,15 +58,17 @@ data class AppSettings(
     val useHebrewInterface: Boolean = false,
     val use24HourTime: Boolean = true,
     val themeOption: AppThemeOption = AppThemeOption.Classic,
-    val savedPlaces: List<SavedPlace> = listOf(defaultSavedPlace),
-    val selectedPlaceId: String = defaultSavedPlace.id,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
-) {
-    val selectedPlace: SavedPlace = savedPlaces.firstOrNull { it.id == selectedPlaceId } ?: defaultSavedPlace
-}
+)
+
+data class RootUiSettings(
+    val themeOption: AppThemeOption = AppThemeOption.Classic,
+    val useHebrewInterface: Boolean = false,
+)
 
 interface AppSettingsRepository {
     val settings: Flow<AppSettings>
+    val rootUiSettings: Flow<RootUiSettings>
 
     suspend fun setDailyDateNotificationEnabled(enabled: Boolean)
     suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean)
@@ -104,15 +77,25 @@ interface AppSettingsRepository {
     suspend fun setUseHebrewInterface(enabled: Boolean)
     suspend fun setUse24HourTime(enabled: Boolean)
     suspend fun setThemeOption(themeOption: AppThemeOption)
-    suspend fun savePlace(place: SavedPlace)
-    suspend fun selectPlace(placeId: String)
-    suspend fun deletePlace(placeId: String)
     suspend fun setZmanimSettings(settings: ZmanimCalculationSettings)
 }
 
 class DataStoreAppSettingsRepository @Inject constructor(
     private val dataStore: DataStore<Preferences>,
+    private val startupSettingsCache: StartupSettingsCache,
 ) : AppSettingsRepository {
+    override val rootUiSettings: Flow<RootUiSettings> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw exception
+            }
+        }
+        .map(::decodeRootUiSettings)
+        .distinctUntilChanged()
+        .onEach(startupSettingsCache::write)
+
     override val settings: Flow<AppSettings> = dataStore.data
         .catch { exception ->
             if (exception is IOException) {
@@ -122,26 +105,15 @@ class DataStoreAppSettingsRepository @Inject constructor(
             }
         }
         .map { preferences ->
-            val savedPlaces = preferences[SavedPlaces]
-                .orEmpty()
-                .mapNotNull(::decodeSavedPlace)
-                .let { places -> (listOf(defaultSavedPlace) + places).distinctBy(SavedPlace::id) }
-            val themeOption = AppThemeOption.fromStorageValue(preferences[ThemeOption])
-                ?: when {
-                    preferences[AmoledBlackTheme] == true -> AppThemeOption.AmoledBlack
-                    preferences[BlueWhiteTheme] == true -> AppThemeOption.BlueWhite
-                    else -> AppThemeOption.Classic
-                }
+            val rootUiSettings = decodeRootUiSettings(preferences)
             AppSettings(
                 dailyDateNotificationEnabled = preferences[DailyDateNotificationEnabled] ?: false,
                 hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: false,
                 englishDateStatusIconEnabled = preferences[EnglishDateStatusIconEnabled] ?: false,
                 preferHebrewDates = preferences[PreferHebrewDates] ?: false,
-                useHebrewInterface = preferences[UseHebrewInterface] ?: false,
+                useHebrewInterface = rootUiSettings.useHebrewInterface,
                 use24HourTime = preferences[Use24HourTime] ?: true,
-                themeOption = themeOption,
-                savedPlaces = savedPlaces,
-                selectedPlaceId = preferences[SelectedPlaceId] ?: defaultSavedPlace.id,
+                themeOption = rootUiSettings.themeOption,
                 zmanimSettings = decodeZmanimSettings(preferences),
             )
         }
@@ -171,9 +143,10 @@ class DataStoreAppSettingsRepository @Inject constructor(
     }
 
     override suspend fun setUseHebrewInterface(enabled: Boolean) {
-        dataStore.edit { preferences ->
+        val updatedPreferences = dataStore.edit { preferences ->
             preferences[UseHebrewInterface] = enabled
         }
+        startupSettingsCache.write(decodeRootUiSettings(updatedPreferences))
     }
 
     override suspend fun setUse24HourTime(enabled: Boolean) {
@@ -183,47 +156,12 @@ class DataStoreAppSettingsRepository @Inject constructor(
     }
 
     override suspend fun setThemeOption(themeOption: AppThemeOption) {
-        dataStore.edit { preferences ->
+        val updatedPreferences = dataStore.edit { preferences ->
             preferences[ThemeOption] = themeOption.storageValue
             preferences.remove(BlueWhiteTheme)
             preferences.remove(AmoledBlackTheme)
         }
-    }
-
-    override suspend fun savePlace(place: SavedPlace) {
-        dataStore.edit { preferences ->
-            val existing = preferences[SavedPlaces]
-                .orEmpty()
-                .mapNotNull(::decodeSavedPlace)
-                .filterNot { it.id == place.id || it.isSameStoredPlace(place) }
-            preferences[SavedPlaces] = (existing + place)
-                .filterNot { it.id == defaultSavedPlace.id }
-                .map(::encodeSavedPlace)
-                .toSet()
-            preferences[SelectedPlaceId] = place.id
-        }
-    }
-
-    override suspend fun selectPlace(placeId: String) {
-        dataStore.edit { preferences ->
-            preferences[SelectedPlaceId] = placeId
-        }
-    }
-
-    override suspend fun deletePlace(placeId: String) {
-        if (placeId == defaultSavedPlace.id) return
-
-        dataStore.edit { preferences ->
-            preferences[SavedPlaces] = preferences[SavedPlaces]
-                .orEmpty()
-                .mapNotNull(::decodeSavedPlace)
-                .filterNot { it.id == placeId }
-                .map(::encodeSavedPlace)
-                .toSet()
-            if (preferences[SelectedPlaceId] == placeId) {
-                preferences[SelectedPlaceId] = defaultSavedPlace.id
-            }
-        }
+        startupSettingsCache.write(decodeRootUiSettings(updatedPreferences))
     }
 
     override suspend fun setZmanimSettings(settings: ZmanimCalculationSettings) {
@@ -288,6 +226,19 @@ class DataStoreAppSettingsRepository @Inject constructor(
         )
     }
 
+    private fun decodeRootUiSettings(preferences: Preferences): RootUiSettings = RootUiSettings(
+        themeOption = decodeThemeOption(preferences),
+        useHebrewInterface = preferences[UseHebrewInterface] ?: false,
+    )
+
+    private fun decodeThemeOption(preferences: Preferences): AppThemeOption =
+        AppThemeOption.fromStorageValue(preferences[ThemeOption])
+            ?: when {
+                preferences[AmoledBlackTheme] == true -> AppThemeOption.AmoledBlack
+                preferences[BlueWhiteTheme] == true -> AppThemeOption.BlueWhite
+                else -> AppThemeOption.Classic
+            }
+
     private fun legacyAlotMethod(minutes: Int): AlotHashacharMethod = when (minutes) {
         90 -> AlotHashacharMethod.Minutes90
         120 -> AlotHashacharMethod.Minutes120
@@ -311,7 +262,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
     }
 
     private companion object {
-        const val PlaceDelimiter = "\u001F"
         val DailyDateNotificationEnabled = booleanPreferencesKey("daily_date_notification_enabled")
         val HebrewDateStatusIconEnabled = booleanPreferencesKey("hebrew_date_status_icon_enabled")
         val EnglishDateStatusIconEnabled = booleanPreferencesKey("english_date_status_icon_enabled")
@@ -321,8 +271,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val ThemeOption = stringPreferencesKey("theme_option")
         val BlueWhiteTheme = booleanPreferencesKey("blue_white_theme")
         val AmoledBlackTheme = booleanPreferencesKey("amoled_black_theme")
-        val SavedPlaces = stringSetPreferencesKey("saved_places")
-        val SelectedPlaceId = stringPreferencesKey("selected_place_id")
         val ZmanimPresetKey = stringPreferencesKey("zmanim_preset")
         val HighLatitudeHandlingKey = stringPreferencesKey("zmanim_high_latitude_handling")
         val AlotHashacharMethodKey = stringPreferencesKey("zmanim_alot_method")
@@ -351,35 +299,5 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val UseSeaLevelSunrise = booleanPreferencesKey("zmanim_use_sea_level_sunrise")
         val UseSeaLevelSunset = booleanPreferencesKey("zmanim_use_sea_level_sunset")
         val CandleLightingOffsetMinutes = intPreferencesKey("zmanim_candle_lighting_offset_minutes")
-
-        fun encodeSavedPlace(place: SavedPlace): String = listOf(
-            place.id,
-            place.name,
-            place.latitude.toString(),
-            place.longitude.toString(),
-            place.elevationMeters.toString(),
-            place.zoneId.id,
-        ).joinToString(PlaceDelimiter)
-
-        fun decodeSavedPlace(value: String): SavedPlace? {
-            val parts = value.split(PlaceDelimiter)
-            if (parts.size != 6) return null
-
-            return runCatching {
-                SavedPlace(
-                    id = parts[0],
-                    name = parts[1],
-                    latitude = parts[2].toDouble(),
-                    longitude = parts[3].toDouble(),
-                    elevationMeters = parts[4].toDouble(),
-                    zoneId = ZoneId.of(parts[5]),
-                )
-            }.getOrNull()
-        }
-
-        fun SavedPlace.isSameStoredPlace(other: SavedPlace): Boolean =
-            name.equals(other.name, ignoreCase = true) &&
-                abs(latitude - other.latitude) < 0.0001 &&
-                abs(longitude - other.longitude) < 0.0001
     }
 }

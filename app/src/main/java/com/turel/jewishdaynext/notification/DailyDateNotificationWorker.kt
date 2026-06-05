@@ -36,9 +36,10 @@ class DailyDateNotificationWorker @AssistedInject constructor(
     override suspend fun doWork(): Result {
         if (!applicationContext.canPostNotifications()) return Result.success()
 
-        ensureNotificationChannel()
         val settings = appSettingsRepository.settings.first()
-        currentLocationRepository.refreshCurrentLocation()
+        if (!settings.dailyDateNotificationEnabled) return Result.success()
+
+        ensureNotificationChannel()
         val dayInfo = jewishDayRepository.getToday(
             location = currentLocationRepository.currentLocationOrDefault(),
             settings = settings.zmanimSettings,
@@ -52,7 +53,7 @@ class DailyDateNotificationWorker @AssistedInject constructor(
         )
 
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_jewishday)
             .setContentTitle(applicationContext.getString(R.string.notification_daily_title))
             .setContentText(dayInfo.hebrewDateHebrew)
             .setStyle(NotificationCompat.BigTextStyle().bigText(dayInfo.hebrewDateEnglish))
@@ -66,8 +67,6 @@ class DailyDateNotificationWorker @AssistedInject constructor(
     }
 
     private fun ensureNotificationChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-
         val channel = NotificationChannel(
             CHANNEL_ID,
             applicationContext.getString(R.string.notification_channel_jewish_date),

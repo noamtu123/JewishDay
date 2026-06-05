@@ -4,6 +4,8 @@ import com.turel.jewishdaynext.data.DefaultJewishDayRepository
 import com.turel.jewishdaynext.data.AppSettingsRepository
 import com.turel.jewishdaynext.data.DataStoreAppSettingsRepository
 import com.turel.jewishdaynext.data.JewishDayRepository
+import com.turel.jewishdaynext.data.SharedPreferencesStartupSettingsCache
+import com.turel.jewishdaynext.data.StartupSettingsCache
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -20,4 +22,8 @@ abstract class AppModule {
     @Binds
     @Singleton
     abstract fun bindAppSettingsRepository(repository: DataStoreAppSettingsRepository): AppSettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindStartupSettingsCache(cache: SharedPreferencesStartupSettingsCache): StartupSettingsCache
 }
