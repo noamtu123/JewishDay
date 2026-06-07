@@ -5,6 +5,7 @@ import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
+import android.hardware.GeomagneticField
 import android.hardware.SensorManager
 import android.os.SystemClock
 import android.os.VibrationEffect
@@ -35,8 +36,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -44,7 +51,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.turel.jewishdaynext.R
 import com.turel.jewishdaynext.data.hasLocationPermission
 import com.turel.jewishdaynext.model.MizrachInfo
@@ -54,14 +64,19 @@ import com.turel.jewishdaynext.ui.components.ScreenSurface
 import com.turel.jewishdaynext.ui.components.ValuePill
 import com.turel.jewishdaynext.ui.components.readableWidth
 import com.turel.jewishdaynext.ui.localizedString
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-private const val CompassSensorUpdateIntervalMillis = 100L
-private const val CompassHeadingChangeThresholdDegrees = 1f
+private const val CompassSensorDelayMicros = 50_000
+private const val CompassSensorUpdateIntervalMillis = 50L
+private const val CompassHeadingChangeThresholdDegrees = 0.35f
+private const val CompassHeadingSmoothingFactor = 0.30f
+private const val CompassFallbackSensorSmoothingFactor = 0.18f
+private const val CompassMinimumHorizontalStrength = 0.10f
 
 @Composable
 fun MizrachScreen(
@@ -71,7 +86,19 @@ fun MizrachScreen(
     val context = LocalContext.current
     var hasLocationPermission by remember { mutableStateOf(context.hasLocationPermission()) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val compassSensorState = rememberCompassSensorState(enabled = hasLocationPermission && uiState.hasCurrentLocation)
+    val mizrach = uiState.mizrachInfo
+    val magneticDeclinationDegrees = remember(mizrach.fromLatitude, mizrach.fromLongitude, mizrach.fromElevationMeters) {
+        GeomagneticField(
+            mizrach.fromLatitude.toFloat(),
+            mizrach.fromLongitude.toFloat(),
+            mizrach.fromElevationMeters.toFloat(),
+            System.currentTimeMillis(),
+        ).declination
+    }
+    val compassSensorState = rememberCompassSensorState(
+        enabled = hasLocationPermission && uiState.hasCurrentLocation,
+        magneticDeclinationDegrees = magneticDeclinationDegrees,
+    )
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
@@ -85,7 +112,7 @@ fun MizrachScreen(
     }
 
     MizrachContent(
-        mizrach = uiState.mizrachInfo,
+        mizrach = mizrach,
         hasLocationPermission = hasLocationPermission,
         hasCurrentLocation = uiState.hasCurrentLocation,
         compassSensorState = compassSensorState,
@@ -183,7 +210,7 @@ private fun CompassCard(
     modifier: Modifier = Modifier,
 ) {
     val headingDegrees = compassSensorState.headingDegrees
-    val alignment = rememberAlignmentState(mizrach.bearingDegrees, headingDegrees)
+    val alignment = rememberAlignmentState(mizrach.bearingDegreesExact, headingDegrees)
     VibrateWhenAligned(aligned = alignment.isAligned)
 
     InfoCard(
@@ -193,6 +220,7 @@ private fun CompassCard(
     ) {
         CompassFace(
             bearingDegrees = mizrach.bearingDegrees,
+            bearingDegreesExact = mizrach.bearingDegreesExact,
             headingDegrees = headingDegrees,
             alignment = alignment,
             modifier = Modifier.fillMaxWidth(),
@@ -237,6 +265,7 @@ private fun CompassCard(
 @Composable
 private fun CompassFace(
     bearingDegrees: Int,
+    bearingDegreesExact: Float,
     headingDegrees: Float?,
     alignment: CompassAlignment,
     modifier: Modifier = Modifier,
@@ -247,8 +276,8 @@ private fun CompassFace(
     val alignedColor = MaterialTheme.colorScheme.tertiary
     val textColor = MaterialTheme.colorScheme.onSecondaryContainer
     val relativeDirectionDegrees = headingDegrees?.let { heading ->
-        normalizeDegrees(bearingDegrees - heading)
-    } ?: bearingDegrees.toFloat()
+        normalizeDegrees(bearingDegreesExact - heading)
+    } ?: bearingDegreesExact
 
     Box(
         modifier = modifier,
@@ -257,7 +286,6 @@ private fun CompassFace(
         Canvas(modifier = Modifier.size(240.dp)) {
             val radius = size.minDimension / 2f
             val center = Offset(size.width / 2f, size.height / 2f)
-            val inset = 16.dp.toPx()
             val needleRadius = radius - 48.dp.toPx()
             val bearingRadians = Math.toRadians((relativeDirectionDegrees - 90f).toDouble())
             val needleEnd = Offset(
@@ -273,13 +301,6 @@ private fun CompassFace(
                 style = Stroke(width = 1.dp.toPx()),
             )
             drawLine(
-                color = outline,
-                start = Offset(center.x, inset),
-                end = Offset(center.x, inset + 16.dp.toPx()),
-                strokeWidth = 2.dp.toPx(),
-                cap = StrokeCap.Round,
-            )
-            drawLine(
                 color = if (alignment.isAligned) alignedColor else primary,
                 start = center,
                 end = needleEnd,
@@ -288,13 +309,12 @@ private fun CompassFace(
             )
             drawCircle(color = if (alignment.isAligned) alignedColor else primary, radius = 9.dp.toPx(), center = needleEnd)
             drawCircle(color = if (alignment.isAligned) alignedColor else primary, radius = 5.dp.toPx(), center = center)
+            drawTempleMarker(
+                center = Offset(center.x, center.y - radius + 32.dp.toPx()),
+                color = if (alignment.isAligned) alignedColor else primary,
+                cutoutColor = surface,
+            )
         }
-        Text(
-            text = localizedString(R.string.mizrach_north, R.string.mizrach_north_hebrew),
-            modifier = Modifier.align(Alignment.TopCenter).padding(top = 22.dp),
-            style = MaterialTheme.typography.labelLarge,
-            color = textColor,
-        )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = stringResource(R.string.mizrach_degrees, bearingDegrees),
@@ -317,6 +337,46 @@ private fun CompassFace(
     }
 }
 
+private fun DrawScope.drawTempleMarker(
+    center: Offset,
+    color: Color,
+    cutoutColor: Color,
+) {
+    val width = 36.dp.toPx()
+    val height = 30.dp.toPx()
+    val left = center.x - width / 2f
+    val top = center.y - height / 2f
+    val bodyLeft = left + 8.dp.toPx()
+    val bodyTop = top + 8.dp.toPx()
+    val bodyWidth = width - 16.dp.toPx()
+    val bodyBottom = top + height - 3.dp.toPx()
+    val towerWidth = 4.5.dp.toPx()
+
+    val gate = Path().apply {
+        addRect(Rect(bodyLeft, bodyTop, bodyLeft + bodyWidth, bodyBottom))
+        addRect(Rect(left + 1.dp.toPx(), top + 14.dp.toPx(), left + 7.dp.toPx(), bodyBottom))
+        addRect(Rect(left + width - 7.dp.toPx(), top + 14.dp.toPx(), left + width - 1.dp.toPx(), bodyBottom))
+        repeat(4) { index ->
+            val merlonLeft = bodyLeft + index * (towerWidth + 2.dp.toPx())
+            addRect(Rect(merlonLeft, top + 2.dp.toPx(), merlonLeft + towerWidth, bodyTop))
+        }
+    }
+    drawPath(gate, color = color)
+
+    drawRoundRect(
+        color = cutoutColor,
+        topLeft = Offset(center.x - 4.5.dp.toPx(), top + 17.dp.toPx()),
+        size = Size(9.dp.toPx(), bodyBottom - top - 17.dp.toPx()),
+        cornerRadius = CornerRadius(1.dp.toPx(), 1.dp.toPx()),
+    )
+    drawRoundRect(
+        color = color,
+        topLeft = Offset(left, top + height - 2.dp.toPx()),
+        size = Size(width, 4.dp.toPx()),
+        cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx()),
+    )
+}
+
 private data class CompassAlignment(
     val isAligned: Boolean,
     val label: String,
@@ -332,7 +392,7 @@ private data class CompassSensorState(
 
 @Composable
 private fun rememberAlignmentState(
-    bearingDegrees: Int,
+    bearingDegrees: Float,
     headingDegrees: Float?,
 ): CompassAlignment {
     val relative = headingDegrees?.let { heading -> normalizeDegrees(bearingDegrees - heading) }
@@ -373,12 +433,34 @@ private fun VibrateWhenAligned(aligned: Boolean) {
 }
 
 @Composable
-private fun rememberCompassSensorState(enabled: Boolean): CompassSensorState {
+private fun rememberCompassSensorState(
+    enabled: Boolean,
+    magneticDeclinationDegrees: Float,
+): CompassSensorState {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     var sensorState by remember { mutableStateOf(CompassSensorState()) }
+    var isResumed by remember(lifecycleOwner) {
+        mutableStateOf(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+    }
 
-    DisposableEffect(context, enabled) {
-        if (!enabled) {
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> isResumed = true
+                Lifecycle.Event.ON_PAUSE,
+                Lifecycle.Event.ON_STOP,
+                Lifecycle.Event.ON_DESTROY,
+                -> isResumed = false
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    DisposableEffect(context, enabled, isResumed, magneticDeclinationDegrees) {
+        if (!enabled || !isResumed) {
             sensorState = CompassSensorState()
             onDispose { }
         } else {
@@ -397,16 +479,21 @@ private fun rememberCompassSensorState(enabled: Boolean): CompassSensorState {
                 val geomagnetic = FloatArray(3)
                 var hasGravity = false
                 var hasGeomagnetic = false
+                var latestMagneticAccuracy: Int? = null
                 var lastPublishedHeadingDegrees: Float? = null
                 var lastPublishedAccuracy: Int? = null
                 var lastPublishedAtMillis = 0L
 
                 fun updateHeadingFromMatrix(accuracy: Int?) {
-                    val heading = rotationMatrix.pointingHeadingDegrees()
+                    val rawHeading = rotationMatrix.pointingHeadingDegrees()
+                    val heading = rawHeading?.let { magneticHeading ->
+                        val trueHeading = normalizeDegrees(magneticHeading + magneticDeclinationDegrees)
+                        smoothHeadingDegrees(lastPublishedHeadingDegrees, trueHeading)
+                    }
                     val now = SystemClock.elapsedRealtime()
                     val previousHeading = lastPublishedHeadingDegrees
                     val headingChanged = previousHeading == null || heading == null ||
-                        smallestAngleDistance(normalizeDegrees(heading - previousHeading)) >= CompassHeadingChangeThresholdDegrees
+                        smallestAngleDistanceBetween(previousHeading, heading) >= CompassHeadingChangeThresholdDegrees
                     val accuracyChanged = accuracy != lastPublishedAccuracy
 
                     if (accuracyChanged || (headingChanged && now - lastPublishedAtMillis >= CompassSensorUpdateIntervalMillis)) {
@@ -430,17 +517,26 @@ private fun rememberCompassSensorState(enabled: Boolean): CompassSensorState {
                                 updateHeadingFromMatrix(event.accuracy)
                             }
                             Sensor.TYPE_ACCELEROMETER -> {
-                                event.values.copyInto(gravity, endIndex = 3)
-                                hasGravity = true
+                                if (hasGravity) {
+                                    lowPassInto(event.values, gravity)
+                                } else {
+                                    event.values.copyInto(gravity, endIndex = 3)
+                                    hasGravity = true
+                                }
                                 if (hasGeomagnetic && SensorManager.getRotationMatrix(rotationMatrix, null, gravity, geomagnetic)) {
-                                    updateHeadingFromMatrix(event.accuracy)
+                                    updateHeadingFromMatrix(latestMagneticAccuracy)
                                 }
                             }
                             Sensor.TYPE_MAGNETIC_FIELD -> {
-                                event.values.copyInto(geomagnetic, endIndex = 3)
-                                hasGeomagnetic = true
+                                latestMagneticAccuracy = event.accuracy
+                                if (hasGeomagnetic) {
+                                    lowPassInto(event.values, geomagnetic)
+                                } else {
+                                    event.values.copyInto(geomagnetic, endIndex = 3)
+                                    hasGeomagnetic = true
+                                }
                                 if (hasGravity && SensorManager.getRotationMatrix(rotationMatrix, null, gravity, geomagnetic)) {
-                                    updateHeadingFromMatrix(event.accuracy)
+                                    updateHeadingFromMatrix(latestMagneticAccuracy)
                                 }
                             }
                         }
@@ -454,10 +550,10 @@ private fun rememberCompassSensorState(enabled: Boolean): CompassSensorState {
                     }
                 }
                 if (rotationVector != null) {
-                    sensorManager.registerListener(listener, rotationVector, SensorManager.SENSOR_DELAY_UI)
+                    sensorManager.registerListener(listener, rotationVector, CompassSensorDelayMicros)
                 } else {
-                    sensorManager.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_UI)
-                    sensorManager.registerListener(listener, magnetometer, SensorManager.SENSOR_DELAY_UI)
+                    sensorManager.registerListener(listener, accelerometer, CompassSensorDelayMicros)
+                    sensorManager.registerListener(listener, magnetometer, CompassSensorDelayMicros)
                 }
                 onDispose { sensorManager.unregisterListener(listener) }
             }
@@ -468,30 +564,68 @@ private fun rememberCompassSensorState(enabled: Boolean): CompassSensorState {
 }
 
 private fun FloatArray.pointingHeadingDegrees(): Float? {
-    val topEdge = horizontalVectorHeading(east = this[1], north = this[4])
-    val backCamera = horizontalVectorHeading(east = -this[2], north = -this[5])
-    val best = listOfNotNull(topEdge, backCamera).maxByOrNull { it.horizontalStrength }
-    return best?.takeIf { it.horizontalStrength >= 0.12f }?.headingDegrees
+    val topEdge = horizontalVector(east = this[1], north = this[4])
+    val backCamera = horizontalVector(east = -this[2], north = -this[5])
+    return blendedHeading(topEdge, backCamera)
 }
 
-private data class HorizontalHeading(
-    val headingDegrees: Float,
+private data class HorizontalVector(
+    val east: Float,
+    val north: Float,
     val horizontalStrength: Float,
 )
 
-private fun horizontalVectorHeading(east: Float, north: Float): HorizontalHeading? {
+private fun horizontalVector(east: Float, north: Float): HorizontalVector? {
     val horizontalStrength = sqrt(east * east + north * north)
     if (horizontalStrength == 0f) return null
 
-    return HorizontalHeading(
-        headingDegrees = normalizeDegrees(Math.toDegrees(atan2(east, north).toDouble()).toFloat()),
+    return HorizontalVector(
+        east = east / horizontalStrength,
+        north = north / horizontalStrength,
         horizontalStrength = horizontalStrength,
     )
 }
 
+private fun blendedHeading(vararg vectors: HorizontalVector?): Float? {
+    var weightedEast = 0f
+    var weightedNorth = 0f
+    vectors.filterNotNull().forEach { vector ->
+        val weight = vector.horizontalStrength * vector.horizontalStrength
+        weightedEast += vector.east * weight
+        weightedNorth += vector.north * weight
+    }
+
+    val blendedStrength = sqrt(weightedEast * weightedEast + weightedNorth * weightedNorth)
+    if (blendedStrength < CompassMinimumHorizontalStrength) return null
+    return normalizeDegrees(Math.toDegrees(atan2(weightedEast, weightedNorth).toDouble()).toFloat())
+}
+
+private fun lowPassInto(values: FloatArray, output: FloatArray) {
+    repeat(3) { index ->
+        output[index] += (values[index] - output[index]) * CompassFallbackSensorSmoothingFactor
+    }
+}
+
 private fun normalizeDegrees(degrees: Float): Float = ((degrees % 360f) + 360f) % 360f
 
-private fun normalizeDegrees(degrees: Int): Int = ((degrees % 360) + 360) % 360
+private fun smoothHeadingDegrees(previous: Float?, current: Float): Float {
+    if (previous == null) return current
+
+    val delta = shortestSignedAngleDelta(from = previous, to = current)
+    val smoothing = when {
+        abs(delta) > 45f -> 0.55f
+        abs(delta) > 15f -> 0.42f
+        else -> CompassHeadingSmoothingFactor
+    }
+    return normalizeDegrees(previous + delta * smoothing)
+}
+
+private fun smallestAngleDistanceBetween(from: Float, to: Float): Float = abs(shortestSignedAngleDelta(from, to))
+
+private fun shortestSignedAngleDelta(from: Float, to: Float): Float {
+    val delta = normalizeDegrees(to - from)
+    return if (delta > 180f) delta - 360f else delta
+}
 
 private fun smallestAngleDistance(degrees: Float): Float =
     minOf(degrees, 360f - degrees)
