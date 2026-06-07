@@ -342,38 +342,42 @@ private fun DrawScope.drawTempleMarker(
     color: Color,
     cutoutColor: Color,
 ) {
-    val width = 36.dp.toPx()
-    val height = 30.dp.toPx()
-    val left = center.x - width / 2f
-    val top = center.y - height / 2f
-    val bodyLeft = left + 8.dp.toPx()
-    val bodyTop = top + 8.dp.toPx()
-    val bodyWidth = width - 16.dp.toPx()
-    val bodyBottom = top + height - 3.dp.toPx()
-    val towerWidth = 4.5.dp.toPx()
+    val scale = 0.5.dp.toPx() * 0.94f
+    val left = center.x - 72f * scale / 2f
+    val top = center.y - 64f * scale / 2f
+
+    fun rect(x: Float, y: Float, width: Float, height: Float): Rect = Rect(
+        left = left + x * scale,
+        top = top + y * scale,
+        right = left + (x + width) * scale,
+        bottom = top + (y + height) * scale,
+    )
+
+    fun offset(x: Float, y: Float): Offset = Offset(left + x * scale, top + y * scale)
+
+    fun size(width: Float, height: Float): Size = Size(width * scale, height * scale)
 
     val gate = Path().apply {
-        addRect(Rect(bodyLeft, bodyTop, bodyLeft + bodyWidth, bodyBottom))
-        addRect(Rect(left + 1.dp.toPx(), top + 14.dp.toPx(), left + 7.dp.toPx(), bodyBottom))
-        addRect(Rect(left + width - 7.dp.toPx(), top + 14.dp.toPx(), left + width - 1.dp.toPx(), bodyBottom))
-        repeat(4) { index ->
-            val merlonLeft = bodyLeft + index * (towerWidth + 2.dp.toPx())
-            addRect(Rect(merlonLeft, top + 2.dp.toPx(), merlonLeft + towerWidth, bodyTop))
-        }
+        addRect(rect(x = 16f, y = 16f, width = 40f, height = 38f))
+        addRect(rect(x = 2f, y = 28f, width = 12f, height = 26f))
+        addRect(rect(x = 58f, y = 28f, width = 12f, height = 26f))
+        addRect(rect(x = 16f, y = 4f, width = 9f, height = 14f))
+        addRect(rect(x = 31.5f, y = 4f, width = 9f, height = 14f))
+        addRect(rect(x = 47f, y = 4f, width = 9f, height = 14f))
     }
     drawPath(gate, color = color)
 
     drawRoundRect(
         color = cutoutColor,
-        topLeft = Offset(center.x - 4.5.dp.toPx(), top + 17.dp.toPx()),
-        size = Size(9.dp.toPx(), bodyBottom - top - 17.dp.toPx()),
-        cornerRadius = CornerRadius(1.dp.toPx(), 1.dp.toPx()),
+        topLeft = offset(x = 31f, y = 34f),
+        size = size(width = 10f, height = 20f),
+        cornerRadius = CornerRadius(2f * scale, 2f * scale),
     )
     drawRoundRect(
         color = color,
-        topLeft = Offset(left, top + height - 2.dp.toPx()),
-        size = Size(width, 4.dp.toPx()),
-        cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx()),
+        topLeft = offset(x = 0f, y = 56f),
+        size = size(width = 72f, height = 8f),
+        cornerRadius = CornerRadius(4f * scale, 4f * scale),
     )
 }
 
