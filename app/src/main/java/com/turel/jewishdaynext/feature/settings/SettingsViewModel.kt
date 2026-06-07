@@ -44,6 +44,8 @@ data class SettingsUiState(
     val preferHebrewDates: Boolean = false,
     val useHebrewInterface: Boolean = false,
     val use24HourTime: Boolean = true,
+    val advancedZmanimModeEnabled: Boolean = false,
+    val rambamThreeChaptersEnabled: Boolean = false,
     val themeOption: AppThemeOption = AppThemeOption.Classic,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
 )
@@ -63,6 +65,8 @@ class SettingsViewModel @Inject constructor(
                 preferHebrewDates = settings.preferHebrewDates,
                 useHebrewInterface = settings.useHebrewInterface,
                 use24HourTime = settings.use24HourTime,
+                advancedZmanimModeEnabled = settings.advancedZmanimModeEnabled,
+                rambamThreeChaptersEnabled = settings.rambamThreeChaptersEnabled,
                 themeOption = settings.themeOption,
                 zmanimSettings = settings.zmanimSettings,
             )
@@ -113,6 +117,18 @@ class SettingsViewModel @Inject constructor(
     fun setUse24HourTime(enabled: Boolean) {
         viewModelScope.launch {
             appSettingsRepository.setUse24HourTime(enabled)
+        }
+    }
+
+    fun setAdvancedZmanimModeEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsRepository.setAdvancedZmanimModeEnabled(enabled)
+        }
+    }
+
+    fun setRambamThreeChaptersEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsRepository.setRambamThreeChaptersEnabled(enabled)
         }
     }
 

@@ -54,7 +54,6 @@ fun SettingsScreen(
     var pendingNotificationTarget by remember { mutableStateOf<NotificationPermissionTarget?>(null) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showZmanimPresetDialog by remember { mutableStateOf(false) }
-    var showDetailedCalculationMethods by remember { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -207,10 +206,17 @@ fun SettingsScreen(
                     SettingsSwitchRow(
                         label = localizedString(R.string.settings_advanced_zmanim, R.string.settings_advanced_zmanim_hebrew),
                         description = localizedString(R.string.settings_advanced_zmanim_description, R.string.settings_advanced_zmanim_description_hebrew),
-                        checked = showDetailedCalculationMethods,
-                        onCheckedChange = { showDetailedCalculationMethods = it },
+                        checked = uiState.advancedZmanimModeEnabled,
+                        onCheckedChange = viewModel::setAdvancedZmanimModeEnabled,
                     )
-                    if (showDetailedCalculationMethods) {
+                    SettingsDivider()
+                    SettingsSwitchRow(
+                        label = localizedString(R.string.settings_rambam_3_chapters, R.string.settings_rambam_3_chapters_hebrew),
+                        description = localizedString(R.string.settings_rambam_3_chapters_description, R.string.settings_rambam_3_chapters_description_hebrew),
+                        checked = uiState.rambamThreeChaptersEnabled,
+                        onCheckedChange = viewModel::setRambamThreeChaptersEnabled,
+                    )
+                    if (uiState.advancedZmanimModeEnabled) {
                         val zmanim = uiState.zmanimSettings
                         SettingsDivider()
                         AdvancedZmanimChoices(
