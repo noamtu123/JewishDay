@@ -59,6 +59,10 @@
     <string name="settings_advanced_zmanim_hebrew">שיטות חישוב מפורטות</string>
     <string name="settings_advanced_zmanim_description">Choose the exact halachic method for each displayed zman.</string>
     <string name="settings_advanced_zmanim_description_hebrew">בחר את שיטת ההלכה המדויקת לכל זמן מוצג.</string>
+    <string name="settings_rambam_3_chapters">Show Rambam 3 chapters</string>
+    <string name="settings_rambam_3_chapters_hebrew">הצג רמב״ם 3 פרקים</string>
+    <string name="settings_rambam_3_chapters_description">Add Hebcal’s 3-chapter Rambam track to the Rambam Yomi card.</string>
+    <string name="settings_rambam_3_chapters_description_hebrew">הוסף את מסלול 3 הפרקים של Hebcal לכרטיס רמב״ם יומי.</string>
     <string name="settings_in_israel">Use Israel calendar rules</string>
     <string name="settings_in_israel_hebrew">חשב לפי ארץ ישראל</string>
     <string name="settings_in_israel_description">Use Israeli Yom Tov and parsha rules.</string>

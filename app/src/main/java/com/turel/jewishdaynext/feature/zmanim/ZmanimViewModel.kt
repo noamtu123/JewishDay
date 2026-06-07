@@ -5,25 +5,31 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.turel.jewishdaynext.data.AppSettingsRepository
 import com.turel.jewishdaynext.data.CurrentLocationRepository
+import com.turel.jewishdaynext.data.DailyLearningRepository
 import com.turel.jewishdaynext.data.JewishDayRepository
 import com.turel.jewishdaynext.model.JewishLocation
 import com.turel.jewishdaynext.model.ZmanItem
 import com.turel.jewishdaynext.model.ZmanimCalculationSettings
 import com.turel.jewishdaynext.model.ZmanimDay
 import com.turel.jewishdaynext.model.defaultJerusalemLocation
+import com.turel.jewishdaynext.model.withDailyLearningItems
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Instant
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 
@@ -66,6 +72,7 @@ data class ZmanimRowUi(
 
 private data class ZmanimSettingsSnapshot(
     val use24HourTime: Boolean,
+    val includeRambamThreeChapters: Boolean,
     val calculationSettings: ZmanimCalculationSettings,
 )
 
@@ -76,19 +83,29 @@ private data class ZmanimCalculationInput(
 
 private data class ZmanimDisplayInput(
     val zmanimDay: ZmanimDay,
+    val dailyLearningItems: List<ZmanItem>,
     val use24HourTime: Boolean,
 )
 
+private data class DailyLearningRequest(
+    val date: LocalDate,
+    val inIsrael: Boolean,
+    val includeRambamThreeChapters: Boolean,
+)
+
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class ZmanimViewModel @Inject constructor(
     jewishDayRepository: JewishDayRepository,
     appSettingsRepository: AppSettingsRepository,
     currentLocationRepository: CurrentLocationRepository,
+    dailyLearningRepository: DailyLearningRepository,
 ) : ViewModel() {
     private val settings = appSettingsRepository.settings
         .map { settings ->
             ZmanimSettingsSnapshot(
                 use24HourTime = settings.use24HourTime,
+                includeRambamThreeChapters = settings.rambamThreeChaptersEnabled,
                 calculationSettings = settings.zmanimSettings,
             )
         }
@@ -106,6 +123,10 @@ class ZmanimViewModel @Inject constructor(
 
     private val calculationSettings = settings
         .map { settings -> settings.calculationSettings }
+        .distinctUntilChanged()
+
+    private val includeRambamThreeChapters = settings
+        .map { settings -> settings.includeRambamThreeChapters }
         .distinctUntilChanged()
 
     private val location = currentLocationRepository.currentLocation
@@ -127,16 +148,41 @@ class ZmanimViewModel @Inject constructor(
         }
         .distinctUntilChanged()
         .flowOn(Dispatchers.Default)
+        .shareIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            replay = 1,
+        )
+
+    private val dailyLearningItems = combine(
+        zmanimDay.map { day -> day.date }.distinctUntilChanged(),
+        calculationSettings.map { settings -> settings.inIsrael }.distinctUntilChanged(),
+        includeRambamThreeChapters,
+        ::DailyLearningRequest,
+    )
+        .distinctUntilChanged()
+        .flatMapLatest { request ->
+            dailyLearningRepository.learningItems(
+                date = request.date,
+                inIsrael = request.inIsrael,
+                includeRambamThreeChapters = request.includeRambamThreeChapters,
+            ).onStart { emit(emptyList()) }
+        }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
 
     val uiState: StateFlow<ZmanimUiState> = combine(
         zmanimDay,
+        dailyLearningItems,
         use24HourTime,
         ::ZmanimDisplayInput,
     )
         .distinctUntilChanged()
         .conflate()
         .map { input ->
-            input.zmanimDay.toUiState(use24HourTime = input.use24HourTime)
+            input.zmanimDay
+                .withDailyLearningItems(input.dailyLearningItems)
+                .toUiState(use24HourTime = input.use24HourTime)
         }
         .distinctUntilChanged()
         .flowOn(Dispatchers.Default)

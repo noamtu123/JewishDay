@@ -60,6 +60,8 @@ class DataStoreAppSettingsRepositoryTest {
             repository.setPreferHebrewDates(true)
             repository.setUseHebrewInterface(true)
             repository.setUse24HourTime(false)
+            repository.setAdvancedZmanimModeEnabled(true)
+            repository.setRambamThreeChaptersEnabled(true)
             repository.setThemeOption(AppThemeOption.IsraelSky)
 
             assertEquals(
@@ -70,6 +72,8 @@ class DataStoreAppSettingsRepositoryTest {
                     preferHebrewDates = true,
                     useHebrewInterface = true,
                     use24HourTime = false,
+                    advancedZmanimModeEnabled = true,
+                    rambamThreeChaptersEnabled = true,
                     themeOption = AppThemeOption.IsraelSky,
                 ),
                 repository.settings.first(),

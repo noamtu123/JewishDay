@@ -5,6 +5,7 @@ import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
 import com.kosherjava.zmanim.hebrewcalendar.YerushalmiYomiCalculator
 import com.kosherjava.zmanim.util.GeoLocation
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -35,6 +36,16 @@ data class ZmanimGroup(
     val items: List<ZmanItem>,
 )
 
+fun ZmanimDay.withDailyLearningItems(items: List<ZmanItem>): ZmanimDay = copy(
+    groups = groups.map { group ->
+        if (group.title == DailyLearningGroupTitle) {
+            group.copy(items = items.ifEmpty { group.items })
+        } else {
+            group
+        }
+    },
+)
+
 fun zmanimForDate(
     location: JewishLocation = defaultJerusalemLocation,
     date: LocalDate,
@@ -47,6 +58,9 @@ fun zmanimForDate(
     }
     val englishFormatter = HebrewDateFormatter()
     val hebrewFormatter = HebrewDateFormatter().apply { isHebrewFormat = true }
+    val shabbatDates = shabbatDatesFor(date)
+    val shabbatStartCalendar = complexZmanimCalendar(location, shabbatDates.startDate, settings)
+    val shabbatEndCalendar = complexZmanimCalendar(location, shabbatDates.endDate, settings)
 
     return ZmanimDay(
         locationName = location.name,
@@ -72,7 +86,13 @@ fun zmanimForDate(
                     add(ZmanItem("Misheyakir", "משיכיר", calendar.misheyakir(settings.misheyakirMethod)?.toInstant(), settings.misheyakirMethod.label, settings.misheyakirMethod.labelHebrew))
                     add(ZmanItem("Sunrise", "הנץ החמה", calendar.sunrise(settings.sunriseMethod)?.toInstant(), settings.sunriseMethod.label, settings.sunriseMethod.labelHebrew))
                     add(ZmanItem("Shema", "קריאת שמע", calendar.sofZmanShema(settings)?.toInstant(), settings.sofZmanShemaMethod.label, settings.sofZmanShemaMethod.labelHebrew))
+                    if (settings.sofZmanShemaMethod != SofZmanShemaMethod.Mga72) {
+                        add(ZmanItem("Shema Magen Avraham", "קריאת שמע מגן אברהם", calendar.sofZmanShmaMGA72Minutes?.toInstant(), "Magen Avraham 72", "מגן אברהם 72"))
+                    }
                     add(ZmanItem("Tefillah", "תפילה", calendar.sofZmanTefillah(settings)?.toInstant(), settings.sofZmanTefillahMethod.label, settings.sofZmanTefillahMethod.labelHebrew))
+                    if (settings.sofZmanTefillahMethod != SofZmanTefillahMethod.Mga72) {
+                        add(ZmanItem("Tefillah Magen Avraham", "תפילה מגן אברהם", calendar.sofZmanTfilaMGA72Minutes?.toInstant(), "Magen Avraham 72", "מגן אברהם 72"))
+                    }
                 },
             ),
             ZmanimGroup(
@@ -92,20 +112,15 @@ fun zmanimForDate(
                 title = "Shabbat",
                 titleHebrew = "שבת",
                 items = listOf(
-                    ZmanItem("Candle Lighting", "הדלקת נרות", calendar.candleLighting?.toInstant(), settings.candleLightingMethod.label, settings.candleLightingMethod.labelHebrew),
-                    ZmanItem("Plag Hamincha", "פלג המנחה", calendar.plagHamincha(settings)?.toInstant(), "Earliest Shabbat boundary", "גבול מוקדם לשבת"),
-                    ZmanItem("Bain Hashmashot", "בין השמשות", calendar.bainHashmashot(settings.bainHashmashotMethod)?.toInstant(), settings.bainHashmashotMethod.label, settings.bainHashmashotMethod.labelHebrew),
-                    ZmanItem("Motzei Shabbat", "צאת שבת", calendar.motzeiShabbat(settings)?.toInstant(), settings.motzeiShabbatMethod.label, settings.motzeiShabbatMethod.labelHebrew),
-                    ZmanItem("Rabbeinu Tam", "רבינו תם", calendar.rabbeinuTam(settings.rabbeinuTamMethod)?.toInstant(), settings.rabbeinuTamMethod.label, settings.rabbeinuTamMethod.labelHebrew),
+                    ZmanItem("Candle Lighting", "הדלקת נרות", shabbatStartCalendar.candleLighting?.toInstant(), "Friday ${shabbatDates.startDate}; ${settings.candleLightingMethod.label}", "יום שישי ${shabbatDates.startDate}; ${settings.candleLightingMethod.labelHebrew}"),
+                    ZmanItem("Plag Hamincha", "פלג המנחה", shabbatStartCalendar.plagHamincha(settings)?.toInstant(), "Friday ${shabbatDates.startDate}; earliest Shabbat boundary", "יום שישי ${shabbatDates.startDate}; גבול מוקדם לשבת"),
+                    ZmanItem("Bain Hashmashot", "בין השמשות", shabbatStartCalendar.bainHashmashot(settings.bainHashmashotMethod)?.toInstant(), "Friday ${shabbatDates.startDate}; ${settings.bainHashmashotMethod.label}", "יום שישי ${shabbatDates.startDate}; ${settings.bainHashmashotMethod.labelHebrew}"),
+                    ZmanItem("Motzei Shabbat", "צאת שבת", shabbatEndCalendar.motzeiShabbat(settings)?.toInstant(), "Saturday ${shabbatDates.endDate}; ${settings.motzeiShabbatMethod.label}", "מוצאי שבת ${shabbatDates.endDate}; ${settings.motzeiShabbatMethod.labelHebrew}"),
+                    ZmanItem("Rabbeinu Tam", "רבינו תם", shabbatEndCalendar.rabbeinuTam(settings.rabbeinuTamMethod)?.toInstant(), "Saturday ${shabbatDates.endDate}; ${settings.rabbeinuTamMethod.label}", "מוצאי שבת ${shabbatDates.endDate}; ${settings.rabbeinuTamMethod.labelHebrew}"),
                 ),
             ),
             ZmanimGroup(
-                title = "Additional Opinions",
-                titleHebrew = "שיטות נוספות",
-                items = additionalOpinionItems(calendar),
-            ),
-            ZmanimGroup(
-                title = "Daily Learning",
+                title = DailyLearningGroupTitle,
                 titleHebrew = "לימוד יומי",
                 items = dailyLearningItems(
                     jewishCalendar = jewishCalendar,
@@ -124,6 +139,25 @@ fun zmanimForDate(
         ),
     )
 }
+
+private const val DailyLearningGroupTitle = "Daily Learning"
+
+private data class ShabbatDates(
+    val startDate: LocalDate,
+    val endDate: LocalDate,
+)
+
+private fun shabbatDatesFor(date: LocalDate): ShabbatDates {
+    val friday = if (date.dayOfWeek == DayOfWeek.SATURDAY) {
+        date.minusDays(1)
+    } else {
+        date.plusDays(daysUntil(date.dayOfWeek, DayOfWeek.FRIDAY).toLong())
+    }
+    return ShabbatDates(startDate = friday, endDate = friday.plusDays(1))
+}
+
+private fun daysUntil(current: DayOfWeek, target: DayOfWeek): Int =
+    (target.value - current.value + 7) % 7
 
 fun tzeitForDate(
     location: JewishLocation = defaultJerusalemLocation,
@@ -196,23 +230,6 @@ private fun dailyLearningItems(
             descriptionHebrew = "חלוקה חודשית לפי היום בחודש העברי",
             value = jewishCalendar.tehillimYomiEnglish(),
             valueHebrew = jewishCalendar.tehillimYomiHebrew(hebrewFormatter),
-        ),
-    )
-    addCyclePlaceholder("Rambam Yomi", "רמב״ם יומי")
-    addCyclePlaceholder("Shmirat HaLashon Yomi", "שמירת הלשון יומי")
-    addCyclePlaceholder("Halacha Yomit", "הלכה יומית")
-}
-
-private fun MutableList<ZmanItem>.addCyclePlaceholder(title: String, titleHebrew: String) {
-    add(
-        ZmanItem(
-            title = title,
-            titleHebrew = titleHebrew,
-            time = null,
-            description = "Needs a verified program cycle before calculation",
-            descriptionHebrew = "נדרש מקור מחזור מדויק לפני חישוב",
-            value = "Not calculated yet",
-            valueHebrew = "עדיין לא מחושב",
         ),
     )
 }
@@ -503,31 +520,6 @@ private fun Date?.withHighLatitudeFallback(
     settings: ZmanimCalculationSettings,
     fallback: () -> Date?,
 ): Date? = this ?: if (settings.highLatitudeHandling == HighLatitudeHandling.FixedMinutesFallback) fallback() else null
-
-private fun additionalOpinionItems(calendar: ComplexZmanimCalendar): List<ZmanItem> = listOf(
-    ZmanItem("Alot 72", "עלות 72", calendar.alos72?.toInstant(), "72 minutes before sunrise", "72 דקות לפני זריחה"),
-    ZmanItem("Alot 16.1", "עלות 16.1", calendar.alos16Point1Degrees?.toInstant(), "16.1 degrees", "16.1 מעלות"),
-    ZmanItem("Alot Baal Hatanya", "עלות בעל התניא", calendar.alosBaalHatanya?.toInstant(), "Chabad/Baal Hatanya", "חב״ד/בעל התניא"),
-    ZmanItem("Shema GRA", "שמע גר״א", calendar.sofZmanShmaGRA?.toInstant(), "GRA sunrise to sunset", "גר״א מהנץ עד שקיעה"),
-    ZmanItem("Shema Magen Avraham 72", "שמע מגן אברהם 72", calendar.sofZmanShmaMGA72Minutes?.toInstant(), "Magen Avraham 72 minutes", "מגן אברהם 72 דקות"),
-    ZmanItem("Shema Magen Avraham 16.1", "שמע מגן אברהם 16.1", calendar.sofZmanShmaMGA16Point1Degrees?.toInstant(), "Magen Avraham 16.1 degrees", "מגן אברהם 16.1 מעלות"),
-    ZmanItem("Shema Baal Hatanya", "שמע בעל התניא", calendar.sofZmanShmaBaalHatanya?.toInstant(), "Chabad/Baal Hatanya", "חב״ד/בעל התניא"),
-    ZmanItem("Tefillah GRA", "תפילה גר״א", calendar.sofZmanTfilaGRA?.toInstant(), "GRA sunrise to sunset", "גר״א מהנץ עד שקיעה"),
-    ZmanItem("Tefillah Magen Avraham 72", "תפילה מגן אברהם 72", calendar.sofZmanTfilaMGA72Minutes?.toInstant(), "Magen Avraham 72 minutes", "מגן אברהם 72 דקות"),
-    ZmanItem("Tefillah Magen Avraham 16.1", "תפילה מגן אברהם 16.1", calendar.sofZmanTfilaMGA16Point1Degrees?.toInstant(), "Magen Avraham 16.1 degrees", "מגן אברהם 16.1 מעלות"),
-    ZmanItem("Mincha Gedola GRA", "מנחה גדולה גר״א", calendar.minchaGedola?.toInstant(), "GRA sunrise to sunset", "גר״א מהנץ עד שקיעה"),
-    ZmanItem("Mincha Gedola Magen Avraham 72", "מנחה גדולה מגן אברהם 72", calendar.minchaGedola72Minutes?.toInstant(), "Magen Avraham 72 minutes", "מגן אברהם 72 דקות"),
-    ZmanItem("Samuch LeMincha Ketana GRA", "סמוך למנחה קטנה גר״א", calendar.samuchLeMinchaKetanaGRA?.toInstant(), "GRA sunrise to sunset", "גר״א מהנץ עד שקיעה"),
-    ZmanItem("Samuch LeMincha Ketana Magen Avraham 72", "סמוך למנחה קטנה מגן אברהם 72", calendar.samuchLeMinchaKetana72Minutes?.toInstant(), "Magen Avraham 72 minutes", "מגן אברהם 72 דקות"),
-    ZmanItem("Mincha Ketana GRA", "מנחה קטנה גר״א", calendar.minchaKetana?.toInstant(), "GRA sunrise to sunset", "גר״א מהנץ עד שקיעה"),
-    ZmanItem("Mincha Ketana Magen Avraham 72", "מנחה קטנה מגן אברהם 72", calendar.minchaKetana72Minutes?.toInstant(), "Magen Avraham 72 minutes", "מגן אברהם 72 דקות"),
-    ZmanItem("Plag Hamincha GRA", "פלג המנחה גר״א", calendar.plagHamincha?.toInstant(), "GRA sunrise to sunset", "גר״א מהנץ עד שקיעה"),
-    ZmanItem("Plag Hamincha Magen Avraham 72", "פלג המנחה מגן אברהם 72", calendar.plagHamincha72Minutes?.toInstant(), "Magen Avraham 72 minutes", "מגן אברהם 72 דקות"),
-    ZmanItem("Tzeit 5.88", "צאת 5.88", calendar.tzaisGeonim5Point88Degrees?.toInstant(), "Geonim 5.88 degrees", "גאונים 5.88 מעלות"),
-    ZmanItem("Tzeit 7.083", "צאת 7.083", calendar.tzaisGeonim7Point083Degrees?.toInstant(), "Geonim 7.083 degrees", "גאונים 7.083 מעלות"),
-    ZmanItem("Tzeit 8.5", "צאת 8.5", calendar.tzaisGeonim8Point5Degrees?.toInstant(), "Geonim 8.5 degrees", "גאונים 8.5 מעלות"),
-    ZmanItem("Rabbeinu Tam 72", "רבינו תם 72", calendar.tzais72?.toInstant(), "72 minutes after sunset", "72 דקות אחרי שקיעה"),
-)
 
 private fun dailyItems(
     jewishCalendar: JewishCalendar,

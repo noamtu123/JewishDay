@@ -40,9 +40,36 @@ class ZmanimModelsTest {
         assertEquals("Jerusalem", zmanimDay.locationName)
         assertEquals(date, zmanimDay.date)
         assertEquals(defaultJerusalemLocation.zoneId, zmanimDay.zoneId)
-        assertEquals(listOf("Daily", "Morning", "Afternoon & Evening", "Shabbat", "Additional Opinions", "Daily Learning", "Location"), zmanimDay.groups.map { it.title })
+        assertEquals(listOf("Daily", "Morning", "Afternoon & Evening", "Shabbat", "Daily Learning", "Location"), zmanimDay.groups.map { it.title })
         assertTrue(zmanimDay.groups.all { it.items.isNotEmpty() })
         assertFalse(zmanimDay.groups.flatMap { it.items }.any { it.time == null && it.value == null })
+    }
+
+    @Test
+    fun morningZmanimShowGraAndMagenAvrahamShemaAndTefillahByDefault() {
+        val date = LocalDate.of(2026, 5, 29)
+        val morningItems = zmanimForDate(date = date)
+            .groups
+            .first { it.title == "Morning" }
+            .items
+            .map { it.title }
+
+        assertTrue(morningItems.contains("Shema"))
+        assertTrue(morningItems.contains("Shema Magen Avraham"))
+        assertTrue(morningItems.contains("Tefillah"))
+        assertTrue(morningItems.contains("Tefillah Magen Avraham"))
+    }
+
+    @Test
+    fun shabbatGroupUsesUpcomingFridayAndSaturday() {
+        val date = LocalDate.of(2026, 6, 7)
+        val shabbatItems = zmanimForDate(date = date)
+            .groups
+            .first { it.title == "Shabbat" }
+            .items
+
+        assertTrue(shabbatItems.first { it.title == "Candle Lighting" }.description.contains("2026-06-12"))
+        assertTrue(shabbatItems.first { it.title == "Motzei Shabbat" }.description.contains("2026-06-13"))
     }
 
     @Test
