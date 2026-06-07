@@ -1,16 +1,18 @@
 package com.turel.jewishdaynext.model
 
+import java.lang.Math.toDegrees
+import java.lang.Math.toRadians
+import java.time.ZoneId
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
-import java.lang.Math.toDegrees
-import java.lang.Math.toRadians
-import java.time.ZoneId
 
-private const val EARTH_RADIUS_KM = 6371.0
+private const val EARTH_RADIUS_KM = 6371.0088
 
+// Approximate Holy of Holies / Foundation Stone location. The precise historical point has
+// small uncertainty, which matters only when the user is already on or very near Har HaBayit.
 val kodeshHakodashimLocation = JewishLocation(
     name = "Kodesh HaKodashim",
     latitude = 31.7781,
@@ -21,8 +23,13 @@ val kodeshHakodashimLocation = JewishLocation(
 
 data class MizrachInfo(
     val fromLocationName: String,
+    val fromLatitude: Double,
+    val fromLongitude: Double,
+    val fromElevationMeters: Double,
+    val bearingDegreesExact: Float,
     val bearingDegrees: Int,
     val distanceKm: Int,
+    val distanceMeters: Double,
 )
 
 fun mizrachInfo(from: JewishLocation = defaultJerusalemLocation): MizrachInfo {
@@ -33,9 +40,9 @@ fun mizrachInfo(from: JewishLocation = defaultJerusalemLocation): MizrachInfo {
     val y = sin(longitudeDelta) * cos(toLatitude)
     val x = cos(fromLatitude) * sin(toLatitude) -
         sin(fromLatitude) * cos(toLatitude) * cos(longitudeDelta)
-    val bearing = (toDegrees(atan2(y, x)) + 360.0) % 360.0
+    val bearing = normalizeDegrees(toDegrees(atan2(y, x)))
 
-    val distance = haversineDistanceKm(
+    val distanceKm = haversineDistanceKm(
         from.latitude,
         from.longitude,
         kodeshHakodashimLocation.latitude,
@@ -44,10 +51,19 @@ fun mizrachInfo(from: JewishLocation = defaultJerusalemLocation): MizrachInfo {
 
     return MizrachInfo(
         fromLocationName = from.name,
-        bearingDegrees = ((bearing.roundToInt() % 360) + 360) % 360,
-        distanceKm = distance.roundToInt(),
+        fromLatitude = from.latitude,
+        fromLongitude = from.longitude,
+        fromElevationMeters = from.elevationMeters,
+        bearingDegreesExact = bearing.toFloat(),
+        bearingDegrees = normalizeDegrees(bearing.roundToInt()),
+        distanceKm = distanceKm.roundToInt(),
+        distanceMeters = distanceKm * 1_000.0,
     )
 }
+
+private fun normalizeDegrees(degrees: Double): Double = ((degrees % 360.0) + 360.0) % 360.0
+
+private fun normalizeDegrees(degrees: Int): Int = ((degrees % 360) + 360) % 360
 
 private fun haversineDistanceKm(
     fromLatitude: Double,
