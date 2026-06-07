@@ -41,16 +41,18 @@ class DateStatusIconScheduler @Inject constructor(
         dateStatusIconNotifier.cancelAll()
     }
 
-    private fun refreshNow() {
-        val request = OneTimeWorkRequestBuilder<DateStatusIconWorker>().build()
-        WorkManager.getInstance(context).enqueueUniqueWork(
-            RefreshWorkName,
-            ExistingWorkPolicy.REPLACE,
-            request,
-        )
-    }
+    private fun refreshNow() = enqueueRefresh(context)
 
     companion object {
+        fun enqueueRefresh(context: Context) {
+            val request = OneTimeWorkRequestBuilder<DateStatusIconWorker>().build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                RefreshWorkName,
+                ExistingWorkPolicy.REPLACE,
+                request,
+            )
+        }
+
         private const val RefreshWorkName = "date_status_icon_refresh"
         private const val NextWorkName = "date_status_icon_next"
         private const val MinimumDelayMillis = 60_000L

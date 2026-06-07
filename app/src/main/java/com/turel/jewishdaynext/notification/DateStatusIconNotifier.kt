@@ -95,18 +95,31 @@ class DateStatusIconNotifier @Inject constructor(
             Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        val deleteIntent = PendingIntent.getBroadcast(
+            context,
+            requestCode + DismissRequestCodeOffset,
+            Intent(context, DateStatusIconRefreshReceiver::class.java).apply {
+                action = DateStatusIconRefreshReceiver.ActionRefreshAfterDismissal
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         return Notification.Builder(context, ChannelId)
             .setSmallIcon(Icon.createWithBitmap(dateIconBitmap(iconText)))
             .setContentTitle(title)
             .setContentText(content)
             .setContentIntent(pendingIntent)
+            .setDeleteIntent(deleteIntent)
             .setCategory(Notification.CATEGORY_STATUS)
             .setLocalOnly(true)
             .setOngoing(true)
+            .setAutoCancel(false)
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .build()
+            .apply {
+                flags = flags or Notification.FLAG_NO_CLEAR or Notification.FLAG_ONGOING_EVENT
+            }
     }
 
     private fun ensureNotificationChannel(notificationManager: NotificationManager) {
@@ -123,24 +136,28 @@ class DateStatusIconNotifier @Inject constructor(
     }
 
     private fun dateIconBitmap(text: String): Bitmap {
-        val size = 96
+        val size = 128
         val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
-            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-            textSize = 58f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            isLinearText = true
+            isSubpixelText = true
+            textSize = 118f
         }
 
-        while (paint.measureText(text) > size * 0.86f) {
-            paint.textSize -= 2f
+        while (paint.measureText(text) > size * 0.98f || paint.textHeight() > size * 0.9f) {
+            paint.textSize -= 1f
         }
 
         val baseline = size / 2f - (paint.fontMetrics.ascent + paint.fontMetrics.descent) / 2f
         canvas.drawText(text, size / 2f, baseline, paint)
         return bitmap
     }
+
+    private fun Paint.textHeight(): Float = fontMetrics.descent - fontMetrics.ascent
 
     private fun Context.canPostNotifications(): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -150,5 +167,6 @@ class DateStatusIconNotifier @Inject constructor(
         const val ChannelId = "date_status_icon"
         const val HebrewNotificationId = 1101
         const val EnglishNotificationId = 1102
+        private const val DismissRequestCodeOffset = 10_000
     }
 }

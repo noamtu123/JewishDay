@@ -4,8 +4,8 @@
     <string name="nav_today_hebrew">היום</string>
     <string name="nav_zmanim">Zmanim</string>
     <string name="nav_zmanim_hebrew">זמנים</string>
-    <string name="nav_mizrach">Mizrach</string>
-    <string name="nav_mizrach_hebrew">מזרח</string>
+    <string name="nav_mizrach">Prayer Compass</string>
+    <string name="nav_mizrach_hebrew">מצפן תפילה</string>
     <string name="nav_settings">Settings</string>
     <string name="nav_settings_hebrew">הגדרות</string>
     <string name="nav_about">About</string>
@@ -29,7 +29,7 @@
     <string name="mizrach_from">From %1$s</string>
     <string name="mizrach_from_hebrew">מ־%1$s</string>
     <string name="mizrach_degrees">%1$d°</string>
-    <string name="mizrach_need_location">Allow location so Mizrach can calculate from where you are now.</string>
+    <string name="mizrach_need_location">Allow location so Prayer Compass can calculate from where you are now.</string>
     <string name="mizrach_need_location_hebrew">יש לאפשר מיקום כדי לחשב את הכיוון לקודש הקודשים מהמקום הנוכחי.</string>
     <string name="mizrach_allow_location">Allow location</string>
     <string name="mizrach_allow_location_hebrew">אפשר מיקום</string>
@@ -45,8 +45,6 @@
     <string name="mizrach_compass_caption_hebrew">החזק את הטלפון במאוזן או במאונך. המחט מצביעה לכיוון קודש הקודשים.</string>
     <string name="mizrach_compass_accuracy_low">Compass accuracy is low. Move the phone in a figure-eight and keep it away from magnets.</string>
     <string name="mizrach_compass_accuracy_low_hebrew">דיוק המצפן נמוך. הזז את הטלפון בצורת שמונה והרחק אותו ממגנטים.</string>
-    <string name="mizrach_north">N</string>
-    <string name="mizrach_north_hebrew">צ</string>
     <string name="mizrach_aligned">Facing Kodesh HaKodashim</string>
     <string name="mizrach_aligned_hebrew">מכוון לקודש הקודשים</string>
     <string name="mizrach_turn_left">Turn left</string>
