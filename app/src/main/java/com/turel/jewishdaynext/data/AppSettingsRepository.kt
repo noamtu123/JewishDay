@@ -57,6 +57,8 @@ data class AppSettings(
     val preferHebrewDates: Boolean = false,
     val useHebrewInterface: Boolean = false,
     val use24HourTime: Boolean = true,
+    val advancedZmanimModeEnabled: Boolean = false,
+    val rambamThreeChaptersEnabled: Boolean = false,
     val themeOption: AppThemeOption = AppThemeOption.Classic,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
 )
@@ -76,6 +78,8 @@ interface AppSettingsRepository {
     suspend fun setPreferHebrewDates(enabled: Boolean)
     suspend fun setUseHebrewInterface(enabled: Boolean)
     suspend fun setUse24HourTime(enabled: Boolean)
+    suspend fun setAdvancedZmanimModeEnabled(enabled: Boolean)
+    suspend fun setRambamThreeChaptersEnabled(enabled: Boolean)
     suspend fun setThemeOption(themeOption: AppThemeOption)
     suspend fun setZmanimSettings(settings: ZmanimCalculationSettings)
 }
@@ -113,6 +117,8 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 preferHebrewDates = preferences[PreferHebrewDates] ?: false,
                 useHebrewInterface = rootUiSettings.useHebrewInterface,
                 use24HourTime = preferences[Use24HourTime] ?: true,
+                advancedZmanimModeEnabled = preferences[AdvancedZmanimModeEnabled] ?: false,
+                rambamThreeChaptersEnabled = preferences[RambamThreeChaptersEnabled] ?: false,
                 themeOption = rootUiSettings.themeOption,
                 zmanimSettings = decodeZmanimSettings(preferences),
             )
@@ -152,6 +158,18 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setUse24HourTime(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[Use24HourTime] = enabled
+        }
+    }
+
+    override suspend fun setAdvancedZmanimModeEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[AdvancedZmanimModeEnabled] = enabled
+        }
+    }
+
+    override suspend fun setRambamThreeChaptersEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[RambamThreeChaptersEnabled] = enabled
         }
     }
 
@@ -268,6 +286,8 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val PreferHebrewDates = booleanPreferencesKey("prefer_hebrew_dates")
         val UseHebrewInterface = booleanPreferencesKey("use_hebrew_interface")
         val Use24HourTime = booleanPreferencesKey("use_24_hour_time")
+        val AdvancedZmanimModeEnabled = booleanPreferencesKey("advanced_zmanim_mode_enabled")
+        val RambamThreeChaptersEnabled = booleanPreferencesKey("rambam_three_chapters_enabled")
         val ThemeOption = stringPreferencesKey("theme_option")
         val BlueWhiteTheme = booleanPreferencesKey("blue_white_theme")
         val AmoledBlackTheme = booleanPreferencesKey("amoled_black_theme")

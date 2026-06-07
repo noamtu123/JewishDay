@@ -158,7 +158,10 @@ private fun ZmanimRowCard(
     useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    val value = if (useHebrew) row.valueHebrew else row.value
+    val stackValue = value.length > 24 || value.contains(" · ")
+
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .background(
@@ -166,23 +169,34 @@ private fun ZmanimRowCard(
                 shape = MaterialTheme.shapes.medium,
             )
             .padding(horizontal = 20.dp, vertical = 24.dp),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = if (useHebrew) row.titleHebrew else row.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = if (useHebrew) row.descriptionHebrew else row.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (!stackValue) {
+                Spacer(Modifier.width(16.dp))
+                ValuePill(text = value)
+            }
+        }
+        if (stackValue) {
+            Spacer(Modifier.height(10.dp))
             Text(
-                text = if (useHebrew) row.titleHebrew else row.title,
+                text = value,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Spacer(Modifier.height(2.dp))
-            Text(
-                text = if (useHebrew) row.descriptionHebrew else row.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
-        Spacer(Modifier.width(16.dp))
-        ValuePill(text = if (useHebrew) row.valueHebrew else row.value)
     }
 }
 
