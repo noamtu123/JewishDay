@@ -40,7 +40,7 @@ class ZmanimModelsTest {
         assertEquals("Jerusalem", zmanimDay.locationName)
         assertEquals(date, zmanimDay.date)
         assertEquals(defaultJerusalemLocation.zoneId, zmanimDay.zoneId)
-        assertEquals(listOf("Daily", "Zmanim", "Shabbat", "Daily Learning", "Location"), zmanimDay.groups.map { it.title })
+        assertEquals(listOf("Daily", "Zmanim", "Shabbat", "Daily Learning"), zmanimDay.groups.map { it.title })
         assertTrue(zmanimDay.groups.all { it.items.isNotEmpty() })
         assertFalse(zmanimDay.groups.flatMap { it.items }.any { it.time == null && it.value == null })
     }
