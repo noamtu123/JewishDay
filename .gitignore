@@ -10,3 +10,13 @@ externalNativeBuild/
 **/build/
 .kotlin/
 legacy-reference/
+
+# Signing — keep secrets and build artifacts out of version control
+release.jks
+*.jks
+*.keystore
+keystore.properties
+*.apk
+
+# Stray session log artifacts
+session-ses_*.md

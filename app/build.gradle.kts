@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.hilt.android)
@@ -6,22 +8,42 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Load signing credentials from a gitignored keystore.properties (kept out of VCS).
+// If the file is absent (e.g. a clean checkout without secrets), the release build
+// simply stays unsigned instead of failing the configuration.
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
+}
+
 android {
-    namespace = "com.turel.jewishdaynext"
+    namespace = "com.noamtu.jewishday"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.turel.jewishdaynext"
+        applicationId = "com.noamtu.jewishday"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.3.1"
+        versionCode = 6
+        versionName = "0.4.0"
+    }
+
+    signingConfigs {
+        if (keystorePropsFile.exists()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
