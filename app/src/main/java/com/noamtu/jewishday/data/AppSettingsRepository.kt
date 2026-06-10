@@ -193,7 +193,9 @@ class DataStoreAppSettingsRepository @Inject constructor(
             preferences[AlotHashacharMethodKey] = settings.alotHashacharMethod.storageValue
             preferences[MisheyakirMethodKey] = settings.misheyakirMethod.storageValue
             preferences[SunriseMethodKey] = settings.sunriseMethod.storageValue
+            preferences[SofZmanShemaGraMethodKey] = settings.sofZmanShemaGraMethod.storageValue
             preferences[SofZmanShemaMethodKey] = settings.sofZmanShemaMethod.storageValue
+            preferences[SofZmanTefillahGraMethodKey] = settings.sofZmanTefillahGraMethod.storageValue
             preferences[SofZmanTefillahMethodKey] = settings.sofZmanTefillahMethod.storageValue
             preferences[ChatzotMethodKey] = settings.chatzotMethod.storageValue
             preferences[MinchaGedolaMethodKey] = settings.minchaGedolaMethod.storageValue
@@ -221,10 +223,14 @@ class DataStoreAppSettingsRepository @Inject constructor(
             misheyakirMethod = MisheyakirMethod.fromStorageValue(preferences[MisheyakirMethodKey]) ?: MisheyakirMethod.Degrees11Point5,
             sunriseMethod = SunriseMethod.fromStorageValue(preferences[SunriseMethodKey])
                 ?: if (preferences[UseSeaLevelSunrise] == false) SunriseMethod.ElevationAdjusted else SunriseMethod.SeaLevel,
-            // GRA is always shown as its own row; this configurable method drives the
-            // Magen Avraham row and defaults to the 72-minute basis.
+            // Shema/Tefillah each have a GRA row and a Magen Avraham row, each with its
+            // own configurable method (defaults: GRA and Magen Avraham 72-minute basis).
+            sofZmanShemaGraMethod = SofZmanShemaMethod.fromStorageValue(preferences[SofZmanShemaGraMethodKey])
+                ?: SofZmanShemaMethod.Gra,
             sofZmanShemaMethod = SofZmanShemaMethod.fromStorageValue(preferences[SofZmanShemaMethodKey])
                 ?: SofZmanShemaMethod.Mga72,
+            sofZmanTefillahGraMethod = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahGraMethodKey])
+                ?: SofZmanTefillahMethod.Gra,
             sofZmanTefillahMethod = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahMethodKey])
                 ?: SofZmanTefillahMethod.Mga72,
             chatzotMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotMethodKey]) ?: ChatzotMethod.Solar,
@@ -306,7 +312,9 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val AlotHashacharMethodKey = stringPreferencesKey("zmanim_alot_method")
         val MisheyakirMethodKey = stringPreferencesKey("zmanim_misheyakir_method")
         val SunriseMethodKey = stringPreferencesKey("zmanim_sunrise_method")
+        val SofZmanShemaGraMethodKey = stringPreferencesKey("zmanim_shema_gra_method")
         val SofZmanShemaMethodKey = stringPreferencesKey("zmanim_shema_method")
+        val SofZmanTefillahGraMethodKey = stringPreferencesKey("zmanim_tefillah_gra_method")
         val SofZmanTefillahMethodKey = stringPreferencesKey("zmanim_tefillah_method")
         val ChatzotMethodKey = stringPreferencesKey("zmanim_chatzot_method")
         val MinchaGedolaMethodKey = stringPreferencesKey("zmanim_mincha_gedola_method")

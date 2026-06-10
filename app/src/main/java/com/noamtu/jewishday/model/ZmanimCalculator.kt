@@ -23,6 +23,12 @@ fun zmanimForDate(
     val shabbatDates = shabbatDatesFor(date)
     val shabbatStartCalendar = complexZmanimCalendar(location, shabbatDates.startDate, settings)
     val shabbatEndCalendar = complexZmanimCalendar(location, shabbatDates.endDate, settings)
+    // The parsha is only attached to a Shabbat date, so read it from the upcoming
+    // Shabbat to always show "this week's" reading even on a weekday.
+    val shabbatJewishCalendar = JewishCalendar(shabbatDates.endDate).apply {
+        isUseModernHolidays = true
+        setInIsrael(settings.inIsrael)
+    }
 
     return ZmanimDay(
         locationName = location.name,
@@ -34,6 +40,8 @@ fun zmanimForDate(
                 titleHebrew = "יומי",
                 items = dailyItems(
                     jewishCalendar = jewishCalendar,
+                    weeklyParshaEnglish = englishFormatter.formatParsha(shabbatJewishCalendar),
+                    weeklyParshaHebrew = hebrewFormatter.formatParsha(shabbatJewishCalendar),
                     englishFormatter = englishFormatter,
                     hebrewFormatter = hebrewFormatter,
                     calendar = calendar,
@@ -44,17 +52,16 @@ fun zmanimForDate(
                 title = "Zmanim",
                 titleHebrew = "זמנים",
                 // One continuous list (no morning/afternoon split). Sof Zman Shema and
-                // Tefillah each appear twice — GRA and Magen Avraham — with the precise
-                // method shown as the caption. The Magen Avraham basis is configurable in
-                // advanced mode; GRA is always the fixed GRA opinion.
+                // Tefillah each appear twice — GRA and Magen Avraham — each with its own
+                // configurable method (the caption shows the precise method chosen).
                 items = listOf(
                     ZmanItem("Alot Hashachar", "עלות השחר", calendar.alotHashachar(settings)?.toInstant(), settings.alotHashacharMethod.label, settings.alotHashacharMethod.labelHebrew),
                     ZmanItem("Misheyakir", "משיכיר", calendar.misheyakir(settings.misheyakirMethod)?.toInstant(), settings.misheyakirMethod.label, settings.misheyakirMethod.labelHebrew),
                     ZmanItem("Sunrise", "הנץ החמה", calendar.sunrise(settings.sunriseMethod)?.toInstant(), settings.sunriseMethod.label, settings.sunriseMethod.labelHebrew),
-                    ZmanItem("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)", calendar.sofZmanShmaGRA?.toInstant(), "GRA", "גר״א"),
-                    ZmanItem("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מגן אברהם)", calendar.sofZmanShema(settings)?.toInstant(), settings.sofZmanShemaMethod.label, settings.sofZmanShemaMethod.labelHebrew),
-                    ZmanItem("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)", calendar.sofZmanTfilaGRA?.toInstant(), "GRA", "גר״א"),
-                    ZmanItem("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מגן אברהם)", calendar.sofZmanTefillah(settings)?.toInstant(), settings.sofZmanTefillahMethod.label, settings.sofZmanTefillahMethod.labelHebrew),
+                    ZmanItem("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)", calendar.sofZmanShema(settings.sofZmanShemaGraMethod, settings)?.toInstant(), settings.sofZmanShemaGraMethod.label, settings.sofZmanShemaGraMethod.labelHebrew),
+                    ZmanItem("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מגן אברהם)", calendar.sofZmanShema(settings.sofZmanShemaMethod, settings)?.toInstant(), settings.sofZmanShemaMethod.label, settings.sofZmanShemaMethod.labelHebrew),
+                    ZmanItem("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)", calendar.sofZmanTefillah(settings.sofZmanTefillahGraMethod, settings)?.toInstant(), settings.sofZmanTefillahGraMethod.label, settings.sofZmanTefillahGraMethod.labelHebrew),
+                    ZmanItem("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מגן אברהם)", calendar.sofZmanTefillah(settings.sofZmanTefillahMethod, settings)?.toInstant(), settings.sofZmanTefillahMethod.label, settings.sofZmanTefillahMethod.labelHebrew),
                     ZmanItem("Chatzot HaYom", "חצות היום", calendar.chatzot(settings.chatzotMethod)?.toInstant(), settings.chatzotMethod.label, settings.chatzotMethod.labelHebrew),
                     ZmanItem("Mincha Gedola", "מנחה גדולה", calendar.minchaGedola(settings)?.toInstant(), settings.minchaGedolaMethod.label, settings.minchaGedolaMethod.labelHebrew),
                     ZmanItem("Mincha Ketana", "מנחה קטנה", calendar.minchaKetana(settings)?.toInstant(), settings.minchaKetanaMethod.label, settings.minchaKetanaMethod.labelHebrew),
@@ -69,8 +76,7 @@ fun zmanimForDate(
                 titleHebrew = "שבת",
                 items = listOf(
                     ZmanItem("Candle Lighting", "הדלקת נרות", shabbatStartCalendar.candleLighting?.toInstant(), "Friday ${shabbatDates.startDate}; ${settings.candleLightingMethod.label}", "יום שישי ${shabbatDates.startDate}; ${settings.candleLightingMethod.labelHebrew}"),
-                    ZmanItem("Plag Hamincha", "פלג המנחה", shabbatStartCalendar.plagHamincha(settings)?.toInstant(), "Friday ${shabbatDates.startDate}; earliest Shabbat boundary", "יום שישי ${shabbatDates.startDate}; גבול מוקדם לשבת"),
-                    ZmanItem("Bain Hashmashot", "בין השמשות", shabbatStartCalendar.bainHashmashot(settings.bainHashmashotMethod)?.toInstant(), "Friday ${shabbatDates.startDate}; ${settings.bainHashmashotMethod.label}", "יום שישי ${shabbatDates.startDate}; ${settings.bainHashmashotMethod.labelHebrew}"),
+                    ZmanItem("Sunset", "שקיעה", shabbatStartCalendar.sunset(settings.sunsetMethod)?.toInstant(), "Friday ${shabbatDates.startDate}; ${settings.sunsetMethod.label}", "יום שישי ${shabbatDates.startDate}; ${settings.sunsetMethod.labelHebrew}"),
                     ZmanItem("Motzei Shabbat", "צאת שבת", shabbatEndCalendar.motzeiShabbat(settings)?.toInstant(), "Saturday ${shabbatDates.endDate}; ${settings.motzeiShabbatMethod.label}", "מוצאי שבת ${shabbatDates.endDate}; ${settings.motzeiShabbatMethod.labelHebrew}"),
                     ZmanItem("Rabbeinu Tam", "רבינו תם", shabbatEndCalendar.rabbeinuTam(settings.rabbeinuTamMethod)?.toInstant(), "Saturday ${shabbatDates.endDate}; ${settings.rabbeinuTamMethod.label}", "מוצאי שבת ${shabbatDates.endDate}; ${settings.rabbeinuTamMethod.labelHebrew}"),
                 ),
@@ -82,14 +88,6 @@ fun zmanimForDate(
                     jewishCalendar = jewishCalendar,
                     englishFormatter = englishFormatter,
                     hebrewFormatter = hebrewFormatter,
-                ),
-            ),
-            ZmanimGroup(
-                title = "Location",
-                titleHebrew = "מיקום",
-                items = listOf(
-                    ZmanItem("Current Location", "מיקום נוכחי", null, "Automatic device location", "מיקום אוטומטי מהמכשיר", location.name, location.name),
-                    ZmanItem("Coordinates", "קואורדינטות", null, "Latitude, longitude", "קו רוחב וקו אורך", "%.4f, %.4f".format(location.latitude, location.longitude), "%.4f, %.4f".format(location.latitude, location.longitude)),
                 ),
             ),
         ),
@@ -123,6 +121,8 @@ fun tzeitForDate(
 
 private fun dailyItems(
     jewishCalendar: JewishCalendar,
+    weeklyParshaEnglish: String,
+    weeklyParshaHebrew: String,
     englishFormatter: HebrewDateFormatter,
     hebrewFormatter: HebrewDateFormatter,
     calendar: ComplexZmanimCalendar,
@@ -139,10 +139,9 @@ private fun dailyItems(
             valueHebrew = hebrewFormatter.format(jewishCalendar),
         ),
     )
-    val parsha = englishFormatter.formatParsha(jewishCalendar)
-    if (parsha.isNotBlank()) {
+    if (weeklyParshaEnglish.isNotBlank()) {
         add(
-            ZmanItem("Weekly Parsha", "פרשת השבוע", null, "Upcoming Torah reading", "קריאת התורה הקרובה", parsha, hebrewFormatter.formatParsha(jewishCalendar)),
+            ZmanItem("Weekly Parsha", "פרשת השבוע", null, "Upcoming Torah reading", "קריאת התורה הקרובה", weeklyParshaEnglish, weeklyParshaHebrew),
         )
     }
     val yomTov = englishFormatter.formatYomTov(jewishCalendar)

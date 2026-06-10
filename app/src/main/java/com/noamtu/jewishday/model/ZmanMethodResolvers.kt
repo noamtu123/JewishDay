@@ -40,8 +40,11 @@ internal fun ComplexZmanimCalendar.sunset(method: SunsetMethod): Date? = when (m
     SunsetMethod.ElevationAdjusted -> sunset
 }
 
-internal fun ComplexZmanimCalendar.sofZmanShema(settings: ZmanimCalculationSettings): Date? =
-    when (settings.sofZmanShemaMethod) {
+internal fun ComplexZmanimCalendar.sofZmanShema(
+    method: SofZmanShemaMethod,
+    settings: ZmanimCalculationSettings,
+): Date? =
+    when (method) {
         SofZmanShemaMethod.Gra -> sofZmanShmaGRA
         SofZmanShemaMethod.Mga72 -> sofZmanShmaMGA72Minutes
         SofZmanShemaMethod.Mga72Zmanis -> sofZmanShmaMGA72MinutesZmanis
@@ -67,8 +70,11 @@ internal fun ComplexZmanimCalendar.sofZmanShema(settings: ZmanimCalculationSetti
         SofZmanShemaMethod.KolEliyahu -> sofZmanShmaKolEliyahu
     }.withHighLatitudeFallback(settings) { sofZmanShmaMGA72Minutes }
 
-internal fun ComplexZmanimCalendar.sofZmanTefillah(settings: ZmanimCalculationSettings): Date? =
-    when (settings.sofZmanTefillahMethod) {
+internal fun ComplexZmanimCalendar.sofZmanTefillah(
+    method: SofZmanTefillahMethod,
+    settings: ZmanimCalculationSettings,
+): Date? =
+    when (method) {
         SofZmanTefillahMethod.Gra -> sofZmanTfilaGRA
         SofZmanTefillahMethod.Mga72 -> sofZmanTfilaMGA72Minutes
         SofZmanTefillahMethod.Mga72Zmanis -> sofZmanTfilaMGA72MinutesZmanis

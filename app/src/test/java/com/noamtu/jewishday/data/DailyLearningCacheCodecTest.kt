@@ -26,7 +26,7 @@ class DailyLearningCacheCodecTest {
     }
 
     @Test
-    fun rambamThreeChaptersStayInTheSameRambamItem() {
+    fun rambamThreeChaptersAppearAsTheirOwnRow() {
         val entries = listOf(
             HebcalLearningEntry(
                 category = "dailyRambam1",
@@ -41,12 +41,11 @@ class DailyLearningCacheCodecTest {
         )
 
         val oneChapterOnly = entries.toZmanItems(includeRambamThreeChapters = false)
-            .single { it.title == "Rambam Yomi" }
-        val withThreeChapters = entries.toZmanItems(includeRambamThreeChapters = true)
-            .single { it.title == "Rambam Yomi" }
+        assertEquals("Sabbath 17", oneChapterOnly.single { it.title == "Rambam Yomi" }.value)
+        assertTrue(oneChapterOnly.none { it.title == "Rambam Yomi · 3 Chapters" })
 
-        assertEquals("1 chapter: Sabbath 17", oneChapterOnly.value)
-        assertTrue(withThreeChapters.value?.contains("1 chapter: Sabbath 17") == true)
-        assertTrue(withThreeChapters.value?.contains("3 chapters: Gifts to the Poor 8-10") == true)
+        val withThreeChapters = entries.toZmanItems(includeRambamThreeChapters = true)
+        assertEquals("Sabbath 17", withThreeChapters.single { it.title == "Rambam Yomi" }.value)
+        assertEquals("Gifts to the Poor 8-10", withThreeChapters.single { it.title == "Rambam Yomi · 3 Chapters" }.value)
     }
 }

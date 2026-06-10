@@ -142,8 +142,16 @@ class SettingsViewModel @Inject constructor(
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sunriseMethod = method) }
     }
 
+    fun setSofZmanShemaGraMethod(method: SofZmanShemaMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sofZmanShemaGraMethod = method) }
+    }
+
     fun setSofZmanShemaMethod(method: SofZmanShemaMethod) {
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sofZmanShemaMethod = method) }
+    }
+
+    fun setSofZmanTefillahGraMethod(method: SofZmanTefillahMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sofZmanTefillahGraMethod = method) }
     }
 
     fun setSofZmanTefillahMethod(method: SofZmanTefillahMethod) {

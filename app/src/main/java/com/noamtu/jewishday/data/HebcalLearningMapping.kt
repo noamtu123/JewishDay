@@ -20,10 +20,13 @@ internal fun List<HebcalLearningEntry>.toZmanItems(includeRambamThreeChapters: B
             add(it.toZmanItem("Tehillim Yomi", "תהילים יומי", "Daily Tehillim division", "חלוקת תהילים יומית"))
         }
 
-        val rambamOne = entry("dailyRambam1")
-        val rambamThree = entry("dailyRambam3")?.takeIf { includeRambamThreeChapters }
-        if (rambamOne != null || rambamThree != null) {
-            add(rambamItem(rambamOne, rambamThree))
+        entry("dailyRambam1")?.let {
+            add(it.toZmanItem("Rambam Yomi", "רמב״ם יומי", "Hebcal Rambam, 1 chapter", "רמב״ם יומי של Hebcal, פרק אחד"))
+        }
+        if (includeRambamThreeChapters) {
+            entry("dailyRambam3")?.let {
+                add(it.toZmanItem("Rambam Yomi · 3 Chapters", "רמב״ם יומי · 3 פרקים", "Hebcal Rambam, 3-chapter track", "רמב״ם יומי של Hebcal, מסלול 3 פרקים"))
+            }
         }
 
         entry("shemiratHaLashon")?.let {
@@ -52,31 +55,6 @@ private fun HebcalLearningEntry.toZmanItem(
     value = displayEnglish(),
     valueHebrew = displayHebrew(),
 )
-
-private fun rambamItem(
-    rambamOne: HebcalLearningEntry?,
-    rambamThree: HebcalLearningEntry?,
-): ZmanItem {
-    val oneEnglish = rambamOne?.displayEnglish()
-    val oneHebrew = rambamOne?.displayHebrew()
-    val threeEnglish = rambamThree?.displayEnglish()
-    val threeHebrew = rambamThree?.displayHebrew()
-    return ZmanItem(
-        title = "Rambam Yomi",
-        titleHebrew = "רמב״ם יומי",
-        time = null,
-        description = if (rambamThree == null) "Hebcal Rambam, 1 chapter" else "Hebcal Rambam, 1 and 3 chapter tracks",
-        descriptionHebrew = if (rambamThree == null) "רמב״ם יומי של Hebcal, פרק אחד" else "רמב״ם יומי של Hebcal, פרק אחד ושלושה פרקים",
-        value = listOfNotNull(
-            oneEnglish?.let { "1 chapter: $it" },
-            threeEnglish?.let { "3 chapters: $it" },
-        ).joinToString(" · "),
-        valueHebrew = listOfNotNull(
-            oneHebrew?.let { "פרק אחד: $it" },
-            threeHebrew?.let { "3 פרקים: $it" },
-        ).joinToString(" · "),
-    )
-}
 
 private fun HebcalLearningEntry.displayEnglish(): String = memo?.takeIf(String::isNotBlank) ?: title
 private fun HebcalLearningEntry.displayHebrew(): String = hebrew?.takeIf(String::isNotBlank) ?: displayEnglish()

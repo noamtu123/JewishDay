@@ -7,9 +7,11 @@ data class ZmanimCalculationSettings(
     val alotHashacharMethod: AlotHashacharMethod = AlotHashacharMethod.Minutes72,
     val misheyakirMethod: MisheyakirMethod = MisheyakirMethod.Degrees11Point5,
     val sunriseMethod: SunriseMethod = SunriseMethod.SeaLevel,
-    // The Zmanim list always shows a fixed GRA row plus this Magen Avraham row, so the
-    // configurable method defaults to the standard Magen Avraham 72-minute basis.
+    // Sof Zman Shema / Tefillah each show a GRA row and a Magen Avraham row. Each has its
+    // own configurable method, and each picker only offers options from its own family.
+    val sofZmanShemaGraMethod: SofZmanShemaMethod = SofZmanShemaMethod.Gra,
     val sofZmanShemaMethod: SofZmanShemaMethod = SofZmanShemaMethod.Mga72,
+    val sofZmanTefillahGraMethod: SofZmanTefillahMethod = SofZmanTefillahMethod.Gra,
     val sofZmanTefillahMethod: SofZmanTefillahMethod = SofZmanTefillahMethod.Mga72,
     val chatzotMethod: ChatzotMethod = ChatzotMethod.Solar,
     val minchaGedolaMethod: MinchaGedolaMethod = MinchaGedolaMethod.Standard,

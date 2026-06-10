@@ -78,30 +78,37 @@ enum class SunriseMethod(val storageValue: String) {
     }
 }
 
-enum class SofZmanShemaMethod(val storageValue: String) {
-    Gra("gra"),
-    Mga72("mga_72"),
-    Mga72Zmanis("mga_72_zmanis"),
-    Mga90("mga_90"),
-    Mga90Zmanis("mga_90_zmanis"),
-    Mga96("mga_96"),
-    Mga96Zmanis("mga_96_zmanis"),
-    Mga120("mga_120"),
-    Mga16Point1("mga_16_1"),
-    Mga18("mga_18"),
-    Mga19Point8("mga_19_8"),
-    Alos16Point1ToSunset("alos_16_1_to_sunset"),
-    Alos16Point1ToTzeit7Point083("alos_16_1_to_tzeit_7_083"),
-    ThreeHoursBeforeChatzot("three_hours_before_chatzot"),
-    FixedLocal("fixed_local"),
-    FixedLocalGra("fixed_local_gra"),
-    Mga18ToFixedLocalChatzot("mga_18_to_fixed_local_chatzot"),
-    Mga16Point1ToFixedLocalChatzot("mga_16_1_to_fixed_local_chatzot"),
-    Mga90ToFixedLocalChatzot("mga_90_to_fixed_local_chatzot"),
-    Mga72ToFixedLocalChatzot("mga_72_to_fixed_local_chatzot"),
-    BaalHatanya("baal_hatanya"),
-    AteretTorah("ateret_torah"),
-    KolEliyahu("kol_eliyahu"),
+/**
+ * Which halachic school a Sof Zman Shema / Tefillah opinion belongs to. The Zmanim
+ * list shows a GRA row and a Magen Avraham row separately, and each row's method
+ * picker only offers options from its own family.
+ */
+enum class ZmanOpinionFamily { Gra, MagenAvraham }
+
+enum class SofZmanShemaMethod(val storageValue: String, val family: ZmanOpinionFamily) {
+    Gra("gra", ZmanOpinionFamily.Gra),
+    Mga72("mga_72", ZmanOpinionFamily.MagenAvraham),
+    Mga72Zmanis("mga_72_zmanis", ZmanOpinionFamily.MagenAvraham),
+    Mga90("mga_90", ZmanOpinionFamily.MagenAvraham),
+    Mga90Zmanis("mga_90_zmanis", ZmanOpinionFamily.MagenAvraham),
+    Mga96("mga_96", ZmanOpinionFamily.MagenAvraham),
+    Mga96Zmanis("mga_96_zmanis", ZmanOpinionFamily.MagenAvraham),
+    Mga120("mga_120", ZmanOpinionFamily.MagenAvraham),
+    Mga16Point1("mga_16_1", ZmanOpinionFamily.MagenAvraham),
+    Mga18("mga_18", ZmanOpinionFamily.MagenAvraham),
+    Mga19Point8("mga_19_8", ZmanOpinionFamily.MagenAvraham),
+    Alos16Point1ToSunset("alos_16_1_to_sunset", ZmanOpinionFamily.MagenAvraham),
+    Alos16Point1ToTzeit7Point083("alos_16_1_to_tzeit_7_083", ZmanOpinionFamily.MagenAvraham),
+    ThreeHoursBeforeChatzot("three_hours_before_chatzot", ZmanOpinionFamily.Gra),
+    FixedLocal("fixed_local", ZmanOpinionFamily.Gra),
+    FixedLocalGra("fixed_local_gra", ZmanOpinionFamily.Gra),
+    Mga18ToFixedLocalChatzot("mga_18_to_fixed_local_chatzot", ZmanOpinionFamily.MagenAvraham),
+    Mga16Point1ToFixedLocalChatzot("mga_16_1_to_fixed_local_chatzot", ZmanOpinionFamily.MagenAvraham),
+    Mga90ToFixedLocalChatzot("mga_90_to_fixed_local_chatzot", ZmanOpinionFamily.MagenAvraham),
+    Mga72ToFixedLocalChatzot("mga_72_to_fixed_local_chatzot", ZmanOpinionFamily.MagenAvraham),
+    BaalHatanya("baal_hatanya", ZmanOpinionFamily.Gra),
+    AteretTorah("ateret_torah", ZmanOpinionFamily.MagenAvraham),
+    KolEliyahu("kol_eliyahu", ZmanOpinionFamily.Gra),
     ;
 
     companion object {
@@ -110,23 +117,23 @@ enum class SofZmanShemaMethod(val storageValue: String) {
     }
 }
 
-enum class SofZmanTefillahMethod(val storageValue: String) {
-    Gra("gra"),
-    Mga72("mga_72"),
-    Mga72Zmanis("mga_72_zmanis"),
-    Mga90("mga_90"),
-    Mga90Zmanis("mga_90_zmanis"),
-    Mga96("mga_96"),
-    Mga96Zmanis("mga_96_zmanis"),
-    Mga120("mga_120"),
-    Mga16Point1("mga_16_1"),
-    Mga18("mga_18"),
-    Mga19Point8("mga_19_8"),
-    TwoHoursBeforeChatzot("two_hours_before_chatzot"),
-    FixedLocal("fixed_local"),
-    FixedLocalGra("fixed_local_gra"),
-    BaalHatanya("baal_hatanya"),
-    AteretTorah("ateret_torah"),
+enum class SofZmanTefillahMethod(val storageValue: String, val family: ZmanOpinionFamily) {
+    Gra("gra", ZmanOpinionFamily.Gra),
+    Mga72("mga_72", ZmanOpinionFamily.MagenAvraham),
+    Mga72Zmanis("mga_72_zmanis", ZmanOpinionFamily.MagenAvraham),
+    Mga90("mga_90", ZmanOpinionFamily.MagenAvraham),
+    Mga90Zmanis("mga_90_zmanis", ZmanOpinionFamily.MagenAvraham),
+    Mga96("mga_96", ZmanOpinionFamily.MagenAvraham),
+    Mga96Zmanis("mga_96_zmanis", ZmanOpinionFamily.MagenAvraham),
+    Mga120("mga_120", ZmanOpinionFamily.MagenAvraham),
+    Mga16Point1("mga_16_1", ZmanOpinionFamily.MagenAvraham),
+    Mga18("mga_18", ZmanOpinionFamily.MagenAvraham),
+    Mga19Point8("mga_19_8", ZmanOpinionFamily.MagenAvraham),
+    TwoHoursBeforeChatzot("two_hours_before_chatzot", ZmanOpinionFamily.Gra),
+    FixedLocal("fixed_local", ZmanOpinionFamily.Gra),
+    FixedLocalGra("fixed_local_gra", ZmanOpinionFamily.Gra),
+    BaalHatanya("baal_hatanya", ZmanOpinionFamily.Gra),
+    AteretTorah("ateret_torah", ZmanOpinionFamily.MagenAvraham),
     ;
 
     companion object {
