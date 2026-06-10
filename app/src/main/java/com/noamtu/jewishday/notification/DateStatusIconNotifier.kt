@@ -142,13 +142,17 @@ class DateStatusIconNotifier @Inject constructor(
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
-            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            // Medium weight + a hair of stroke makes the glyph read a touch bolder.
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            style = Paint.Style.FILL_AND_STROKE
+            strokeWidth = 2.5f
             isLinearText = true
             isSubpixelText = true
-            textSize = 118f
+            textSize = 126f
         }
 
-        while (paint.measureText(text) > size * 0.98f || paint.textHeight() > size * 0.9f) {
+        // Fill more of the canvas than before so the digit/letters render larger.
+        while (paint.measureText(text) > size * 0.99f || paint.textHeight() > size * 0.97f) {
             paint.textSize -= 1f
         }
 
