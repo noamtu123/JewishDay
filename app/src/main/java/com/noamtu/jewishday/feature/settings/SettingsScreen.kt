@@ -131,18 +131,6 @@ fun SettingsScreen(
                         },
                     )
                     SettingsDivider()
-                    SettingsSwitchRow(
-                        label = localizedString(R.string.settings_foreign_date_first, R.string.settings_foreign_date_first_hebrew),
-                        description = localizedString(
-                            R.string.settings_foreign_date_first_description,
-                            R.string.settings_foreign_date_first_description_hebrew,
-                        ),
-                        // Default shows Hebrew script first (preferHebrewDates = true). This
-                        // switch is the opt-in to flip the foreign date to the large slot.
-                        checked = !uiState.preferHebrewDates,
-                        onCheckedChange = { foreignFirst -> viewModel.setPreferHebrewDates(!foreignFirst) },
-                    )
-                    SettingsDivider()
                     SettingsChoiceRow(
                         label = localizedString(R.string.settings_language, R.string.settings_language_hebrew),
                         description = localizedString(
