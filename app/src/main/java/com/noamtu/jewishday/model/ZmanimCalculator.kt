@@ -69,7 +69,7 @@ fun zmanimForDate(
                     ZmanItem("Plag Hamincha", "פלג המנחה", calendar.plagHamincha(settings)?.toInstant(), settings.plagHaminchaMethod.label, settings.plagHaminchaMethod.labelHebrew, id = ZmanimTimeOption.PlagHamincha.storageValue),
                     ZmanItem("Sunset", "שקיעה", calendar.sunset(settings.sunsetMethod)?.toInstant(), settings.sunsetMethod.label, settings.sunsetMethod.labelHebrew, id = ZmanimTimeOption.Sunset.storageValue),
                     ZmanItem("Tzeit", "צאת הכוכבים", calendar.tzeit(settings)?.toInstant(), settings.tzeitHakochavimMethod.label, settings.tzeitHakochavimMethod.labelHebrew, id = ZmanimTimeOption.Tzeit.storageValue),
-                    ZmanItem("Chatzot HaLaila", "חצות הלילה", calendar.solarMidnight?.toInstant(), "Solar midnight", "חצות אסטרונומי", id = ZmanimTimeOption.ChatzotHaLaila.storageValue),
+                    ZmanItem("Chatzot HaLaila", "חצות הלילה", calendar.chatzotHaLaila(settings.chatzotHaLailaMethod)?.toInstant(), settings.chatzotHaLailaMethod.label, settings.chatzotHaLailaMethod.labelHebrew, id = ZmanimTimeOption.ChatzotHaLaila.storageValue),
                 ),
             ),
             ZmanimGroup(
