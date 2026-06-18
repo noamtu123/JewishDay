@@ -76,8 +76,11 @@ private fun ZmanimContent(
                 contentPadding = ScreenPaddingValues,
             ) {
                 groups.forEach { group ->
-                    stickyHeader(key = group.key, contentType = "group-header") {
-                        ZmanimGroupHeader(group = group, useHebrew = useHebrew)
+                    val title = if (useHebrew) group.titleHebrew else group.title
+                    if (title.isNotBlank()) {
+                        stickyHeader(key = group.key, contentType = "group-header") {
+                            ZmanimGroupHeader(group = group, useHebrew = useHebrew)
+                        }
                     }
                     items(
                         items = group.rows,

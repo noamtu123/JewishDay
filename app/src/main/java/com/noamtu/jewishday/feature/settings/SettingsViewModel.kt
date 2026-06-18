@@ -43,7 +43,6 @@ data class SettingsUiState(
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
     val advancedZmanimModeEnabled: Boolean = false,
-    val rambamThreeChaptersEnabled: Boolean = false,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
@@ -63,7 +62,6 @@ class SettingsViewModel @Inject constructor(
                 language = settings.language,
                 use24HourTime = settings.use24HourTime,
                 advancedZmanimModeEnabled = settings.advancedZmanimModeEnabled,
-                rambamThreeChaptersEnabled = settings.rambamThreeChaptersEnabled,
                 enabledDailyLearning = settings.enabledDailyLearning,
                 enabledZmanimTimes = settings.enabledZmanimTimes,
                 themeOption = settings.themeOption,
@@ -106,12 +104,6 @@ class SettingsViewModel @Inject constructor(
     fun setAdvancedZmanimModeEnabled(enabled: Boolean) {
         viewModelScope.launch {
             appSettingsRepository.setAdvancedZmanimModeEnabled(enabled)
-        }
-    }
-
-    fun setRambamThreeChaptersEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsRepository.setRambamThreeChaptersEnabled(enabled)
         }
     }
 

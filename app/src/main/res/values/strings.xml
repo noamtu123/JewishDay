@@ -43,10 +43,6 @@
     <string name="settings_advanced_zmanim_hebrew">שיטות חישוב מפורטות</string>
     <string name="settings_advanced_zmanim_description">Choose the exact halachic method for each displayed zman.</string>
     <string name="settings_advanced_zmanim_description_hebrew">בחר את שיטת ההלכה המדויקת לכל זמן מוצג.</string>
-    <string name="settings_rambam_3_chapters">Show Rambam 3 chapters</string>
-    <string name="settings_rambam_3_chapters_hebrew">הצג רמב״ם 3 פרקים</string>
-    <string name="settings_rambam_3_chapters_description">Add Hebcal’s 3-chapter Rambam track to the Rambam Yomi card.</string>
-    <string name="settings_rambam_3_chapters_description_hebrew">הוסף את מסלול 3 הפרקים של Hebcal לכרטיס רמב״ם יומי.</string>
     <string name="settings_daily_learning_section">Daily learning to show</string>
     <string name="settings_daily_learning_section_hebrew">לימוד יומי להצגה</string>
     <string name="settings_daily_learning_section_description">Choose which daily-study tracks appear on the Zmanim tab.</string>
@@ -81,8 +77,8 @@
     <string name="settings_theme_hebrew">ערכת נושא</string>
     <string name="theme_classic">Classic calm</string>
     <string name="theme_classic_hebrew">קלאסי רגוע</string>
-    <string name="theme_blue_white">Blue-white classic</string>
-    <string name="theme_blue_white_hebrew">כחול־לבן קלאסי</string>
+    <string name="theme_blue_white">Blue-white</string>
+    <string name="theme_blue_white_hebrew">כחול־לבן</string>
     <string name="theme_jerusalem_stone">Jerusalem stone</string>
     <string name="theme_jerusalem_stone_hebrew">אבן ירושלמית</string>
     <string name="theme_midnight">Midnight blue</string>
