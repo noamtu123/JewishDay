@@ -1,7 +1,5 @@
 <resources>
     <string name="app_name">JewishDay</string>
-    <string name="nav_today">Today</string>
-    <string name="nav_today_hebrew">היום</string>
     <string name="nav_zmanim">Zmanim</string>
     <string name="nav_zmanim_hebrew">זמנים</string>
     <string name="nav_mizrach">Prayer Compass</string>
@@ -12,14 +10,6 @@
     <string name="nav_about_hebrew">אודות</string>
     <string name="report_issue">Report bug or request feature</string>
     <string name="report_issue_hebrew">דיווח באג או בקשת פיצ׳ר</string>
-    <string name="today_title">JewishDay</string>
-    <string name="today_title_hebrew">לוח יומי</string>
-    <string name="today_subtitle">A modern daily Jewish companion</string>
-    <string name="today_subtitle_hebrew">מלווה יהודי יומי מודרני</string>
-    <string name="today_loading">Preparing today’s Jewish date</string>
-    <string name="today_loading_hebrew">מכין את התאריך העברי של היום</string>
-    <string name="today_overline">Local Jewish date</string>
-    <string name="today_overline_hebrew">תאריך עברי מקומי</string>
     <string name="zmanim_calculated_for">Calculated for %1$s</string>
     <string name="zmanim_calculated_for_hebrew">מחושב עבור %1$s</string>
     <string name="zmanim_loading">Calculating zmanim</string>
