@@ -40,7 +40,6 @@ import com.noamtu.jewishday.R
 import com.noamtu.jewishday.feature.about.AboutScreen
 import com.noamtu.jewishday.feature.mizrach.MizrachScreen
 import com.noamtu.jewishday.feature.settings.SettingsScreen
-import com.noamtu.jewishday.feature.today.TodayScreen
 import com.noamtu.jewishday.feature.zmanim.ZmanimScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,7 +60,7 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean) {
     val currentAppDestination = remember(currentDestination) {
         AppDestination.entries.firstOrNull { destination ->
             currentDestination?.hierarchy?.any { it.route == destination.route } == true
-        } ?: AppDestination.Today
+        } ?: AppDestination.Zmanim
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -117,10 +116,9 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean) {
             ) { contentPadding ->
                 NavHost(
                     navController = navController,
-                    startDestination = AppDestination.Today.route,
+                    startDestination = AppDestination.Zmanim.route,
                     modifier = Modifier.padding(contentPadding),
                 ) {
-                    composable(AppDestination.Today.route) { TodayScreen() }
                     composable(AppDestination.Zmanim.route) { ZmanimScreen() }
                     composable(AppDestination.Mizrach.route) { MizrachScreen() }
                     composable(AppDestination.Settings.route) { SettingsScreen() }
