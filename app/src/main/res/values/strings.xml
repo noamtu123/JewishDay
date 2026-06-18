@@ -107,8 +107,10 @@
     <string name="settings_language_description_hebrew">שפת הממשק לניווט ולתוויות האפליקציה.</string>
     <string name="about_tagline">A calm, modern Jewish day companion.</string>
     <string name="about_tagline_hebrew">מלווה יומי יהודי רגוע ומודרני.</string>
-    <string name="about_body">JewishDay is being rebuilt as a modern Android app inspired by the original project: Jewish date, zmanim, reminders, locations, and Mizrach.</string>
-    <string name="about_body_hebrew">JewishDay נבנה מחדש כאפליקציית Android מודרנית לתאריך עברי, זמנים, תזכורות, מיקומים ומזרח.</string>
+    <string name="about_body">JewishDay shows the Jewish date and a full set of zmanim for your location, each with a choice of calculation opinions. It also brings the day\'s learning, a prayer compass to the Kotel, and an optional Hebrew-date icon in your status bar.</string>
+    <string name="about_body_hebrew">JewishDay מציג את התאריך העברי ומגוון מלא של זמני היום למיקום שלך, לכל זמן אפשר לבחור שיטת חישוב. בנוסף: הלימוד היומי, מצפן תפילה לכותל, וסמל תאריך עברי בשורת הסטטוס (לבחירתך).</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_version_hebrew">גרסה %1$s</string>
     <string name="about_github">View source on GitHub</string>
     <string name="about_github_hebrew">צפייה בקוד המקור ב‑GitHub</string>
     <string name="about_email">Contact by email</string>
