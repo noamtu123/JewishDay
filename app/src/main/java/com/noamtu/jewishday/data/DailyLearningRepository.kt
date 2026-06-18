@@ -16,7 +16,6 @@ interface DailyLearningRepository {
     fun learningItems(
         date: LocalDate,
         inIsrael: Boolean,
-        includeRambamThreeChapters: Boolean,
     ): Flow<List<ZmanItem>>
 }
 
@@ -29,11 +28,10 @@ class HebcalDailyLearningRepository @Inject constructor(
     override fun learningItems(
         date: LocalDate,
         inIsrael: Boolean,
-        includeRambamThreeChapters: Boolean,
     ): Flow<List<ZmanItem>> = flow {
         val cached = cache.read(date, inIsrael)
         if (cached.isNotEmpty()) {
-            emit(cached.toZmanItems(includeRambamThreeChapters))
+            emit(cached.toZmanItems())
         }
 
         val now = clock.instant()
@@ -51,7 +49,7 @@ class HebcalDailyLearningRepository @Inject constructor(
                 )
                 val updated = cache.read(date, inIsrael)
                 if (updated.isNotEmpty()) {
-                    emit(updated.toZmanItems(includeRambamThreeChapters))
+                    emit(updated.toZmanItems())
                 }
             }.onFailure { exception ->
                 if (exception is CancellationException) throw exception

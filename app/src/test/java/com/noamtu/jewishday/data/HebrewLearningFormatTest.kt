@@ -19,7 +19,7 @@ class HebrewLearningFormatTest {
     fun mishnahYomiNumbersBecomeHebrewLetters() {
         val item = listOf(
             HebcalLearningEntry(category = "mishnayomi", title = "Kelim 11:7-8", hebrew = "כלים 11:7-8"),
-        ).toZmanItems(includeRambamThreeChapters = false).single()
+        ).toZmanItems().single()
 
         assertEquals("כלים י״א: ז-ח", item.valueHebrew)
     }
@@ -28,7 +28,7 @@ class HebrewLearningFormatTest {
     fun kitzurShulchanAruchIsFormattedWithGershayimAndSpacing() {
         val item = listOf(
             HebcalLearningEntry(category = "kitzurShulchanAruch", title = "161:18-162:5", hebrew = "קסא:יח-קסב:ה"),
-        ).toZmanItems(includeRambamThreeChapters = false).single()
+        ).toZmanItems().single()
 
         assertEquals("קס״א: יח - קס״ב: ה", item.valueHebrew)
     }
@@ -37,7 +37,7 @@ class HebrewLearningFormatTest {
     fun tanakhYomiDoesNotDisplayAsTehillim() {
         val item = listOf(
             HebcalLearningEntry(category = "tanakhYomi", title = "Psalms Seder 3", hebrew = "תהלים ס׳ ג", memo = "Psalms 20:10-29:10"),
-        ).toZmanItems(includeRambamThreeChapters = false).single()
+        ).toZmanItems().single()
 
         assertEquals("תנ״ך ס׳ ג׳", item.valueHebrew)
     }
@@ -46,7 +46,7 @@ class HebrewLearningFormatTest {
     fun tehillimYomiUsesFullHebrewSpelling() {
         val item = listOf(
             HebcalLearningEntry(category = "dailyPsalms", title = "Psalms 106-107", hebrew = "תהלים ק״ו-ק״ז"),
-        ).toZmanItems(includeRambamThreeChapters = false).single()
+        ).toZmanItems().single()
 
         assertEquals("תהילים ק״ו-ק״ז", item.valueHebrew)
     }
@@ -55,7 +55,7 @@ class HebrewLearningFormatTest {
     fun shemiratHaLashonUsesKlalFormatAndCountsHalachot() {
         val item = listOf(
             HebcalLearningEntry(category = "shemiratHaLashon", title = "Book II 9.8-9.10", memo = "Book II 9.8-9.10"),
-        ).toZmanItems(includeRambamThreeChapters = false).single()
+        ).toZmanItems().single()
 
         assertEquals("כלל ט׳ ח-י", item.valueHebrew)
         assertEquals("3 הלכות יומיות", item.descriptionHebrew)
