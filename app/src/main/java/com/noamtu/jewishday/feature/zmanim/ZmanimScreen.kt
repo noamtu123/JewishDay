@@ -32,7 +32,6 @@ import com.noamtu.jewishday.ui.components.ScreenPaddingValues
 import com.noamtu.jewishday.ui.components.ScreenSurface
 import com.noamtu.jewishday.ui.components.ValuePill
 import com.noamtu.jewishday.ui.components.readableWidth
-import com.noamtu.jewishday.ui.localizedLocationName
 import com.noamtu.jewishday.ui.localizedString
 
 @Composable
@@ -44,7 +43,6 @@ fun ZmanimScreen(
 
     ZmanimContent(
         header = uiState.header,
-        nextZman = uiState.nextZman,
         groups = uiState.groups,
         modifier = modifier,
     )
@@ -54,7 +52,6 @@ fun ZmanimScreen(
 @Composable
 private fun ZmanimContent(
     header: ZmanimHeaderUi?,
-    nextZman: NextZmanUi?,
     groups: List<ZmanimGroupUi>,
     modifier: Modifier = Modifier,
 ) {
@@ -67,27 +64,17 @@ private fun ZmanimContent(
 
     ScreenSurface(modifier = modifier) {
         Column(modifier = Modifier.readableWidth().fillMaxSize()) {
-            if (nextZman != null) {
-                NextZmanBar(
-                    nextZman = nextZman,
-                    useHebrew = useHebrew,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
-                )
-            }
+            DateBar(
+                header = header,
+                useHebrew = useHebrew,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
+            )
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = ScreenPaddingValues,
             ) {
-                item(key = "zmanim-header", contentType = "header") {
-                    ZmanimHeader(
-                        locationName = localizedLocationName(header.locationName),
-                        date = if (useHebrew) header.dateHebrew else header.date,
-                        zoneId = header.zoneId,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                }
                 groups.forEach { group ->
                     stickyHeader(key = group.key, contentType = "group-header") {
                         ZmanimGroupHeader(group = group, useHebrew = useHebrew)
@@ -135,8 +122,8 @@ private fun ZmanimLoadingContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun NextZmanBar(
-    nextZman: NextZmanUi,
+private fun DateBar(
+    header: ZmanimHeaderUi,
     useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -145,50 +132,19 @@ private fun NextZmanBar(
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primaryContainer,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = localizedString(R.string.zmanim_next_label, R.string.zmanim_next_label_hebrew),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                )
-                Text(
-                    text = if (useHebrew) nextZman.titleHebrew else nextZman.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-            Spacer(Modifier.width(16.dp))
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
             Text(
-                text = if (useHebrew) nextZman.valueHebrew else nextZman.value,
+                text = if (useHebrew) header.jewishDateHebrew else header.jewishDate,
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+            )
         }
-    }
-}
-
-@Composable
-private fun ZmanimHeader(
-    locationName: String,
-    date: String,
-    zoneId: String,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier.fillMaxWidth().padding(top = 4.dp)) {
-        Text(
-            text = localizedString(R.string.zmanim_calculated_for, R.string.zmanim_calculated_for_hebrew, locationName),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = localizedString(R.string.zmanim_date_and_zone, R.string.zmanim_date_and_zone_hebrew, date, zoneId),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

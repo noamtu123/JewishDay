@@ -34,6 +34,8 @@ fun zmanimForDate(
         locationName = location.name,
         date = date,
         zoneId = location.zoneId,
+        hebrewDateEnglish = englishFormatter.format(jewishCalendar),
+        hebrewDateHebrew = hebrewFormatter.format(jewishCalendar),
         groups = listOf(
             ZmanimGroup(
                 title = "Daily",
@@ -129,17 +131,8 @@ private fun dailyItems(
     calendar: ComplexZmanimCalendar,
     settings: ZmanimCalculationSettings,
 ): List<ZmanItem> = buildList {
-    add(
-        ZmanItem(
-            title = "Jewish Date",
-            titleHebrew = "תאריך עברי",
-            time = null,
-            description = "Today after nightfall follows the next Jewish date",
-            descriptionHebrew = "אחרי צאת הכוכבים מתחיל התאריך הבא",
-            value = englishFormatter.format(jewishCalendar),
-            valueHebrew = hebrewFormatter.format(jewishCalendar),
-        ),
-    )
+    // The Jewish date is shown in the date header at the top of the tab (ZmanimDay.hebrewDate*),
+    // so it is intentionally not repeated as a row here.
     if (weeklyParshaEnglish.isNotBlank()) {
         add(
             ZmanItem("Weekly Parsha", "פרשת השבוע", null, "Upcoming Torah reading", "קריאת התורה הקרובה", weeklyParshaEnglish, weeklyParshaHebrew),
