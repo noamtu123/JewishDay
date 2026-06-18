@@ -1,5 +1,6 @@
 package com.noamtu.jewishday.data
 
+import com.noamtu.jewishday.model.DailyLearningType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -41,11 +42,17 @@ class DailyLearningCacheCodecTest {
         )
 
         val oneChapterOnly = entries.toZmanItems(includeRambamThreeChapters = false)
-        assertEquals("Sabbath 17", oneChapterOnly.single { it.title == "Rambam Yomi" }.value)
-        assertTrue(oneChapterOnly.none { it.title == "Rambam Yomi · 3 Chapters" })
+        val rambamOff = oneChapterOnly.filter { it.title == "Rambam Yomi" }
+        assertEquals(1, rambamOff.size)
+        assertEquals("Sabbath 17", rambamOff.single().value)
 
+        // With the toggle on, the 3-chapter track is a second "Rambam Yomi" row (same title and
+        // format as the 1-chapter row), distinguished by its description.
         val withThreeChapters = entries.toZmanItems(includeRambamThreeChapters = true)
-        assertEquals("Sabbath 17", withThreeChapters.single { it.title == "Rambam Yomi" }.value)
-        assertEquals("Gifts to the Poor 8-10", withThreeChapters.single { it.title == "Rambam Yomi · 3 Chapters" }.value)
+        val rambamOn = withThreeChapters.filter { it.title == "Rambam Yomi" }
+        assertEquals(2, rambamOn.size)
+        assertEquals("Sabbath 17", rambamOn.single { it.description == "Hebcal Rambam, 1 chapter" }.value)
+        assertEquals("Gifts to the Poor 8-10", rambamOn.single { it.description == "Hebcal Rambam, 3 chapters" }.value)
+        assertTrue(rambamOn.all { it.id == DailyLearningType.RambamYomi.storageValue })
     }
 }
