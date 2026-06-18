@@ -42,7 +42,8 @@ import kotlinx.coroutines.flow.stateIn
 @Immutable
 data class ZmanimUiState(
     val header: ZmanimHeaderUi? = null,
-    val items: List<ZmanimListItem> = emptyList(),
+    val nextZman: NextZmanUi? = null,
+    val groups: List<ZmanimGroupUi> = emptyList(),
 )
 
 @Immutable
@@ -53,28 +54,33 @@ data class ZmanimHeaderUi(
     val zoneId: String,
 )
 
+/** The upcoming zman, shown pinned above the list so the next time is always in view. */
 @Immutable
-sealed interface ZmanimListItem {
-    val key: String
-}
-
-@Immutable
-data class ZmanimGroupHeaderUi(
-    override val key: String,
+data class NextZmanUi(
     val title: String,
     val titleHebrew: String,
-) : ZmanimListItem
+    val value: String,
+    val valueHebrew: String,
+)
+
+@Immutable
+data class ZmanimGroupUi(
+    val key: String,
+    val title: String,
+    val titleHebrew: String,
+    val rows: List<ZmanimRowUi>,
+)
 
 @Immutable
 data class ZmanimRowUi(
-    override val key: String,
+    val key: String,
     val title: String,
     val titleHebrew: String,
     val description: String,
     val descriptionHebrew: String,
     val value: String,
     val valueHebrew: String,
-) : ZmanimListItem
+)
 
 private data class ZmanimSettingsSnapshot(
     val use24HourTime: Boolean,
@@ -212,7 +218,7 @@ class ZmanimViewModel @Inject constructor(
             input.zmanimDay
                 .withDailyLearningItems(input.dailyLearningItems)
                 .filterForDisplay(input.enabledZmanimTimes, input.enabledDailyLearning)
-                .toUiState(use24HourTime = input.use24HourTime)
+                .toUiState(use24HourTime = input.use24HourTime, now = clock.instant())
         }
         .distinctUntilChanged()
         .flowOn(Dispatchers.Default)
@@ -244,7 +250,7 @@ private fun ZmanimDay.filterForDisplay(
     return copy(groups = filtered)
 }
 
-private fun ZmanimDay.toUiState(use24HourTime: Boolean): ZmanimUiState {
+private fun ZmanimDay.toUiState(use24HourTime: Boolean, now: Instant): ZmanimUiState {
     val englishLocale = Locale.getDefault()
     val hebrewLocale = Locale.forLanguageTag("he")
     val timePattern = if (use24HourTime) "HH:mm" else "h:mm a"
@@ -252,25 +258,20 @@ private fun ZmanimDay.toUiState(use24HourTime: Boolean): ZmanimUiState {
     val hebrewTimeFormatter = DateTimeFormatter.ofPattern(timePattern, hebrewLocale).withZone(zoneId)
     val englishDateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d", englishLocale)
     val hebrewDateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d", hebrewLocale)
-    val items = buildList(capacity = groups.size + groups.sumOf { group -> group.items.size }) {
-        groups.forEachIndexed { groupIndex, group ->
-            add(
-                ZmanimGroupHeaderUi(
-                    key = "group:$groupIndex:${group.title}",
-                    title = group.title,
-                    titleHebrew = group.titleHebrew,
-                ),
-            )
-            group.items.forEachIndexed { itemIndex, item ->
-                add(
-                    item.toUiRow(
-                        key = "row:$groupIndex:$itemIndex:${item.title}",
-                        englishTimeFormatter = englishTimeFormatter,
-                        hebrewTimeFormatter = hebrewTimeFormatter,
-                    ),
+
+    val uiGroups = groups.mapIndexed { groupIndex, group ->
+        ZmanimGroupUi(
+            key = "group:$groupIndex:${group.title}",
+            title = group.title,
+            titleHebrew = group.titleHebrew,
+            rows = group.items.mapIndexed { itemIndex, item ->
+                item.toUiRow(
+                    key = "row:$groupIndex:$itemIndex:${item.title}",
+                    englishTimeFormatter = englishTimeFormatter,
+                    hebrewTimeFormatter = hebrewTimeFormatter,
                 )
-            }
-        }
+            },
+        )
     }
 
     return ZmanimUiState(
@@ -280,7 +281,28 @@ private fun ZmanimDay.toUiState(use24HourTime: Boolean): ZmanimUiState {
             dateHebrew = date.format(hebrewDateFormatter),
             zoneId = zoneId.id,
         ),
-        items = items,
+        nextZman = nextZman(now, englishTimeFormatter, hebrewTimeFormatter),
+        groups = uiGroups,
+    )
+}
+
+/** Earliest timed zman in the Zmanim group whose time is still ahead of [now]; null once the day's done. */
+private fun ZmanimDay.nextZman(
+    now: Instant,
+    englishTimeFormatter: DateTimeFormatter,
+    hebrewTimeFormatter: DateTimeFormatter,
+): NextZmanUi? {
+    val upcoming = groups.firstOrNull { it.title == ZmanimGroupTitle }
+        ?.items
+        ?.filter { item -> item.time?.isAfter(now) == true }
+        ?.minByOrNull { item -> item.time!! }
+        ?: return null
+    val time = upcoming.time ?: return null
+    return NextZmanUi(
+        title = upcoming.title,
+        titleHebrew = upcoming.titleHebrew,
+        value = englishTimeFormatter.format(time),
+        valueHebrew = hebrewTimeFormatter.format(time),
     )
 }
 
