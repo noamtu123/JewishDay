@@ -16,6 +16,8 @@
     <string name="zmanim_loading_hebrew">מחשב זמנים</string>
     <string name="zmanim_date_and_zone">%1$s · %2$s</string>
     <string name="zmanim_date_and_zone_hebrew">%1$s · %2$s</string>
+    <string name="zmanim_next_label">Up next</string>
+    <string name="zmanim_next_label_hebrew">הבא בתור</string>
     <string name="mizrach_from">From %1$s</string>
     <string name="mizrach_from_hebrew">מ־%1$s</string>
     <string name="mizrach_degrees">%1$d°</string>
