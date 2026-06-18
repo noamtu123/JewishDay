@@ -20,3 +20,9 @@ keystore.properties
 
 # Stray session log artifacts
 session-ses_*.md
+
+# Local email/avatar export
+gmail-icon.png
+
+# AI handoff log — local communication between AI assistants, never pushed
+AI_HANDOFF.md

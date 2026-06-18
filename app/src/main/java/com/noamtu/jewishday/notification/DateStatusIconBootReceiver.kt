@@ -10,7 +10,7 @@ class DateStatusIconBootReceiver : BroadcastReceiver() {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
-            -> DateStatusIconScheduler.enqueueRefresh(context.applicationContext)
+            -> DateStatusIconScheduler.refresh(context.applicationContext)
         }
     }
 }

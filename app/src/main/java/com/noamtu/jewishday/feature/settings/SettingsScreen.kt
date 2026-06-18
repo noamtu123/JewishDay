@@ -56,6 +56,8 @@ fun SettingsScreen(
     var pendingNotificationTarget by remember { mutableStateOf<NotificationPermissionTarget?>(null) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showZmanimTimes by remember { mutableStateOf(false) }
+    var showDailyLearning by remember { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -188,13 +190,6 @@ fun SettingsScreen(
                     )
                     SettingsDivider()
                     SettingsSwitchRow(
-                        label = localizedString(R.string.settings_rambam_3_chapters, R.string.settings_rambam_3_chapters_hebrew),
-                        description = localizedString(R.string.settings_rambam_3_chapters_description, R.string.settings_rambam_3_chapters_description_hebrew),
-                        checked = uiState.rambamThreeChaptersEnabled,
-                        onCheckedChange = viewModel::setRambamThreeChaptersEnabled,
-                    )
-                    SettingsDivider()
-                    SettingsSwitchRow(
                         label = localizedString(R.string.settings_advanced_zmanim, R.string.settings_advanced_zmanim_hebrew),
                         description = localizedString(R.string.settings_advanced_zmanim_description, R.string.settings_advanced_zmanim_description_hebrew),
                         checked = uiState.advancedZmanimModeEnabled,
@@ -207,6 +202,59 @@ fun SettingsScreen(
                             settings = zmanim,
                             viewModel = viewModel,
                         )
+                    }
+                }
+            }
+            item {
+                val useHebrew = LocalUseHebrewInterface.current
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    ExpandableSettingsHeader(
+                        label = localizedString(R.string.settings_zmanim_times_section, R.string.settings_zmanim_times_section_hebrew),
+                        description = localizedString(R.string.settings_zmanim_times_section_description, R.string.settings_zmanim_times_section_description_hebrew),
+                        expanded = showZmanimTimes,
+                        onClick = { showZmanimTimes = !showZmanimTimes },
+                    )
+                    if (showZmanimTimes) {
+                        ZmanimTimeOption.entries.forEach { option ->
+                            SettingsDivider()
+                            SettingsSwitchRow(
+                                label = if (useHebrew) option.labelHebrew else option.labelEnglish,
+                                description = "",
+                                checked = option in uiState.enabledZmanimTimes,
+                                onCheckedChange = { enabled -> viewModel.setZmanimTimeEnabled(option, enabled) },
+                            )
+                        }
+                    }
+                }
+            }
+            item {
+                val useHebrew = LocalUseHebrewInterface.current
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    ExpandableSettingsHeader(
+                        label = localizedString(R.string.settings_daily_learning_section, R.string.settings_daily_learning_section_hebrew),
+                        description = localizedString(R.string.settings_daily_learning_section_description, R.string.settings_daily_learning_section_description_hebrew),
+                        expanded = showDailyLearning,
+                        onClick = { showDailyLearning = !showDailyLearning },
+                    )
+                    if (showDailyLearning) {
+                        DailyLearningType.entries.forEach { type ->
+                            SettingsDivider()
+                            SettingsSwitchRow(
+                                label = if (useHebrew) type.labelHebrew else type.labelEnglish,
+                                description = "",
+                                checked = type in uiState.enabledDailyLearning,
+                                onCheckedChange = { enabled -> viewModel.setDailyLearningEnabled(type, enabled) },
+                            )
+                            if (type == DailyLearningType.RambamYomi) {
+                                SettingsDivider()
+                                SettingsSwitchRow(
+                                    label = localizedString(R.string.settings_rambam_3_chapters, R.string.settings_rambam_3_chapters_hebrew),
+                                    description = localizedString(R.string.settings_rambam_3_chapters_description, R.string.settings_rambam_3_chapters_description_hebrew),
+                                    checked = uiState.rambamThreeChaptersEnabled,
+                                    onCheckedChange = viewModel::setRambamThreeChaptersEnabled,
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -267,6 +315,23 @@ fun SettingsScreen(
         )
     }
 
+}
+
+@Composable
+private fun ExpandableSettingsHeader(
+    label: String,
+    description: String,
+    expanded: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SettingsChoiceRow(
+        label = label,
+        description = description,
+        value = if (expanded) "-" else "+",
+        onClick = onClick,
+        modifier = modifier,
+    )
 }
 
 private enum class NotificationPermissionTarget {
@@ -432,8 +497,8 @@ private fun AdvancedZmanimChoices(
         activePicker = picker(text("Alot Hashachar", "עלות השחר"), AlotHashacharMethod.entries, settings.alotHashacharMethod, { it.localizedLabel(useHebrew) }, viewModel::setAlotHashacharMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Misheyakir", "משיכיר"), text("Earliest tallit and tefillin time.", "זמן מוקדם לטלית ותפילין."), settings.misheyakirMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Misheyakir", "משיכיר"), MisheyakirMethod.entries, settings.misheyakirMethod, { it.localizedLabel(useHebrew) }, viewModel::setMisheyakirMethod)
+    MethodChoiceRow(text("Tallit & Tefillin", "זמן טלית ותפילין"), text("Earliest tallit and tefillin time (misheyakir).", "הזמן המוקדם לטלית ותפילין (משיכיר)."), settings.misheyakirMethod.localizedLabel(useHebrew)) {
+        activePicker = picker(text("Tallit & Tefillin", "זמן טלית ותפילין"), MisheyakirMethod.entries, settings.misheyakirMethod, { it.localizedLabel(useHebrew) }, viewModel::setMisheyakirMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Sunrise", "הנץ החמה"), text("Sea level is the common zmanim base; observed uses elevation.", "מישור הוא בסיס נפוץ לזמנים; נראית משתמשת בגובה."), settings.sunriseMethod.localizedLabel(useHebrew)) {

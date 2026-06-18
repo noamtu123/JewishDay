@@ -12,6 +12,9 @@ data class ZmanItem(
     val descriptionHebrew: String,
     val value: String? = null,
     val valueHebrew: String? = value,
+    // Stable id for show/hide filtering (ZmanimTimeOption / DailyLearningType storageValue).
+    // Null means the row is always shown and never user-toggleable.
+    val id: String? = null,
 )
 
 data class ZmanimDay(
@@ -37,4 +40,5 @@ fun ZmanimDay.withDailyLearningItems(items: List<ZmanItem>): ZmanimDay = copy(
     },
 )
 
+internal const val ZmanimGroupTitle = "Zmanim"
 internal const val DailyLearningGroupTitle = "Daily Learning"

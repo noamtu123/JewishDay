@@ -18,6 +18,7 @@ internal fun dailyLearningItems(
             descriptionHebrew = "מחזור דף יומי של KosherJava",
             value = englishFormatter.formatDafYomiBavli(jewishCalendar.dafYomiBavli),
             valueHebrew = hebrewFormatter.formatDafYomiBavli(jewishCalendar.dafYomiBavli),
+            id = DailyLearningType.DafYomiBavli.storageValue,
         ),
     )
     val yerushalmiDaf = runCatching { YerushalmiYomiCalculator.getDafYomiYerushalmi(jewishCalendar) }.getOrNull()
@@ -31,6 +32,7 @@ internal fun dailyLearningItems(
                 descriptionHebrew = "מחזור ירושלמי של KosherJava",
                 value = englishFormatter.formatDafYomiYerushalmi(yerushalmiDaf),
                 valueHebrew = hebrewFormatter.formatDafYomiYerushalmi(yerushalmiDaf),
+                id = DailyLearningType.DafYomiYerushalmi.storageValue,
             ),
         )
     }
@@ -43,6 +45,7 @@ internal fun dailyLearningItems(
             descriptionHebrew = "חלוקה חודשית לפי היום בחודש העברי",
             value = jewishCalendar.tehillimYomiEnglish(),
             valueHebrew = jewishCalendar.tehillimYomiHebrew(hebrewFormatter),
+            id = DailyLearningType.TehillimYomi.storageValue,
         ),
     )
 }

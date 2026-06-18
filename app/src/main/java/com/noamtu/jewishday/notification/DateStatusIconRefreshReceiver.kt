@@ -6,7 +6,7 @@ import android.content.Intent
 
 class DateStatusIconRefreshReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        DateStatusIconScheduler.enqueueRefresh(context.applicationContext)
+        DateStatusIconScheduler.refresh(context.applicationContext)
     }
 
     companion object {

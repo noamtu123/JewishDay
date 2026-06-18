@@ -10,6 +10,7 @@ import com.noamtu.jewishday.model.BainHashmashotMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.ChametzMethod
 import com.noamtu.jewishday.model.ChatzotMethod
+import com.noamtu.jewishday.model.DailyLearningType
 import com.noamtu.jewishday.model.FastDayMethod
 import com.noamtu.jewishday.model.HighLatitudeHandling
 import com.noamtu.jewishday.model.MinchaGedolaMethod
@@ -25,6 +26,7 @@ import com.noamtu.jewishday.model.SunsetMethod
 import com.noamtu.jewishday.model.TzeitHakochavimMethod
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.ZmanimPreset
+import com.noamtu.jewishday.model.ZmanimTimeOption
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -43,6 +45,8 @@ data class SettingsUiState(
     val use24HourTime: Boolean = true,
     val advancedZmanimModeEnabled: Boolean = false,
     val rambamThreeChaptersEnabled: Boolean = false,
+    val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
+    val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
 )
@@ -62,6 +66,8 @@ class SettingsViewModel @Inject constructor(
                 use24HourTime = settings.use24HourTime,
                 advancedZmanimModeEnabled = settings.advancedZmanimModeEnabled,
                 rambamThreeChaptersEnabled = settings.rambamThreeChaptersEnabled,
+                enabledDailyLearning = settings.enabledDailyLearning,
+                enabledZmanimTimes = settings.enabledZmanimTimes,
                 themeOption = settings.themeOption,
                 zmanimSettings = settings.zmanimSettings,
             )
@@ -119,6 +125,20 @@ class SettingsViewModel @Inject constructor(
     fun setThemeOption(themeOption: AppThemeOption) {
         viewModelScope.launch {
             appSettingsRepository.setThemeOption(themeOption)
+        }
+    }
+
+    fun setDailyLearningEnabled(type: DailyLearningType, enabled: Boolean) {
+        viewModelScope.launch {
+            val current = appSettingsRepository.settings.first().enabledDailyLearning
+            appSettingsRepository.setEnabledDailyLearning(if (enabled) current + type else current - type)
+        }
+    }
+
+    fun setZmanimTimeEnabled(option: ZmanimTimeOption, enabled: Boolean) {
+        viewModelScope.launch {
+            val current = appSettingsRepository.settings.first().enabledZmanimTimes
+            appSettingsRepository.setEnabledZmanimTimes(if (enabled) current + option else current - option)
         }
     }
 

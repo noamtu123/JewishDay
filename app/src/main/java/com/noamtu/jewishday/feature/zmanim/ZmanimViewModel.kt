@@ -7,10 +7,14 @@ import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DailyLearningRepository
 import com.noamtu.jewishday.data.JewishDayRepository
+import com.noamtu.jewishday.model.DailyLearningGroupTitle
+import com.noamtu.jewishday.model.DailyLearningType
 import com.noamtu.jewishday.model.JewishLocation
 import com.noamtu.jewishday.model.ZmanItem
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.ZmanimDay
+import com.noamtu.jewishday.model.ZmanimGroupTitle
+import com.noamtu.jewishday.model.ZmanimTimeOption
 import com.noamtu.jewishday.model.dateBoundaryTicker
 import com.noamtu.jewishday.model.defaultJerusalemLocation
 import com.noamtu.jewishday.model.withDailyLearningItems
@@ -75,6 +79,8 @@ data class ZmanimRowUi(
 private data class ZmanimSettingsSnapshot(
     val use24HourTime: Boolean,
     val includeRambamThreeChapters: Boolean,
+    val enabledZmanimTimes: Set<ZmanimTimeOption>,
+    val enabledDailyLearning: Set<DailyLearningType>,
     val calculationSettings: ZmanimCalculationSettings,
 )
 
@@ -87,6 +93,8 @@ private data class ZmanimDisplayInput(
     val zmanimDay: ZmanimDay,
     val dailyLearningItems: List<ZmanItem>,
     val use24HourTime: Boolean,
+    val enabledZmanimTimes: Set<ZmanimTimeOption>,
+    val enabledDailyLearning: Set<DailyLearningType>,
 )
 
 private data class DailyLearningRequest(
@@ -109,6 +117,8 @@ class ZmanimViewModel @Inject constructor(
             ZmanimSettingsSnapshot(
                 use24HourTime = settings.use24HourTime,
                 includeRambamThreeChapters = settings.rambamThreeChaptersEnabled,
+                enabledZmanimTimes = settings.enabledZmanimTimes,
+                enabledDailyLearning = settings.enabledDailyLearning,
                 calculationSettings = settings.zmanimSettings,
             )
         }
@@ -130,6 +140,14 @@ class ZmanimViewModel @Inject constructor(
 
     private val includeRambamThreeChapters = settings
         .map { settings -> settings.includeRambamThreeChapters }
+        .distinctUntilChanged()
+
+    private val enabledZmanimTimes = settings
+        .map { settings -> settings.enabledZmanimTimes }
+        .distinctUntilChanged()
+
+    private val enabledDailyLearning = settings
+        .map { settings -> settings.enabledDailyLearning }
         .distinctUntilChanged()
 
     private val location = currentLocationRepository.currentLocation
@@ -183,13 +201,17 @@ class ZmanimViewModel @Inject constructor(
         zmanimDay,
         dailyLearningItems,
         use24HourTime,
-        ::ZmanimDisplayInput,
-    )
+        enabledZmanimTimes,
+        enabledDailyLearning,
+    ) { day, learning, use24, times, limudim ->
+        ZmanimDisplayInput(day, learning, use24, times, limudim)
+    }
         .distinctUntilChanged()
         .conflate()
         .map { input ->
             input.zmanimDay
                 .withDailyLearningItems(input.dailyLearningItems)
+                .filterForDisplay(input.enabledZmanimTimes, input.enabledDailyLearning)
                 .toUiState(use24HourTime = input.use24HourTime)
         }
         .distinctUntilChanged()
@@ -199,6 +221,27 @@ class ZmanimViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = ZmanimUiState(),
         )
+}
+
+/**
+ * Drops the Zmanim rows and Daily-Learning rows the user has hidden, then removes any group
+ * left empty. Rows without an id (always-on) and other groups are untouched.
+ */
+private fun ZmanimDay.filterForDisplay(
+    enabledZmanimTimes: Set<ZmanimTimeOption>,
+    enabledDailyLearning: Set<DailyLearningType>,
+): ZmanimDay {
+    val zmanimIds = enabledZmanimTimes.mapTo(mutableSetOf()) { it.storageValue }
+    val learningIds = enabledDailyLearning.mapTo(mutableSetOf()) { it.storageValue }
+    val filtered = groups.mapNotNull { group ->
+        val items = when (group.title) {
+            ZmanimGroupTitle -> group.items.filter { it.id == null || it.id in zmanimIds }
+            DailyLearningGroupTitle -> group.items.filter { it.id == null || it.id in learningIds }
+            else -> group.items
+        }
+        if (items.isEmpty()) null else group.copy(items = items)
+    }
+    return copy(groups = filtered)
 }
 
 private fun ZmanimDay.toUiState(use24HourTime: Boolean): ZmanimUiState {

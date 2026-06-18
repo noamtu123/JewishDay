@@ -61,6 +61,14 @@
     <string name="settings_rambam_3_chapters_hebrew">הצג רמב״ם 3 פרקים</string>
     <string name="settings_rambam_3_chapters_description">Add Hebcal’s 3-chapter Rambam track to the Rambam Yomi card.</string>
     <string name="settings_rambam_3_chapters_description_hebrew">הוסף את מסלול 3 הפרקים של Hebcal לכרטיס רמב״ם יומי.</string>
+    <string name="settings_daily_learning_section">Daily learning to show</string>
+    <string name="settings_daily_learning_section_hebrew">לימוד יומי להצגה</string>
+    <string name="settings_daily_learning_section_description">Choose which daily-study tracks appear on the Zmanim tab.</string>
+    <string name="settings_daily_learning_section_description_hebrew">בחרו אילו מסלולי לימוד יומי יוצגו בלשונית הזמנים.</string>
+    <string name="settings_zmanim_times_section">Zmanim to show</string>
+    <string name="settings_zmanim_times_section_hebrew">זמנים להצגה</string>
+    <string name="settings_zmanim_times_section_description">Choose which times appear in the Zmanim list.</string>
+    <string name="settings_zmanim_times_section_description_hebrew">בחרו אילו זמנים יופיעו ברשימת הזמנים.</string>
     <string name="settings_outside_israel">Outside Israel (Chutz LaAretz)</string>
     <string name="settings_outside_israel_hebrew">חוץ לארץ</string>
     <string name="settings_outside_israel_description">Use diaspora Yom Tov and parsha rules (two days of Yom Tov). Off keeps the Israel calendar.</string>

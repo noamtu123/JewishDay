@@ -61,6 +61,13 @@ class ZmanimModelsTest {
         assertTrue(zmanimItems.contains("Chatzot HaYom"))
         assertTrue(zmanimItems.contains("Chatzot HaLaila"))
         assertFalse(zmanimItems.contains("Samuch LeMincha Ketana"))
+
+        // Misheyakir row is now labelled Tallit & Tefillin.
+        assertTrue(zmanimItems.contains("Tallit & Tefillin"))
+        assertFalse(zmanimItems.contains("Misheyakir"))
+        // Magen Avraham rows come before their GRA counterparts.
+        assertTrue(zmanimItems.indexOf("Sof Zman Shema (Magen Avraham)") < zmanimItems.indexOf("Sof Zman Shema (GRA)"))
+        assertTrue(zmanimItems.indexOf("Sof Zman Tefillah (Magen Avraham)") < zmanimItems.indexOf("Sof Zman Tefillah (GRA)"))
     }
 
     @Test
@@ -71,7 +78,7 @@ class ZmanimModelsTest {
             .first { it.title == "Shabbat" }
             .items
 
-        assertTrue(shabbatItems.first { it.title == "Candle Lighting" }.description.contains("2026-06-12"))
+        assertTrue(shabbatItems.first { it.title == "Candle Lighting & Shabbat Entry" }.description.contains("2026-06-12"))
         assertTrue(shabbatItems.first { it.title == "Motzei Shabbat" }.description.contains("2026-06-13"))
     }
 
