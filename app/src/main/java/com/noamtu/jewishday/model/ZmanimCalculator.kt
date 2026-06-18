@@ -49,33 +49,34 @@ fun zmanimForDate(
                 ),
             ),
             ZmanimGroup(
-                title = "Zmanim",
+                title = ZmanimGroupTitle,
                 titleHebrew = "זמנים",
                 // One continuous list (no morning/afternoon split). Sof Zman Shema and
-                // Tefillah each appear twice — GRA and Magen Avraham — each with its own
-                // configurable method (the caption shows the precise method chosen).
+                // Tefillah each appear twice — Magen Avraham first, then GRA — each with its
+                // own configurable method (the caption shows the precise method chosen).
+                // Each row carries its ZmanimTimeOption id so it can be shown/hidden.
                 items = listOf(
-                    ZmanItem("Alot Hashachar", "עלות השחר", calendar.alotHashachar(settings)?.toInstant(), settings.alotHashacharMethod.label, settings.alotHashacharMethod.labelHebrew),
-                    ZmanItem("Misheyakir", "משיכיר", calendar.misheyakir(settings.misheyakirMethod)?.toInstant(), settings.misheyakirMethod.label, settings.misheyakirMethod.labelHebrew),
-                    ZmanItem("Sunrise", "הנץ החמה", calendar.sunrise(settings.sunriseMethod)?.toInstant(), settings.sunriseMethod.label, settings.sunriseMethod.labelHebrew),
-                    ZmanItem("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)", calendar.sofZmanShema(settings.sofZmanShemaGraMethod, settings)?.toInstant(), settings.sofZmanShemaGraMethod.label, settings.sofZmanShemaGraMethod.labelHebrew),
-                    ZmanItem("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מגן אברהם)", calendar.sofZmanShema(settings.sofZmanShemaMethod, settings)?.toInstant(), settings.sofZmanShemaMethod.label, settings.sofZmanShemaMethod.labelHebrew),
-                    ZmanItem("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)", calendar.sofZmanTefillah(settings.sofZmanTefillahGraMethod, settings)?.toInstant(), settings.sofZmanTefillahGraMethod.label, settings.sofZmanTefillahGraMethod.labelHebrew),
-                    ZmanItem("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מגן אברהם)", calendar.sofZmanTefillah(settings.sofZmanTefillahMethod, settings)?.toInstant(), settings.sofZmanTefillahMethod.label, settings.sofZmanTefillahMethod.labelHebrew),
-                    ZmanItem("Chatzot HaYom", "חצות היום", calendar.chatzot(settings.chatzotMethod)?.toInstant(), settings.chatzotMethod.label, settings.chatzotMethod.labelHebrew),
-                    ZmanItem("Mincha Gedola", "מנחה גדולה", calendar.minchaGedola(settings)?.toInstant(), settings.minchaGedolaMethod.label, settings.minchaGedolaMethod.labelHebrew),
-                    ZmanItem("Mincha Ketana", "מנחה קטנה", calendar.minchaKetana(settings)?.toInstant(), settings.minchaKetanaMethod.label, settings.minchaKetanaMethod.labelHebrew),
-                    ZmanItem("Plag Hamincha", "פלג המנחה", calendar.plagHamincha(settings)?.toInstant(), settings.plagHaminchaMethod.label, settings.plagHaminchaMethod.labelHebrew),
-                    ZmanItem("Sunset", "שקיעה", calendar.sunset(settings.sunsetMethod)?.toInstant(), settings.sunsetMethod.label, settings.sunsetMethod.labelHebrew),
-                    ZmanItem("Tzeit", "צאת הכוכבים", calendar.tzeit(settings)?.toInstant(), settings.tzeitHakochavimMethod.label, settings.tzeitHakochavimMethod.labelHebrew),
-                    ZmanItem("Chatzot HaLaila", "חצות הלילה", calendar.solarMidnight?.toInstant(), "Solar midnight", "חצות אסטרונומי"),
+                    ZmanItem("Alot Hashachar", "עלות השחר", calendar.alotHashachar(settings)?.toInstant(), settings.alotHashacharMethod.label, settings.alotHashacharMethod.labelHebrew, id = ZmanimTimeOption.AlotHashachar.storageValue),
+                    ZmanItem("Tallit & Tefillin", "זמן טלית ותפילין", calendar.misheyakir(settings.misheyakirMethod)?.toInstant(), settings.misheyakirMethod.label, settings.misheyakirMethod.labelHebrew, id = ZmanimTimeOption.TallitTefillin.storageValue),
+                    ZmanItem("Sunrise", "הנץ החמה", calendar.sunrise(settings.sunriseMethod)?.toInstant(), settings.sunriseMethod.label, settings.sunriseMethod.labelHebrew, id = ZmanimTimeOption.Sunrise.storageValue),
+                    ZmanItem("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מגן אברהם)", calendar.sofZmanShema(settings.sofZmanShemaMethod, settings)?.toInstant(), settings.sofZmanShemaMethod.label, settings.sofZmanShemaMethod.labelHebrew, id = ZmanimTimeOption.SofZmanShemaMagenAvraham.storageValue),
+                    ZmanItem("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)", calendar.sofZmanShema(settings.sofZmanShemaGraMethod, settings)?.toInstant(), settings.sofZmanShemaGraMethod.label, settings.sofZmanShemaGraMethod.labelHebrew, id = ZmanimTimeOption.SofZmanShemaGra.storageValue),
+                    ZmanItem("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מגן אברהם)", calendar.sofZmanTefillah(settings.sofZmanTefillahMethod, settings)?.toInstant(), settings.sofZmanTefillahMethod.label, settings.sofZmanTefillahMethod.labelHebrew, id = ZmanimTimeOption.SofZmanTefillahMagenAvraham.storageValue),
+                    ZmanItem("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)", calendar.sofZmanTefillah(settings.sofZmanTefillahGraMethod, settings)?.toInstant(), settings.sofZmanTefillahGraMethod.label, settings.sofZmanTefillahGraMethod.labelHebrew, id = ZmanimTimeOption.SofZmanTefillahGra.storageValue),
+                    ZmanItem("Chatzot HaYom", "חצות היום", calendar.chatzot(settings.chatzotMethod)?.toInstant(), settings.chatzotMethod.label, settings.chatzotMethod.labelHebrew, id = ZmanimTimeOption.ChatzotHaYom.storageValue),
+                    ZmanItem("Mincha Gedola", "מנחה גדולה", calendar.minchaGedola(settings)?.toInstant(), settings.minchaGedolaMethod.label, settings.minchaGedolaMethod.labelHebrew, id = ZmanimTimeOption.MinchaGedola.storageValue),
+                    ZmanItem("Mincha Ketana", "מנחה קטנה", calendar.minchaKetana(settings)?.toInstant(), settings.minchaKetanaMethod.label, settings.minchaKetanaMethod.labelHebrew, id = ZmanimTimeOption.MinchaKetana.storageValue),
+                    ZmanItem("Plag Hamincha", "פלג המנחה", calendar.plagHamincha(settings)?.toInstant(), settings.plagHaminchaMethod.label, settings.plagHaminchaMethod.labelHebrew, id = ZmanimTimeOption.PlagHamincha.storageValue),
+                    ZmanItem("Sunset", "שקיעה", calendar.sunset(settings.sunsetMethod)?.toInstant(), settings.sunsetMethod.label, settings.sunsetMethod.labelHebrew, id = ZmanimTimeOption.Sunset.storageValue),
+                    ZmanItem("Tzeit", "צאת הכוכבים", calendar.tzeit(settings)?.toInstant(), settings.tzeitHakochavimMethod.label, settings.tzeitHakochavimMethod.labelHebrew, id = ZmanimTimeOption.Tzeit.storageValue),
+                    ZmanItem("Chatzot HaLaila", "חצות הלילה", calendar.solarMidnight?.toInstant(), "Solar midnight", "חצות אסטרונומי", id = ZmanimTimeOption.ChatzotHaLaila.storageValue),
                 ),
             ),
             ZmanimGroup(
                 title = "Shabbat",
                 titleHebrew = "שבת",
                 items = listOf(
-                    ZmanItem("Candle Lighting", "הדלקת נרות", shabbatStartCalendar.candleLighting?.toInstant(), "Friday ${shabbatDates.startDate}; ${settings.candleLightingMethod.label}", "יום שישי ${shabbatDates.startDate}; ${settings.candleLightingMethod.labelHebrew}"),
+                    ZmanItem("Candle Lighting & Shabbat Entry", "הדלקת נרות וכניסת שבת", shabbatStartCalendar.candleLighting?.toInstant(), "Friday ${shabbatDates.startDate}; ${settings.candleLightingMethod.label}", "יום שישי ${shabbatDates.startDate}; ${settings.candleLightingMethod.labelHebrew}"),
                     ZmanItem("Sunset", "שקיעה", shabbatStartCalendar.sunset(settings.sunsetMethod)?.toInstant(), "Friday ${shabbatDates.startDate}; ${settings.sunsetMethod.label}", "יום שישי ${shabbatDates.startDate}; ${settings.sunsetMethod.labelHebrew}"),
                     ZmanItem("Motzei Shabbat", "צאת שבת", shabbatEndCalendar.motzeiShabbat(settings)?.toInstant(), "Saturday ${shabbatDates.endDate}; ${settings.motzeiShabbatMethod.label}", "מוצאי שבת ${shabbatDates.endDate}; ${settings.motzeiShabbatMethod.labelHebrew}"),
                     ZmanItem("Rabbeinu Tam", "רבינו תם", shabbatEndCalendar.rabbeinuTam(settings.rabbeinuTamMethod)?.toInstant(), "Saturday ${shabbatDates.endDate}; ${settings.rabbeinuTamMethod.label}", "מוצאי שבת ${shabbatDates.endDate}; ${settings.rabbeinuTamMethod.labelHebrew}"),
