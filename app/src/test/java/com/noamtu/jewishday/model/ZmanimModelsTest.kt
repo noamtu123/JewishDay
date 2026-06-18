@@ -8,14 +8,16 @@ import java.time.LocalDate
 
 class ZmanimModelsTest {
     @Test
-    fun standardDefaultsUseMagenAvrahamBasisGeonimAndShowRabbeinuTam() {
+    fun standardDefaultsMatch2netIsraelConventions() {
         val settings = ZmanimCalculationSettings()
 
         // GRA is always shown as its own row; the configurable basis defaults to MGA 72.
         assertEquals(SofZmanShemaMethod.Mga72, settings.sofZmanShemaMethod)
         assertEquals(SofZmanTefillahMethod.Mga72, settings.sofZmanTefillahMethod)
         assertEquals(MinchaGedolaMethod.Standard, settings.minchaGedolaMethod)
-        assertEquals(TzeitHakochavimMethod.Geonim8Point5, settings.tzeitHakochavimMethod)
+        // Defaults aligned to 2net (Israel): degree-based dawn, tzeit = sunset + 20 min.
+        assertEquals(AlotHashacharMethod.Degrees16Point1, settings.alotHashacharMethod)
+        assertEquals(TzeitHakochavimMethod.Minutes20, settings.tzeitHakochavimMethod)
         assertEquals(MotzeiShabbatMethod.Geonim8Point5, settings.motzeiShabbatMethod)
         assertEquals(RabbeinuTamMethod.Minutes72, settings.rabbeinuTamMethod)
     }

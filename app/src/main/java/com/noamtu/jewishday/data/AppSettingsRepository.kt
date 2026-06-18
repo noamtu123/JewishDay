@@ -223,6 +223,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
             preferences[SofZmanTefillahGraMethodKey] = settings.sofZmanTefillahGraMethod.storageValue
             preferences[SofZmanTefillahMethodKey] = settings.sofZmanTefillahMethod.storageValue
             preferences[ChatzotMethodKey] = settings.chatzotMethod.storageValue
+            preferences[ChatzotHaLailaMethodKey] = settings.chatzotHaLailaMethod.storageValue
             preferences[MinchaGedolaMethodKey] = settings.minchaGedolaMethod.storageValue
             preferences[MinchaKetanaMethodKey] = settings.minchaKetanaMethod.storageValue
             preferences[PlagHaminchaMethodKey] = settings.plagHaminchaMethod.storageValue
@@ -244,7 +245,8 @@ class DataStoreAppSettingsRepository @Inject constructor(
             inIsrael = preferences[InIsrael] ?: true,
             highLatitudeHandling = HighLatitudeHandling.fromStorageValue(preferences[HighLatitudeHandlingKey]) ?: HighLatitudeHandling.FixedMinutesFallback,
             alotHashacharMethod = AlotHashacharMethod.fromStorageValue(preferences[AlotHashacharMethodKey])
-                ?: legacyAlotMethod(preferences[AlotHashacharOffsetMinutes] ?: 72),
+                ?: preferences[AlotHashacharOffsetMinutes]?.let { legacyAlotMethod(it) }
+                ?: AlotHashacharMethod.Degrees16Point1,
             misheyakirMethod = MisheyakirMethod.fromStorageValue(preferences[MisheyakirMethodKey]) ?: MisheyakirMethod.Degrees11Point5,
             sunriseMethod = SunriseMethod.fromStorageValue(preferences[SunriseMethodKey])
                 ?: if (preferences[UseSeaLevelSunrise] == false) SunriseMethod.ElevationAdjusted else SunriseMethod.SeaLevel,
@@ -259,13 +261,14 @@ class DataStoreAppSettingsRepository @Inject constructor(
             sofZmanTefillahMethod = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahMethodKey])
                 ?: SofZmanTefillahMethod.Mga72,
             chatzotMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotMethodKey]) ?: ChatzotMethod.Solar,
+            chatzotHaLailaMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotHaLailaMethodKey]) ?: ChatzotMethod.Solar,
             minchaGedolaMethod = MinchaGedolaMethod.fromStorageValue(preferences[MinchaGedolaMethodKey]) ?: MinchaGedolaMethod.Standard,
             minchaKetanaMethod = MinchaKetanaMethod.fromStorageValue(preferences[MinchaKetanaMethodKey]) ?: MinchaKetanaMethod.Standard,
             plagHaminchaMethod = PlagHaminchaMethod.fromStorageValue(preferences[PlagHaminchaMethodKey])
                 ?: legacyPlagMethod(preferences[PlagHaminchaOffsetMinutes] ?: 0),
             sunsetMethod = SunsetMethod.fromStorageValue(preferences[SunsetMethodKey])
                 ?: if (preferences[UseSeaLevelSunset] == false) SunsetMethod.ElevationAdjusted else SunsetMethod.SeaLevel,
-            tzeitHakochavimMethod = TzeitHakochavimMethod.fromStorageValue(preferences[TzeitHakochavimMethodKey]) ?: TzeitHakochavimMethod.Geonim8Point5,
+            tzeitHakochavimMethod = TzeitHakochavimMethod.fromStorageValue(preferences[TzeitHakochavimMethodKey]) ?: TzeitHakochavimMethod.Minutes20,
             candleLightingMethod = CandleLightingMethod.fromStorageValue(preferences[CandleLightingMethodKey])
                 ?: legacyCandleMethod(preferences[CandleLightingOffsetMinutes] ?: 18),
             motzeiShabbatMethod = MotzeiShabbatMethod.fromStorageValue(preferences[MotzeiShabbatMethodKey]) ?: MotzeiShabbatMethod.Geonim8Point5,
@@ -344,6 +347,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val SofZmanTefillahGraMethodKey = stringPreferencesKey("zmanim_tefillah_gra_method")
         val SofZmanTefillahMethodKey = stringPreferencesKey("zmanim_tefillah_method")
         val ChatzotMethodKey = stringPreferencesKey("zmanim_chatzot_method")
+        val ChatzotHaLailaMethodKey = stringPreferencesKey("zmanim_chatzot_halaila_method")
         val MinchaGedolaMethodKey = stringPreferencesKey("zmanim_mincha_gedola_method")
         val MinchaKetanaMethodKey = stringPreferencesKey("zmanim_mincha_ketana_method")
         val PlagHaminchaMethodKey = stringPreferencesKey("zmanim_plag_method")

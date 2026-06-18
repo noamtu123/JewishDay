@@ -521,8 +521,12 @@ private fun AdvancedZmanimChoices(
         activePicker = picker(text("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מגן אברהם)"), SofZmanTefillahMethod.entries.filter { it.family == ZmanOpinionFamily.MagenAvraham }, settings.sofZmanTefillahMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanTefillahMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Chatzot", "חצות"), text("Solar or fixed-local calculation, used for both midday and midnight.", "חישוב שמשי או מקומי קבוע, לחצות היום ולחצות הלילה."), settings.chatzotMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Chatzot", "חצות"), ChatzotMethod.entries, settings.chatzotMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotMethod)
+    MethodChoiceRow(text("Chatzot HaYom", "חצות היום"), text("Solar or fixed-local midday.", "חצות היום: שמשי או מקומי קבוע."), settings.chatzotMethod.localizedLabel(useHebrew)) {
+        activePicker = picker(text("Chatzot HaYom", "חצות היום"), ChatzotMethod.entries, settings.chatzotMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotMethod)
+    }
+    SettingsDivider()
+    MethodChoiceRow(text("Chatzot HaLaila", "חצות הלילה"), text("Solar or fixed-local midnight.", "חצות הלילה: שמשי או מקומי קבוע."), settings.chatzotHaLailaMethod.localizedLabel(useHebrew)) {
+        activePicker = picker(text("Chatzot HaLaila", "חצות הלילה"), ChatzotMethod.entries, settings.chatzotHaLailaMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotHaLailaMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Mincha Gedola", "מנחה גדולה"), text("Earliest regular Mincha.", "הזמן המוקדם למנחה."), settings.minchaGedolaMethod.localizedLabel(useHebrew)) {
