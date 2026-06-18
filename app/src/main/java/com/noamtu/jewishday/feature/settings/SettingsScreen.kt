@@ -161,13 +161,12 @@ fun SettingsScreen(
                 }
             }
             item {
+                SettingsSectionTitle(
+                    text = localizedString(R.string.settings_zmanim_options, R.string.settings_zmanim_options_hebrew),
+                )
+            }
+            item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = localizedString(R.string.settings_zmanim_options, R.string.settings_zmanim_options_hebrew),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    SettingsDivider()
                     SettingsSwitchRow(
                         label = localizedString(R.string.settings_outside_israel, R.string.settings_outside_israel_hebrew),
                         description = localizedString(R.string.settings_outside_israel_description, R.string.settings_outside_israel_description_hebrew),
@@ -330,6 +329,18 @@ private enum class NotificationPermissionTarget {
 @Composable
 private fun SettingsDivider(modifier: Modifier = Modifier) {
     HorizontalDivider(modifier = modifier.padding(vertical = 12.dp))
+}
+
+@Composable
+private fun SettingsSectionTitle(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 4.dp, top = 8.dp, bottom = 2.dp),
+    )
 }
 
 @Composable
