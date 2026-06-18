@@ -182,6 +182,10 @@ class SettingsViewModel @Inject constructor(
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, chatzotMethod = method) }
     }
 
+    fun setChatzotHaLailaMethod(method: ChatzotMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, chatzotHaLailaMethod = method) }
+    }
+
     fun setMinchaGedolaMethod(method: MinchaGedolaMethod) {
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, minchaGedolaMethod = method) }
     }
