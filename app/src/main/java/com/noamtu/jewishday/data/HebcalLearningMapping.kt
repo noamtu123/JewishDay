@@ -23,7 +23,7 @@ internal fun List<HebcalLearningEntry>.toZmanItems(includeRambamThreeChapters: B
         }
         if (includeRambamThreeChapters) {
             entry("dailyRambam3")?.let {
-                add(it.toRow(DailyLearningType.RambamYomi, "Rambam Yomi · 3 Chapters", "רמב״ם יומי · 3 פרקים", "Hebcal Rambam, 3-chapter track", "רמב״ם יומי של Hebcal, מסלול 3 פרקים"))
+                add(it.toRow(DailyLearningType.RambamYomi, "Rambam Yomi", "רמב״ם יומי", "Hebcal Rambam, 3 chapters", "רמב״ם יומי של Hebcal, שלושה פרקים"))
             }
         }
 
@@ -82,7 +82,8 @@ private fun HebcalLearningEntry.toShemiratHaLashonRow(): ZmanItem {
 private fun HebcalLearningEntry.formattedHebrew(): String = when (category) {
     // Source Hebrew has the right name but Arabic numerals (e.g. "כלים 11:7-8").
     "mishnayomi" -> formatMishnahYomi(displayHebrew()) ?: displayHebrew().arabicDigitsToGematria()
-    "dailyRambam3" -> displayHebrew().arabicDigitsToGematria()
+    // Both Rambam tracks share one format so the 1- and 3-chapter rows look identical.
+    "dailyRambam1", "dailyRambam3" -> displayHebrew().arabicDigitsToGematria()
     "dailyPsalms" -> displayHebrew().replace("תהלים", "תהילים")
     // English-only "161:18-162:5" -> "קס״א: יח - קס״ב: ה".
     "kitzurShulchanAruch" -> formatKitzurShulchanAruch(title) ?: displayHebrew()
