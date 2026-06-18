@@ -7,11 +7,13 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.noamtu.jewishday.model.AlotHashacharMethod
 import com.noamtu.jewishday.model.BainHashmashotMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.ChametzMethod
 import com.noamtu.jewishday.model.ChatzotMethod
+import com.noamtu.jewishday.model.DailyLearningType
 import com.noamtu.jewishday.model.FastDayMethod
 import com.noamtu.jewishday.model.HighLatitudeHandling
 import com.noamtu.jewishday.model.MinchaGedolaMethod
@@ -27,6 +29,7 @@ import com.noamtu.jewishday.model.SunsetMethod
 import com.noamtu.jewishday.model.TzeitHakochavimMethod
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.ZmanimPreset
+import com.noamtu.jewishday.model.ZmanimTimeOption
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -62,6 +65,8 @@ data class AppSettings(
     val use24HourTime: Boolean = true,
     val advancedZmanimModeEnabled: Boolean = false,
     val rambamThreeChaptersEnabled: Boolean = false,
+    val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
+    val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
 ) {
@@ -86,6 +91,8 @@ interface AppSettingsRepository {
     suspend fun setUse24HourTime(enabled: Boolean)
     suspend fun setAdvancedZmanimModeEnabled(enabled: Boolean)
     suspend fun setRambamThreeChaptersEnabled(enabled: Boolean)
+    suspend fun setEnabledDailyLearning(types: Set<DailyLearningType>)
+    suspend fun setEnabledZmanimTimes(options: Set<ZmanimTimeOption>)
     suspend fun setThemeOption(themeOption: AppThemeOption)
     suspend fun setZmanimSettings(settings: ZmanimCalculationSettings)
 }
@@ -128,6 +135,12 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 use24HourTime = preferences[Use24HourTime] ?: true,
                 advancedZmanimModeEnabled = preferences[AdvancedZmanimModeEnabled] ?: false,
                 rambamThreeChaptersEnabled = preferences[RambamThreeChaptersEnabled] ?: false,
+                enabledDailyLearning = preferences[EnabledDailyLearningKey]
+                    ?.mapNotNull(DailyLearningType::fromStorageValue)?.toSet()
+                    ?: DailyLearningType.Default,
+                enabledZmanimTimes = preferences[EnabledZmanimTimesKey]
+                    ?.mapNotNull(ZmanimTimeOption::fromStorageValue)?.toSet()
+                    ?: ZmanimTimeOption.Default,
                 themeOption = rootUiSettings.themeOption,
                 zmanimSettings = decodeZmanimSettings(preferences),
             )
@@ -173,6 +186,18 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setRambamThreeChaptersEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[RambamThreeChaptersEnabled] = enabled
+        }
+    }
+
+    override suspend fun setEnabledDailyLearning(types: Set<DailyLearningType>) {
+        dataStore.edit { preferences ->
+            preferences[EnabledDailyLearningKey] = types.map(DailyLearningType::storageValue).toSet()
+        }
+    }
+
+    override suspend fun setEnabledZmanimTimes(options: Set<ZmanimTimeOption>) {
+        dataStore.edit { preferences ->
+            preferences[EnabledZmanimTimesKey] = options.map(ZmanimTimeOption::storageValue).toSet()
         }
     }
 
@@ -304,6 +329,8 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val Use24HourTime = booleanPreferencesKey("use_24_hour_time")
         val AdvancedZmanimModeEnabled = booleanPreferencesKey("advanced_zmanim_mode_enabled")
         val RambamThreeChaptersEnabled = booleanPreferencesKey("rambam_three_chapters_enabled")
+        val EnabledDailyLearningKey = stringSetPreferencesKey("enabled_daily_learning")
+        val EnabledZmanimTimesKey = stringSetPreferencesKey("enabled_zmanim_times")
         val ThemeOption = stringPreferencesKey("theme_option")
         val BlueWhiteTheme = booleanPreferencesKey("blue_white_theme")
         val AmoledBlackTheme = booleanPreferencesKey("amoled_black_theme")

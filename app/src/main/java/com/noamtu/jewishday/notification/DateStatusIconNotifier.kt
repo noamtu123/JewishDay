@@ -1,7 +1,6 @@
 package com.noamtu.jewishday.notification
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -27,86 +26,111 @@ import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** A single status-bar date icon: its notification id, the glyph, and the expanded text. */
+data class DateIconSpec(
+    val id: Int,
+    val iconText: String,
+    val title: String,
+    val content: String,
+)
+
+/** The icons to display: a foreground "anchor" plus an optional second icon. */
+data class RenderedDateIcons(
+    val primary: DateIconSpec,
+    val secondary: DateIconSpec?,
+)
+
 @Singleton
 class DateStatusIconNotifier @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    @SuppressLint("MissingPermission")
-    fun show(
-        dayInfo: JewishDayInfo,
-        showHebrew: Boolean,
-        showEnglish: Boolean,
-    ) {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (!context.canPostNotifications()) {
-            notificationManager.cancel(HebrewNotificationId)
-            notificationManager.cancel(EnglishNotificationId)
-            return
-        }
+    private val notificationManager: NotificationManager
+        get() = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        ensureNotificationChannel(notificationManager)
-        if (showHebrew) {
-            notificationManager.notify(
-                HebrewNotificationId,
-                buildDateNotification(
-                    iconText = dayInfo.hebrewDayOfMonthHebrew,
-                    title = context.getString(R.string.notification_status_hebrew_title),
-                    content = dayInfo.hebrewDateHebrew,
-                    requestCode = HebrewNotificationId,
-                ),
-            )
-        } else {
-            notificationManager.cancel(HebrewNotificationId)
-        }
+    private val cache by lazy { context.getSharedPreferences(CachePrefs, Context.MODE_PRIVATE) }
 
-        if (showEnglish) {
-            val englishDate = dayInfo.gregorianDate.format(
+    fun ensureChannel() {
+        val channel = NotificationChannel(
+            ChannelId,
+            context.getString(R.string.notification_channel_date_status_icon),
+            NotificationManager.IMPORTANCE_LOW,
+        ).apply {
+            description = context.getString(R.string.notification_channel_date_status_icon_description)
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            setShowBadge(false)
+        }
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    /**
+     * Builds the icon specs for the current day and caches them so the foreground service can
+     * re-post the right glyph instantly after a cold start, before recomputation finishes.
+     * The foreground anchor (id [ForegroundId]) shows the Hebrew icon when enabled, otherwise
+     * the English one; the optional second icon is the English one when both are enabled.
+     */
+    fun render(dayInfo: JewishDayInfo, showHebrew: Boolean, showEnglish: Boolean): RenderedDateIcons {
+        val hebrew = DateIconSpec(
+            id = ForegroundId,
+            iconText = dayInfo.hebrewDayOfMonthHebrew,
+            title = context.getString(R.string.notification_status_hebrew_title),
+            content = dayInfo.hebrewDateHebrew,
+        )
+        val english = DateIconSpec(
+            id = if (showHebrew) SecondaryId else ForegroundId,
+            iconText = dayInfo.gregorianDate.dayOfMonth.toString(),
+            title = context.getString(R.string.notification_status_english_title),
+            content = dayInfo.gregorianDate.format(
                 DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.getDefault()),
-            )
-            notificationManager.notify(
-                EnglishNotificationId,
-                buildDateNotification(
-                    iconText = dayInfo.gregorianDate.dayOfMonth.toString(),
-                    title = context.getString(R.string.notification_status_english_title),
-                    content = englishDate,
-                    requestCode = EnglishNotificationId,
-                ),
-            )
-        } else {
-            notificationManager.cancel(EnglishNotificationId)
+            ),
+        )
+        val rendered = when {
+            showHebrew && showEnglish -> RenderedDateIcons(hebrew, english)
+            showHebrew -> RenderedDateIcons(hebrew, null)
+            else -> RenderedDateIcons(english, null)
         }
+        persist(rendered)
+        return rendered
     }
 
-    fun cancelAll() {
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.cancel(HebrewNotificationId)
-        notificationManager.cancel(EnglishNotificationId)
+    /** The last rendered icons, if any were saved, for an immediate post on cold start. */
+    fun cachedRender(): RenderedDateIcons? {
+        val primaryText = cache.getString(KeyPrimaryText, null) ?: return null
+        val primary = DateIconSpec(
+            id = ForegroundId,
+            iconText = primaryText,
+            title = cache.getString(KeyPrimaryTitle, "").orEmpty(),
+            content = cache.getString(KeyPrimaryContent, "").orEmpty(),
+        )
+        val secondary = cache.getString(KeySecondaryText, null)?.let { text ->
+            DateIconSpec(
+                id = SecondaryId,
+                iconText = text,
+                title = cache.getString(KeySecondaryTitle, "").orEmpty(),
+                content = cache.getString(KeySecondaryContent, "").orEmpty(),
+            )
+        }
+        return RenderedDateIcons(primary, secondary)
     }
 
-    private fun buildDateNotification(
-        iconText: String,
-        title: String,
-        content: String,
-        requestCode: Int,
-    ): Notification {
+    fun buildNotification(spec: DateIconSpec): Notification {
         val pendingIntent = PendingIntent.getActivity(
             context,
-            requestCode,
+            spec.id,
             Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val deleteIntent = PendingIntent.getBroadcast(
             context,
-            requestCode + DismissRequestCodeOffset,
+            spec.id + DismissRequestCodeOffset,
             Intent(context, DateStatusIconRefreshReceiver::class.java).apply {
                 action = DateStatusIconRefreshReceiver.ActionRefreshAfterDismissal
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return Notification.Builder(context, ChannelId)
-            .setSmallIcon(Icon.createWithBitmap(dateIconBitmap(iconText)))
-            .setContentTitle(title)
-            .setContentText(content)
+            .setSmallIcon(Icon.createWithBitmap(dateIconBitmap(spec.iconText)))
+            .setContentTitle(spec.title)
+            .setContentText(spec.content)
             .setContentIntent(pendingIntent)
             .setDeleteIntent(deleteIntent)
             .setCategory(Notification.CATEGORY_STATUS)
@@ -122,17 +146,50 @@ class DateStatusIconNotifier @Inject constructor(
             }
     }
 
-    private fun ensureNotificationChannel(notificationManager: NotificationManager) {
-        val channel = NotificationChannel(
-            ChannelId,
-            context.getString(R.string.notification_channel_date_status_icon),
-            NotificationManager.IMPORTANCE_LOW,
-        ).apply {
-            description = context.getString(R.string.notification_channel_date_status_icon_description)
-            lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-            setShowBadge(false)
-        }
-        notificationManager.createNotificationChannel(channel)
+    /** Minimal valid notification for the brief window before the real day is computed. */
+    fun buildSyncingNotification(): Notification =
+        Notification.Builder(context, ChannelId)
+            .setSmallIcon(R.drawable.ic_stat_jewishday)
+            .setContentTitle(context.getString(R.string.notification_channel_date_status_icon))
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setLocalOnly(true)
+            .setOngoing(true)
+            .setShowWhen(false)
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .build()
+
+    fun postSecondary(spec: DateIconSpec) {
+        if (!canPostNotifications()) return
+        notificationManager.notify(spec.id, buildNotification(spec))
+    }
+
+    fun cancel(id: Int) = notificationManager.cancel(id)
+
+    fun cancelAll() {
+        notificationManager.cancel(ForegroundId)
+        notificationManager.cancel(SecondaryId)
+        cache.edit().clear().apply()
+    }
+
+    fun canPostNotifications(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+
+    private fun persist(rendered: RenderedDateIcons) {
+        cache.edit().apply {
+            putString(KeyPrimaryText, rendered.primary.iconText)
+            putString(KeyPrimaryTitle, rendered.primary.title)
+            putString(KeyPrimaryContent, rendered.primary.content)
+            if (rendered.secondary != null) {
+                putString(KeySecondaryText, rendered.secondary.iconText)
+                putString(KeySecondaryTitle, rendered.secondary.title)
+                putString(KeySecondaryContent, rendered.secondary.content)
+            } else {
+                remove(KeySecondaryText)
+                remove(KeySecondaryTitle)
+                remove(KeySecondaryContent)
+            }
+        }.apply()
     }
 
     private fun dateIconBitmap(text: String): Bitmap {
@@ -163,14 +220,17 @@ class DateStatusIconNotifier @Inject constructor(
 
     private fun Paint.textHeight(): Float = fontMetrics.descent - fontMetrics.ascent
 
-    private fun Context.canPostNotifications(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-
     companion object {
         const val ChannelId = "date_status_icon"
-        const val HebrewNotificationId = 1101
-        const val EnglishNotificationId = 1102
+        const val ForegroundId = 1101
+        const val SecondaryId = 1102
         private const val DismissRequestCodeOffset = 10_000
+        private const val CachePrefs = "date_status_icon_cache"
+        private const val KeyPrimaryText = "primary_text"
+        private const val KeyPrimaryTitle = "primary_title"
+        private const val KeyPrimaryContent = "primary_content"
+        private const val KeySecondaryText = "secondary_text"
+        private const val KeySecondaryTitle = "secondary_title"
+        private const val KeySecondaryContent = "secondary_content"
     }
 }
