@@ -27,7 +27,7 @@ class DailyLearningCacheCodecTest {
     }
 
     @Test
-    fun rambamThreeChaptersAppearAsTheirOwnRow() {
+    fun rambamOneAndThreeChaptersAreIndependentRowsUnderRambamYomi() {
         val entries = listOf(
             HebcalLearningEntry(
                 category = "dailyRambam1",
@@ -41,18 +41,19 @@ class DailyLearningCacheCodecTest {
             ),
         )
 
-        val oneChapterOnly = entries.toZmanItems(includeRambamThreeChapters = false)
-        val rambamOff = oneChapterOnly.filter { it.title == "Rambam Yomi" }
-        assertEquals(1, rambamOff.size)
-        assertEquals("Sabbath 17", rambamOff.single().value)
+        // Both tracks are mapped as separate "Rambam Yomi" rows; visibility is decided later by
+        // each row's own daily-learning id, so the two toggle independently.
+        val rows = entries.toZmanItems().filter { it.title == "Rambam Yomi" }
+        assertEquals(2, rows.size)
 
-        // With the toggle on, the 3-chapter track is a second "Rambam Yomi" row (same title and
-        // format as the 1-chapter row), distinguished by its description.
-        val withThreeChapters = entries.toZmanItems(includeRambamThreeChapters = true)
-        val rambamOn = withThreeChapters.filter { it.title == "Rambam Yomi" }
-        assertEquals(2, rambamOn.size)
-        assertEquals("Sabbath 17", rambamOn.single { it.description == "Hebcal Rambam, 1 chapter" }.value)
-        assertEquals("Gifts to the Poor 8-10", rambamOn.single { it.description == "Hebcal Rambam, 3 chapters" }.value)
-        assertTrue(rambamOn.all { it.id == DailyLearningType.RambamYomi.storageValue })
+        val oneChapter = rows.single { it.id == DailyLearningType.RambamYomi.storageValue }
+        assertEquals("Sabbath 17", oneChapter.value)
+        assertEquals("1 chapter", oneChapter.description)
+
+        val threeChapters = rows.single { it.id == DailyLearningType.RambamYomiThreeChapters.storageValue }
+        assertEquals("Gifts to the Poor 8-10", threeChapters.value)
+        assertEquals("3 chapters", threeChapters.description)
+        // Arabic chapter range -> plain gematria letters + plural פרקים, matching the 1-chapter style.
+        assertEquals("הלכות מתנות עניים פרקים ח-י", threeChapters.valueHebrew)
     }
 }

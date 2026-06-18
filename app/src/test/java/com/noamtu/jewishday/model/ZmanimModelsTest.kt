@@ -42,7 +42,9 @@ class ZmanimModelsTest {
         assertEquals("Jerusalem", zmanimDay.locationName)
         assertEquals(date, zmanimDay.date)
         assertEquals(defaultJerusalemLocation.zoneId, zmanimDay.zoneId)
-        assertEquals(listOf("Daily", "Zmanim", "Shabbat", "Daily Learning"), zmanimDay.groups.map { it.title })
+        // No standalone "Daily" section: the parsha sits in Shabbat and day-events only appear
+        // (header-less) when present, so a quiet weekday has just these three groups.
+        assertEquals(listOf("Zmanim", "Shabbat", "Daily Learning"), zmanimDay.groups.map { it.title })
         assertTrue(zmanimDay.groups.all { it.items.isNotEmpty() })
         assertFalse(zmanimDay.groups.flatMap { it.items }.any { it.time == null && it.value == null })
     }

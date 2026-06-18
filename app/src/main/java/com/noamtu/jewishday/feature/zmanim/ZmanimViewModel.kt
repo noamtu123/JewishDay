@@ -75,7 +75,6 @@ data class ZmanimRowUi(
 
 private data class ZmanimSettingsSnapshot(
     val use24HourTime: Boolean,
-    val includeRambamThreeChapters: Boolean,
     val enabledZmanimTimes: Set<ZmanimTimeOption>,
     val enabledDailyLearning: Set<DailyLearningType>,
     val calculationSettings: ZmanimCalculationSettings,
@@ -97,7 +96,6 @@ private data class ZmanimDisplayInput(
 private data class DailyLearningRequest(
     val date: LocalDate,
     val inIsrael: Boolean,
-    val includeRambamThreeChapters: Boolean,
 )
 
 @HiltViewModel
@@ -113,7 +111,6 @@ class ZmanimViewModel @Inject constructor(
         .map { settings ->
             ZmanimSettingsSnapshot(
                 use24HourTime = settings.use24HourTime,
-                includeRambamThreeChapters = settings.rambamThreeChaptersEnabled,
                 enabledZmanimTimes = settings.enabledZmanimTimes,
                 enabledDailyLearning = settings.enabledDailyLearning,
                 calculationSettings = settings.zmanimSettings,
@@ -133,10 +130,6 @@ class ZmanimViewModel @Inject constructor(
 
     private val calculationSettings = settings
         .map { settings -> settings.calculationSettings }
-        .distinctUntilChanged()
-
-    private val includeRambamThreeChapters = settings
-        .map { settings -> settings.includeRambamThreeChapters }
         .distinctUntilChanged()
 
     private val enabledZmanimTimes = settings
@@ -180,7 +173,6 @@ class ZmanimViewModel @Inject constructor(
     private val dailyLearningItems = combine(
         zmanimDay.map { day -> day.date }.distinctUntilChanged(),
         calculationSettings.map { settings -> settings.inIsrael }.distinctUntilChanged(),
-        includeRambamThreeChapters,
         ::DailyLearningRequest,
     )
         .distinctUntilChanged()
@@ -188,7 +180,6 @@ class ZmanimViewModel @Inject constructor(
             dailyLearningRepository.learningItems(
                 date = request.date,
                 inIsrael = request.inIsrael,
-                includeRambamThreeChapters = request.includeRambamThreeChapters,
             ).onStart { emit(emptyList()) }
         }
         .distinctUntilChanged()

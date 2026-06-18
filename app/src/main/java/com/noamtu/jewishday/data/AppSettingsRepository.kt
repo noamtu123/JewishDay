@@ -39,8 +39,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 enum class AppThemeOption(val storageValue: String) {
-    Classic("classic"),
     BlueWhite("blue_white"),
+    Classic("classic"),
     JerusalemStone("jerusalem_stone"),
     Sand("sand"),
     Midnight("midnight"),
@@ -63,7 +63,6 @@ data class AppSettings(
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
     val advancedZmanimModeEnabled: Boolean = false,
-    val rambamThreeChaptersEnabled: Boolean = false,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
@@ -88,7 +87,6 @@ interface AppSettingsRepository {
     suspend fun setAppLanguage(language: AppLanguage)
     suspend fun setUse24HourTime(enabled: Boolean)
     suspend fun setAdvancedZmanimModeEnabled(enabled: Boolean)
-    suspend fun setRambamThreeChaptersEnabled(enabled: Boolean)
     suspend fun setEnabledDailyLearning(types: Set<DailyLearningType>)
     suspend fun setEnabledZmanimTimes(options: Set<ZmanimTimeOption>)
     suspend fun setThemeOption(themeOption: AppThemeOption)
@@ -131,7 +129,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 language = rootUiSettings.language,
                 use24HourTime = preferences[Use24HourTime] ?: true,
                 advancedZmanimModeEnabled = preferences[AdvancedZmanimModeEnabled] ?: false,
-                rambamThreeChaptersEnabled = preferences[RambamThreeChaptersEnabled] ?: false,
                 enabledDailyLearning = preferences[EnabledDailyLearningKey]
                     ?.mapNotNull(DailyLearningType::fromStorageValue)?.toSet()
                     ?: DailyLearningType.Default,
@@ -171,12 +168,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setAdvancedZmanimModeEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[AdvancedZmanimModeEnabled] = enabled
-        }
-    }
-
-    override suspend fun setRambamThreeChaptersEnabled(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[RambamThreeChaptersEnabled] = enabled
         }
     }
 
@@ -321,7 +312,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val UseHebrewInterface = booleanPreferencesKey("use_hebrew_interface")
         val Use24HourTime = booleanPreferencesKey("use_24_hour_time")
         val AdvancedZmanimModeEnabled = booleanPreferencesKey("advanced_zmanim_mode_enabled")
-        val RambamThreeChaptersEnabled = booleanPreferencesKey("rambam_three_chapters_enabled")
         val EnabledDailyLearningKey = stringSetPreferencesKey("enabled_daily_learning")
         val EnabledZmanimTimesKey = stringSetPreferencesKey("enabled_zmanim_times")
         val ThemeOption = stringPreferencesKey("theme_option")

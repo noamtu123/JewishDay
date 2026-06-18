@@ -3,7 +3,7 @@ package com.noamtu.jewishday.data
 import com.noamtu.jewishday.model.DailyLearningType
 import com.noamtu.jewishday.model.ZmanItem
 
-internal fun List<HebcalLearningEntry>.toZmanItems(includeRambamThreeChapters: Boolean): List<ZmanItem> {
+internal fun List<HebcalLearningEntry>.toZmanItems(): List<ZmanItem> {
     val byCategory = groupBy(HebcalLearningEntry::category)
     fun entry(category: String): HebcalLearningEntry? = byCategory[category]?.firstOrNull()
 
@@ -18,13 +18,14 @@ internal fun List<HebcalLearningEntry>.toZmanItems(includeRambamThreeChapters: B
             add(it.toRow(DailyLearningType.MishnahYomi, "Mishnah Yomi", "משנה יומית", "Hebcal Mishnah Yomi cycle", "מחזור משנה יומית של Hebcal"))
         }
 
+        // Both Rambam tracks are independent daily-learning items (each shown/hidden on its own)
+        // but share the "Rambam Yomi" title and identical formatting, so when both are enabled
+        // they read as one section with a 1-chapter and a 3-chapter entry.
         entry("dailyRambam1")?.let {
-            add(it.toRow(DailyLearningType.RambamYomi, "Rambam Yomi", "רמב״ם יומי", "Hebcal Rambam, 1 chapter", "רמב״ם יומי של Hebcal, פרק אחד"))
+            add(it.toRow(DailyLearningType.RambamYomi, "Rambam Yomi", "רמב״ם יומי", "1 chapter", "פרק אחד"))
         }
-        if (includeRambamThreeChapters) {
-            entry("dailyRambam3")?.let {
-                add(it.toRow(DailyLearningType.RambamYomi, "Rambam Yomi", "רמב״ם יומי", "Hebcal Rambam, 3 chapters", "רמב״ם יומי של Hebcal, שלושה פרקים"))
-            }
+        entry("dailyRambam3")?.let {
+            add(it.toRow(DailyLearningType.RambamYomiThreeChapters, "Rambam Yomi", "רמב״ם יומי", "3 chapters", "שלושה פרקים"))
         }
 
         entry("dailyPsalms")?.let {
@@ -83,13 +84,25 @@ private fun HebcalLearningEntry.formattedHebrew(): String = when (category) {
     // Source Hebrew has the right name but Arabic numerals (e.g. "כלים 11:7-8").
     "mishnayomi" -> formatMishnahYomi(displayHebrew()) ?: displayHebrew().arabicDigitsToGematria()
     // Both Rambam tracks share one format so the 1- and 3-chapter rows look identical.
-    "dailyRambam1", "dailyRambam3" -> displayHebrew().arabicDigitsToGematria()
+    "dailyRambam1", "dailyRambam3" -> formatRambam(displayHebrew())
     "dailyPsalms" -> displayHebrew().replace("תהלים", "תהילים")
     // English-only "161:18-162:5" -> "קס״א: יח - קס״ב: ה".
     "kitzurShulchanAruch" -> formatKitzurShulchanAruch(title) ?: displayHebrew()
     // Source can start with "תהלים" even though the track is Tanakh Yomi.
     "tanakhYomi" -> formatTanakhYomi(displayHebrew(), title)
     else -> displayHebrew()
+}
+
+/**
+ * Rambam arrives as "הלכות <name> פרק כח" (1 chapter, already Hebrew letters) or
+ * "הלכות <name> פרק 2-4" (3 chapters, Arabic digits + a singular פרק). Convert digit runs to
+ * plain gematria letters (no geresh, matching the 1-chapter style) and pluralize פרק -> פרקים
+ * for a chapter range, so both tracks render in the same style.
+ */
+private fun formatRambam(sourceHebrew: String): String {
+    val isRange = Regex("\\d+\\s*-\\s*\\d+").containsMatchIn(sourceHebrew)
+    val withLetters = Regex("\\d+").replace(sourceHebrew) { gematriaLetters(it.value.toInt()) }
+    return if (isRange) withLetters.replaceFirst("פרק ", "פרקים ") else withLetters
 }
 
 private fun formatMishnahYomi(sourceHebrew: String): String? {
