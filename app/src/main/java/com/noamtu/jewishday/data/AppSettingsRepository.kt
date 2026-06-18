@@ -60,7 +60,6 @@ enum class AppThemeOption(val storageValue: String) {
 data class AppSettings(
     val hebrewDateStatusIconEnabled: Boolean = false,
     val englishDateStatusIconEnabled: Boolean = false,
-    val preferHebrewDates: Boolean = true,
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
     val advancedZmanimModeEnabled: Boolean = false,
@@ -86,7 +85,6 @@ interface AppSettingsRepository {
 
     suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean)
     suspend fun setEnglishDateStatusIconEnabled(enabled: Boolean)
-    suspend fun setPreferHebrewDates(enabled: Boolean)
     suspend fun setAppLanguage(language: AppLanguage)
     suspend fun setUse24HourTime(enabled: Boolean)
     suspend fun setAdvancedZmanimModeEnabled(enabled: Boolean)
@@ -130,7 +128,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
             AppSettings(
                 hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: false,
                 englishDateStatusIconEnabled = preferences[EnglishDateStatusIconEnabled] ?: false,
-                preferHebrewDates = preferences[PreferHebrewDates] ?: true,
                 language = rootUiSettings.language,
                 use24HourTime = preferences[Use24HourTime] ?: true,
                 advancedZmanimModeEnabled = preferences[AdvancedZmanimModeEnabled] ?: false,
@@ -155,12 +152,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setEnglishDateStatusIconEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[EnglishDateStatusIconEnabled] = enabled
-        }
-    }
-
-    override suspend fun setPreferHebrewDates(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[PreferHebrewDates] = enabled
         }
     }
 
@@ -325,7 +316,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
     private companion object {
         val HebrewDateStatusIconEnabled = booleanPreferencesKey("hebrew_date_status_icon_enabled")
         val EnglishDateStatusIconEnabled = booleanPreferencesKey("english_date_status_icon_enabled")
-        val PreferHebrewDates = booleanPreferencesKey("prefer_hebrew_dates")
         val AppLanguageKey = stringPreferencesKey("app_language")
         // Retained read-only to migrate installs that predate the language picker.
         val UseHebrewInterface = booleanPreferencesKey("use_hebrew_interface")

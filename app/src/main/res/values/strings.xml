@@ -77,8 +77,6 @@
     <string name="settings_english_status_icon_hebrew">סמל תאריך לועזי בשורת המצב</string>
     <string name="settings_english_status_icon_description">Show the Gregorian day number, like 12 or 30, as a persistent notification icon.</string>
     <string name="settings_english_status_icon_description_hebrew">הצג את מספר היום הלועזי, כמו 12 או 30, כסמל התראה קבוע.</string>
-    <string name="settings_foreign_date_first">Foreign date first</string>
-    <string name="settings_foreign_date_first_description">On Today, show the transliterated/foreign date as the large date with the Hebrew-letter date underneath. Off keeps Hebrew first.</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_description">Interface language for the app’s navigation and labels.</string>
     <string name="settings_12_hour_format">12-hour time format</string>
@@ -101,8 +99,6 @@
     <string name="theme_slate_hebrew">אפור צפחה</string>
     <string name="theme_amoled_black">AMOLED black</string>
     <string name="theme_amoled_black_hebrew">שחור AMOLED</string>
-    <string name="settings_foreign_date_first_hebrew">תאריך לועזי ראשון</string>
-    <string name="settings_foreign_date_first_description_hebrew">במסך היום, התאריך הלועזי/בתעתיק יוצג בגדול והתאריך באותיות עבריות יישאר מתחת. כבוי משאיר עברית ראשונה.</string>
     <string name="settings_language_hebrew">שפה</string>
     <string name="settings_language_description_hebrew">שפת הממשק לניווט ולתוויות האפליקציה.</string>
     <string name="about_tagline">A calm, modern Jewish day companion.</string>

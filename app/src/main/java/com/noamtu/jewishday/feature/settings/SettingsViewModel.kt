@@ -40,7 +40,6 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val hebrewDateStatusIconEnabled: Boolean = false,
     val englishDateStatusIconEnabled: Boolean = false,
-    val preferHebrewDates: Boolean = true,
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
     val advancedZmanimModeEnabled: Boolean = false,
@@ -61,7 +60,6 @@ class SettingsViewModel @Inject constructor(
             SettingsUiState(
                 hebrewDateStatusIconEnabled = settings.hebrewDateStatusIconEnabled,
                 englishDateStatusIconEnabled = settings.englishDateStatusIconEnabled,
-                preferHebrewDates = settings.preferHebrewDates,
                 language = settings.language,
                 use24HourTime = settings.use24HourTime,
                 advancedZmanimModeEnabled = settings.advancedZmanimModeEnabled,
@@ -92,11 +90,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setPreferHebrewDates(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsRepository.setPreferHebrewDates(enabled)
-        }
-    }
 
     fun setAppLanguage(language: AppLanguage) {
         viewModelScope.launch {
