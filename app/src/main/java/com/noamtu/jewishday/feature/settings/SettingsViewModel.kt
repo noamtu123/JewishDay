@@ -42,7 +42,6 @@ data class SettingsUiState(
     val englishDateStatusIconEnabled: Boolean = false,
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
-    val advancedZmanimModeEnabled: Boolean = false,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
@@ -61,7 +60,6 @@ class SettingsViewModel @Inject constructor(
                 englishDateStatusIconEnabled = settings.englishDateStatusIconEnabled,
                 language = settings.language,
                 use24HourTime = settings.use24HourTime,
-                advancedZmanimModeEnabled = settings.advancedZmanimModeEnabled,
                 enabledDailyLearning = settings.enabledDailyLearning,
                 enabledZmanimTimes = settings.enabledZmanimTimes,
                 themeOption = settings.themeOption,
@@ -77,14 +75,14 @@ class SettingsViewModel @Inject constructor(
     fun setHebrewDateStatusIconEnabled(enabled: Boolean) {
         viewModelScope.launch {
             appSettingsRepository.setHebrewDateStatusIconEnabled(enabled)
-            syncDateStatusIcons()
+            syncDateStatusIcons(hebrewEnabled = enabled)
         }
     }
 
     fun setEnglishDateStatusIconEnabled(enabled: Boolean) {
         viewModelScope.launch {
             appSettingsRepository.setEnglishDateStatusIconEnabled(enabled)
-            syncDateStatusIcons()
+            syncDateStatusIcons(englishEnabled = enabled)
         }
     }
 
@@ -101,10 +99,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setAdvancedZmanimModeEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsRepository.setAdvancedZmanimModeEnabled(enabled)
-        }
+    /** Resets all per-zman calculation methods to defaults, keeping the Outside-Israel choice. */
+    fun resetZmanimMethods() {
+        updateZmanimSettings { current -> ZmanimCalculationSettings(inIsrael = current.inIsrael) }
     }
 
     fun setThemeOption(themeOption: AppThemeOption) {
@@ -225,11 +222,17 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private suspend fun syncDateStatusIcons() {
+    // The just-toggled value is passed in directly rather than re-read, so the service is
+    // (re)started with the correct state even right after the first permission grant (otherwise
+    // a stale read could sync the icons off and require a manual off/on to appear).
+    private suspend fun syncDateStatusIcons(
+        hebrewEnabled: Boolean? = null,
+        englishEnabled: Boolean? = null,
+    ) {
         val settings = appSettingsRepository.settings.first()
         dateStatusIconScheduler.sync(
-            hebrewEnabled = settings.hebrewDateStatusIconEnabled,
-            englishEnabled = settings.englishDateStatusIconEnabled,
+            hebrewEnabled = hebrewEnabled ?: settings.hebrewDateStatusIconEnabled,
+            englishEnabled = englishEnabled ?: settings.englishDateStatusIconEnabled,
         )
     }
 }

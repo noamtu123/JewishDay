@@ -58,6 +58,7 @@ fun SettingsScreen(
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showZmanimTimes by remember { mutableStateOf(false) }
     var showDailyLearning by remember { mutableStateOf(false) }
+    var showAdvancedMethods by remember { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -176,18 +177,23 @@ fun SettingsScreen(
                         onCheckedChange = { outsideIsrael -> viewModel.setInIsrael(!outsideIsrael) },
                     )
                     SettingsDivider()
-                    SettingsSwitchRow(
+                    ExpandableSettingsHeader(
                         label = localizedString(R.string.settings_advanced_zmanim, R.string.settings_advanced_zmanim_hebrew),
                         description = localizedString(R.string.settings_advanced_zmanim_description, R.string.settings_advanced_zmanim_description_hebrew),
-                        checked = uiState.advancedZmanimModeEnabled,
-                        onCheckedChange = viewModel::setAdvancedZmanimModeEnabled,
+                        expanded = showAdvancedMethods,
+                        onClick = { showAdvancedMethods = !showAdvancedMethods },
                     )
-                    if (uiState.advancedZmanimModeEnabled) {
-                        val zmanim = uiState.zmanimSettings
+                    if (showAdvancedMethods) {
                         SettingsDivider()
                         AdvancedZmanimChoices(
-                            settings = zmanim,
+                            settings = uiState.zmanimSettings,
                             viewModel = viewModel,
+                        )
+                        SettingsDivider()
+                        SettingsChoiceRow(
+                            label = localizedString(R.string.settings_reset_methods, R.string.settings_reset_methods_hebrew),
+                            value = localizedString(R.string.settings_reset, R.string.settings_reset_hebrew),
+                            onClick = { viewModel.resetZmanimMethods() },
                         )
                     }
                 }

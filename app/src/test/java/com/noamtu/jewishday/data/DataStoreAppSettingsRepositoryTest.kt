@@ -60,7 +60,6 @@ class DataStoreAppSettingsRepositoryTest {
             repository.setEnglishDateStatusIconEnabled(true)
             repository.setAppLanguage(AppLanguage.Hebrew)
             repository.setUse24HourTime(false)
-            repository.setAdvancedZmanimModeEnabled(true)
             repository.setThemeOption(AppThemeOption.Midnight)
 
             assertEquals(
@@ -69,7 +68,6 @@ class DataStoreAppSettingsRepositoryTest {
                     englishDateStatusIconEnabled = true,
                     language = AppLanguage.Hebrew,
                     use24HourTime = false,
-                    advancedZmanimModeEnabled = true,
                     themeOption = AppThemeOption.Midnight,
                 ),
                 repository.settings.first(),
