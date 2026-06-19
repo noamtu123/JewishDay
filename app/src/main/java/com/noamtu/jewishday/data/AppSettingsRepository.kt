@@ -39,8 +39,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
 enum class AppThemeOption(val storageValue: String) {
-    Classic("classic"),
     BlueWhite("blue_white"),
+    Classic("classic"),
     JerusalemStone("jerusalem_stone"),
     Sand("sand"),
     Midnight("midnight"),
@@ -60,11 +60,8 @@ enum class AppThemeOption(val storageValue: String) {
 data class AppSettings(
     val hebrewDateStatusIconEnabled: Boolean = false,
     val englishDateStatusIconEnabled: Boolean = false,
-    val preferHebrewDates: Boolean = true,
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
-    val advancedZmanimModeEnabled: Boolean = false,
-    val rambamThreeChaptersEnabled: Boolean = false,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
@@ -86,11 +83,8 @@ interface AppSettingsRepository {
 
     suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean)
     suspend fun setEnglishDateStatusIconEnabled(enabled: Boolean)
-    suspend fun setPreferHebrewDates(enabled: Boolean)
     suspend fun setAppLanguage(language: AppLanguage)
     suspend fun setUse24HourTime(enabled: Boolean)
-    suspend fun setAdvancedZmanimModeEnabled(enabled: Boolean)
-    suspend fun setRambamThreeChaptersEnabled(enabled: Boolean)
     suspend fun setEnabledDailyLearning(types: Set<DailyLearningType>)
     suspend fun setEnabledZmanimTimes(options: Set<ZmanimTimeOption>)
     suspend fun setThemeOption(themeOption: AppThemeOption)
@@ -130,11 +124,8 @@ class DataStoreAppSettingsRepository @Inject constructor(
             AppSettings(
                 hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: false,
                 englishDateStatusIconEnabled = preferences[EnglishDateStatusIconEnabled] ?: false,
-                preferHebrewDates = preferences[PreferHebrewDates] ?: true,
                 language = rootUiSettings.language,
                 use24HourTime = preferences[Use24HourTime] ?: true,
-                advancedZmanimModeEnabled = preferences[AdvancedZmanimModeEnabled] ?: false,
-                rambamThreeChaptersEnabled = preferences[RambamThreeChaptersEnabled] ?: false,
                 enabledDailyLearning = preferences[EnabledDailyLearningKey]
                     ?.mapNotNull(DailyLearningType::fromStorageValue)?.toSet()
                     ?: DailyLearningType.Default,
@@ -158,12 +149,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
         }
     }
 
-    override suspend fun setPreferHebrewDates(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[PreferHebrewDates] = enabled
-        }
-    }
-
     override suspend fun setAppLanguage(language: AppLanguage) {
         val updatedPreferences = dataStore.edit { preferences ->
             preferences[AppLanguageKey] = language.storageValue
@@ -174,18 +159,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setUse24HourTime(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[Use24HourTime] = enabled
-        }
-    }
-
-    override suspend fun setAdvancedZmanimModeEnabled(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[AdvancedZmanimModeEnabled] = enabled
-        }
-    }
-
-    override suspend fun setRambamThreeChaptersEnabled(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[RambamThreeChaptersEnabled] = enabled
         }
     }
 
@@ -223,6 +196,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
             preferences[SofZmanTefillahGraMethodKey] = settings.sofZmanTefillahGraMethod.storageValue
             preferences[SofZmanTefillahMethodKey] = settings.sofZmanTefillahMethod.storageValue
             preferences[ChatzotMethodKey] = settings.chatzotMethod.storageValue
+            preferences[ChatzotHaLailaMethodKey] = settings.chatzotHaLailaMethod.storageValue
             preferences[MinchaGedolaMethodKey] = settings.minchaGedolaMethod.storageValue
             preferences[MinchaKetanaMethodKey] = settings.minchaKetanaMethod.storageValue
             preferences[PlagHaminchaMethodKey] = settings.plagHaminchaMethod.storageValue
@@ -244,7 +218,8 @@ class DataStoreAppSettingsRepository @Inject constructor(
             inIsrael = preferences[InIsrael] ?: true,
             highLatitudeHandling = HighLatitudeHandling.fromStorageValue(preferences[HighLatitudeHandlingKey]) ?: HighLatitudeHandling.FixedMinutesFallback,
             alotHashacharMethod = AlotHashacharMethod.fromStorageValue(preferences[AlotHashacharMethodKey])
-                ?: legacyAlotMethod(preferences[AlotHashacharOffsetMinutes] ?: 72),
+                ?: preferences[AlotHashacharOffsetMinutes]?.let { legacyAlotMethod(it) }
+                ?: AlotHashacharMethod.Degrees16Point1,
             misheyakirMethod = MisheyakirMethod.fromStorageValue(preferences[MisheyakirMethodKey]) ?: MisheyakirMethod.Degrees11Point5,
             sunriseMethod = SunriseMethod.fromStorageValue(preferences[SunriseMethodKey])
                 ?: if (preferences[UseSeaLevelSunrise] == false) SunriseMethod.ElevationAdjusted else SunriseMethod.SeaLevel,
@@ -259,13 +234,14 @@ class DataStoreAppSettingsRepository @Inject constructor(
             sofZmanTefillahMethod = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahMethodKey])
                 ?: SofZmanTefillahMethod.Mga72,
             chatzotMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotMethodKey]) ?: ChatzotMethod.Solar,
+            chatzotHaLailaMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotHaLailaMethodKey]) ?: ChatzotMethod.Solar,
             minchaGedolaMethod = MinchaGedolaMethod.fromStorageValue(preferences[MinchaGedolaMethodKey]) ?: MinchaGedolaMethod.Standard,
             minchaKetanaMethod = MinchaKetanaMethod.fromStorageValue(preferences[MinchaKetanaMethodKey]) ?: MinchaKetanaMethod.Standard,
             plagHaminchaMethod = PlagHaminchaMethod.fromStorageValue(preferences[PlagHaminchaMethodKey])
                 ?: legacyPlagMethod(preferences[PlagHaminchaOffsetMinutes] ?: 0),
             sunsetMethod = SunsetMethod.fromStorageValue(preferences[SunsetMethodKey])
                 ?: if (preferences[UseSeaLevelSunset] == false) SunsetMethod.ElevationAdjusted else SunsetMethod.SeaLevel,
-            tzeitHakochavimMethod = TzeitHakochavimMethod.fromStorageValue(preferences[TzeitHakochavimMethodKey]) ?: TzeitHakochavimMethod.Geonim8Point5,
+            tzeitHakochavimMethod = TzeitHakochavimMethod.fromStorageValue(preferences[TzeitHakochavimMethodKey]) ?: TzeitHakochavimMethod.Minutes20,
             candleLightingMethod = CandleLightingMethod.fromStorageValue(preferences[CandleLightingMethodKey])
                 ?: legacyCandleMethod(preferences[CandleLightingOffsetMinutes] ?: 18),
             motzeiShabbatMethod = MotzeiShabbatMethod.fromStorageValue(preferences[MotzeiShabbatMethodKey]) ?: MotzeiShabbatMethod.Geonim8Point5,
@@ -322,13 +298,10 @@ class DataStoreAppSettingsRepository @Inject constructor(
     private companion object {
         val HebrewDateStatusIconEnabled = booleanPreferencesKey("hebrew_date_status_icon_enabled")
         val EnglishDateStatusIconEnabled = booleanPreferencesKey("english_date_status_icon_enabled")
-        val PreferHebrewDates = booleanPreferencesKey("prefer_hebrew_dates")
         val AppLanguageKey = stringPreferencesKey("app_language")
         // Retained read-only to migrate installs that predate the language picker.
         val UseHebrewInterface = booleanPreferencesKey("use_hebrew_interface")
         val Use24HourTime = booleanPreferencesKey("use_24_hour_time")
-        val AdvancedZmanimModeEnabled = booleanPreferencesKey("advanced_zmanim_mode_enabled")
-        val RambamThreeChaptersEnabled = booleanPreferencesKey("rambam_three_chapters_enabled")
         val EnabledDailyLearningKey = stringSetPreferencesKey("enabled_daily_learning")
         val EnabledZmanimTimesKey = stringSetPreferencesKey("enabled_zmanim_times")
         val ThemeOption = stringPreferencesKey("theme_option")
@@ -344,6 +317,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val SofZmanTefillahGraMethodKey = stringPreferencesKey("zmanim_tefillah_gra_method")
         val SofZmanTefillahMethodKey = stringPreferencesKey("zmanim_tefillah_method")
         val ChatzotMethodKey = stringPreferencesKey("zmanim_chatzot_method")
+        val ChatzotHaLailaMethodKey = stringPreferencesKey("zmanim_chatzot_halaila_method")
         val MinchaGedolaMethodKey = stringPreferencesKey("zmanim_mincha_gedola_method")
         val MinchaKetanaMethodKey = stringPreferencesKey("zmanim_mincha_ketana_method")
         val PlagHaminchaMethodKey = stringPreferencesKey("zmanim_plag_method")

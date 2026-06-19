@@ -6,7 +6,6 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Today
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.noamtu.jewishday.R
 
@@ -16,7 +15,6 @@ enum class AppDestination(
     @StringRes val hebrewLabelRes: Int,
     val icon: ImageVector,
 ) {
-    Today("today", R.string.nav_today, R.string.nav_today_hebrew, Icons.Outlined.Today),
     Zmanim("zmanim", R.string.nav_zmanim, R.string.nav_zmanim_hebrew, Icons.Outlined.CalendarMonth),
     Mizrach("mizrach", R.string.nav_mizrach, R.string.nav_mizrach_hebrew, Icons.Outlined.Explore),
     Settings("settings", R.string.nav_settings, R.string.nav_settings_hebrew, Icons.Outlined.Settings),
@@ -25,6 +23,6 @@ enum class AppDestination(
     ;
 
     companion object {
-        val bottomBarDestinations = listOf(Today, Zmanim, Mizrach)
+        val bottomBarDestinations = listOf(Zmanim, Mizrach)
     }
 }

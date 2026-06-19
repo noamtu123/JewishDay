@@ -1,7 +1,9 @@
 package com.noamtu.jewishday.feature.zmanim
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,23 +14,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.ui.LocalUseHebrewInterface
 import com.noamtu.jewishday.ui.components.InfoCard
 import com.noamtu.jewishday.ui.components.ScreenPaddingValues
 import com.noamtu.jewishday.ui.components.ScreenSurface
 import com.noamtu.jewishday.ui.components.ValuePill
 import com.noamtu.jewishday.ui.components.readableWidth
-import com.noamtu.jewishday.ui.LocalUseHebrewInterface
-import com.noamtu.jewishday.ui.localizedLocationName
 import com.noamtu.jewishday.ui.localizedString
 
 @Composable
@@ -40,15 +47,16 @@ fun ZmanimScreen(
 
     ZmanimContent(
         header = uiState.header,
-        items = uiState.items,
+        groups = uiState.groups,
         modifier = modifier,
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ZmanimContent(
     header: ZmanimHeaderUi?,
-    items: List<ZmanimListItem>,
+    groups: List<ZmanimGroupUi>,
     modifier: Modifier = Modifier,
 ) {
     val useHebrew = LocalUseHebrewInterface.current
@@ -59,35 +67,38 @@ private fun ZmanimContent(
     }
 
     ScreenSurface(modifier = modifier) {
-        LazyColumn(
-            modifier = Modifier
-                .readableWidth()
-                .fillMaxSize(),
-            contentPadding = ScreenPaddingValues,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item(
-                key = "zmanim-header",
-                contentType = "header",
+        Column(modifier = Modifier.readableWidth().fillMaxSize()) {
+            DateBar(
+                header = header,
+                useHebrew = useHebrew,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
+            )
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = ScreenPaddingValues,
             ) {
-                ZmanimHeader(
-                    locationName = localizedLocationName(header.locationName),
-                    date = if (useHebrew) header.dateHebrew else header.date,
-                    zoneId = header.zoneId,
-                )
-            }
-            items(
-                items = items,
-                key = ZmanimListItem::key,
-                contentType = { item -> item.contentType },
-            ) { item ->
-                when (item) {
-                    is ZmanimGroupHeaderUi -> ZmanimGroupHeader(item = item, useHebrew = useHebrew)
-                    is ZmanimRowUi -> ZmanimRowCard(
-                        row = item,
-                        useHebrew = useHebrew,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                groups.forEach { group ->
+                    val title = if (useHebrew) group.titleHebrew else group.title
+                    if (title.isNotBlank()) {
+                        stickyHeader(key = group.key, contentType = "group-header") {
+                            ZmanimGroupHeader(group = group, useHebrew = useHebrew)
+                        }
+                    }
+                    items(
+                        items = group.rows,
+                        key = ZmanimRowUi::key,
+                        contentType = { "zman-row" },
+                    ) { row ->
+                        ZmanimRow(row = row, useHebrew = useHebrew)
+                        if (row !== group.rows.last()) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant,
+                                thickness = 0.5.dp,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -118,90 +129,140 @@ private fun ZmanimLoadingContent(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ZmanimHeader(
-    locationName: String,
-    date: String,
-    zoneId: String,
+private fun DateBar(
+    header: ZmanimHeaderUi,
+    useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(top = 4.dp)) {
-        Text(
-            text = localizedString(R.string.zmanim_calculated_for, R.string.zmanim_calculated_for_hebrew, locationName),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = localizedString(R.string.zmanim_date_and_zone, R.string.zmanim_date_and_zone_hebrew, date, zoneId),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.primaryContainer,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
+            Text(
+                text = if (useHebrew) header.jewishDateHebrew else header.jewishDate,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+            )
+        }
     }
 }
 
 @Composable
 private fun ZmanimGroupHeader(
-    item: ZmanimGroupHeaderUi,
+    group: ZmanimGroupUi,
     useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    // Opaque background so rows don't bleed through while the header is pinned.
     Text(
-        modifier = modifier.fillMaxWidth().padding(top = 8.dp, start = 4.dp, end = 4.dp),
-        text = if (useHebrew) item.titleHebrew else item.title,
-        style = MaterialTheme.typography.titleLarge,
-        color = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(top = 16.dp, bottom = 6.dp, start = 4.dp, end = 4.dp),
+        text = if (useHebrew) group.titleHebrew else group.title,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.primary,
     )
 }
 
 @Composable
-private fun ZmanimRowCard(
+private fun ZmanimRow(
     row: ZmanimRowUi,
     useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val value = if (useHebrew) row.valueHebrew else row.value
-    val stackValue = value.length > 24 || value.contains(" · ")
+    val rawValue = if (useHebrew) row.valueHebrew else row.value
+    val description = if (useHebrew) row.descriptionHebrew else row.description
+    val textMeasurer = rememberTextMeasurer()
+    val density = LocalDensity.current
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                shape = MaterialTheme.shapes.medium,
-            )
-            .padding(horizontal = 20.dp, vertical = 24.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val valueStyle = MaterialTheme.typography.labelLarge
+        val titleStyle = MaterialTheme.typography.bodyLarge
+        val rowWidth = with(density) { (maxWidth - 8.dp).roundToPx().coerceAtLeast(0) }
+        val fullWidthBubbleTextWidth = with(density) { (maxWidth - 32.dp).roundToPx().coerceAtLeast(0) }
+        val pillExtraWidth = with(density) { (12.dp + 24.dp).roundToPx() }
+        val titleText = if (useHebrew) row.titleHebrew else row.title
+        val titleWidth = textMeasurer.measure(
+            text = AnnotatedString(titleText),
+            style = titleStyle,
+            maxLines = 1,
+        ).size.width
+        fun textWidth(text: String): Int = textMeasurer.measure(
+            text = AnnotatedString(text),
+            style = valueStyle,
+            maxLines = 1,
+        ).size.width
+
+        val sidePillValue = if (useHebrew && row.valueHebrewOneLineCandidates.isNotEmpty()) {
+            row.valueHebrewOneLineCandidates.firstOrNull { candidate ->
+                !candidate.contains('\n') && titleWidth + textWidth(candidate) + pillExtraWidth <= rowWidth
+            }
+        } else {
+            null
+        }
+        val value = sidePillValue ?: if (useHebrew && row.valueHebrewOneLineCandidates.isNotEmpty()) {
+            row.valueHebrewOneLineCandidates.firstOrNull { candidate ->
+                candidate.lines().all { line ->
+                    textWidth(line) <= fullWidthBubbleTextWidth
+                }
+            } ?: rawValue
+        } else {
+            rawValue
+        }
+        val oneLineCandidateSelected = value != rawValue
+        // Long values (e.g. daily-learning references) stack under the title instead of a pill.
+        val stackValue = sidePillValue == null && (value.length > 18 || value.contains(" · "))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (useHebrew) row.titleHebrew else row.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    text = titleText,
+                    style = titleStyle,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = if (useHebrew) row.descriptionHebrew else row.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                if (description.isNotBlank()) {
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (stackValue) {
+                    Spacer(Modifier.height(4.dp))
+                    Surface(
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            text = value,
+                            style = valueStyle,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            maxLines = if (oneLineCandidateSelected) value.lines().size else Int.MAX_VALUE,
+                        )
+                    }
+                }
             }
             if (!stackValue) {
-                Spacer(Modifier.width(16.dp))
+                Spacer(Modifier.width(12.dp))
                 ValuePill(text = value)
             }
         }
-        if (stackValue) {
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
-        }
     }
 }
-
-private val ZmanimListItem.contentType: String
-    get() = when (this) {
-        is ZmanimGroupHeaderUi -> "group-header"
-        is ZmanimRowUi -> "zman-row"
-    }

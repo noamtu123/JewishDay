@@ -21,6 +21,9 @@ data class ZmanimDay(
     val locationName: String,
     val date: LocalDate,
     val zoneId: ZoneId,
+    // The Jewish (Hebrew) calendar date, formatted for the date header at the top of the tab.
+    val hebrewDateEnglish: String,
+    val hebrewDateHebrew: String,
     val groups: List<ZmanimGroup>,
 )
 

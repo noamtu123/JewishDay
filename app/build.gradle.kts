@@ -24,8 +24,8 @@ android {
         applicationId = "com.noamtu.jewishday"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.4.2"
+        versionCode = 10
+        versionName = "0.5.0"
     }
 
     signingConfigs {
@@ -63,6 +63,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -98,3 +99,18 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
+
+// Android lint can analyze generated Hilt sources while release compilation is still creating
+// them when `lintDebug` and `assembleRelease` are requested together. Keep the combined command
+// reliable by running debug lint after release assembly in that task graph.
+tasks.matching { it.name in DebugLintTaskNames }.configureEach {
+    mustRunAfter("assembleRelease")
+}
+
+val DebugLintTaskNames = setOf(
+    "lintAnalyzeDebug",
+    "lintAnalyzeDebugAndroidTest",
+    "lintAnalyzeDebugUnitTest",
+    "lintReportDebug",
+    "lintDebug",
+)

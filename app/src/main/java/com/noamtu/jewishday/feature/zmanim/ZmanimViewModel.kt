@@ -42,43 +42,40 @@ import kotlinx.coroutines.flow.stateIn
 @Immutable
 data class ZmanimUiState(
     val header: ZmanimHeaderUi? = null,
-    val items: List<ZmanimListItem> = emptyList(),
+    val groups: List<ZmanimGroupUi> = emptyList(),
 )
 
+/** Date header pinned at the top of the tab: the Jewish date with the Gregorian date beneath. */
 @Immutable
 data class ZmanimHeaderUi(
-    val locationName: String,
-    val date: String,
-    val dateHebrew: String,
-    val zoneId: String,
+    val jewishDate: String,
+    val jewishDateHebrew: String,
+    val gregorianDate: String,
+    val gregorianDateHebrew: String,
 )
 
 @Immutable
-sealed interface ZmanimListItem {
-    val key: String
-}
-
-@Immutable
-data class ZmanimGroupHeaderUi(
-    override val key: String,
+data class ZmanimGroupUi(
+    val key: String,
     val title: String,
     val titleHebrew: String,
-) : ZmanimListItem
+    val rows: List<ZmanimRowUi>,
+)
 
 @Immutable
 data class ZmanimRowUi(
-    override val key: String,
+    val key: String,
     val title: String,
     val titleHebrew: String,
     val description: String,
     val descriptionHebrew: String,
     val value: String,
     val valueHebrew: String,
-) : ZmanimListItem
+    val valueHebrewOneLineCandidates: List<String> = emptyList(),
+)
 
 private data class ZmanimSettingsSnapshot(
     val use24HourTime: Boolean,
-    val includeRambamThreeChapters: Boolean,
     val enabledZmanimTimes: Set<ZmanimTimeOption>,
     val enabledDailyLearning: Set<DailyLearningType>,
     val calculationSettings: ZmanimCalculationSettings,
@@ -100,7 +97,6 @@ private data class ZmanimDisplayInput(
 private data class DailyLearningRequest(
     val date: LocalDate,
     val inIsrael: Boolean,
-    val includeRambamThreeChapters: Boolean,
 )
 
 @HiltViewModel
@@ -116,7 +112,6 @@ class ZmanimViewModel @Inject constructor(
         .map { settings ->
             ZmanimSettingsSnapshot(
                 use24HourTime = settings.use24HourTime,
-                includeRambamThreeChapters = settings.rambamThreeChaptersEnabled,
                 enabledZmanimTimes = settings.enabledZmanimTimes,
                 enabledDailyLearning = settings.enabledDailyLearning,
                 calculationSettings = settings.zmanimSettings,
@@ -136,10 +131,6 @@ class ZmanimViewModel @Inject constructor(
 
     private val calculationSettings = settings
         .map { settings -> settings.calculationSettings }
-        .distinctUntilChanged()
-
-    private val includeRambamThreeChapters = settings
-        .map { settings -> settings.includeRambamThreeChapters }
         .distinctUntilChanged()
 
     private val enabledZmanimTimes = settings
@@ -183,7 +174,6 @@ class ZmanimViewModel @Inject constructor(
     private val dailyLearningItems = combine(
         zmanimDay.map { day -> day.date }.distinctUntilChanged(),
         calculationSettings.map { settings -> settings.inIsrael }.distinctUntilChanged(),
-        includeRambamThreeChapters,
         ::DailyLearningRequest,
     )
         .distinctUntilChanged()
@@ -191,7 +181,6 @@ class ZmanimViewModel @Inject constructor(
             dailyLearningRepository.learningItems(
                 date = request.date,
                 inIsrael = request.inIsrael,
-                includeRambamThreeChapters = request.includeRambamThreeChapters,
             ).onStart { emit(emptyList()) }
         }
         .distinctUntilChanged()
@@ -212,6 +201,7 @@ class ZmanimViewModel @Inject constructor(
             input.zmanimDay
                 .withDailyLearningItems(input.dailyLearningItems)
                 .filterForDisplay(input.enabledZmanimTimes, input.enabledDailyLearning)
+                .mergeRambamRows()
                 .toUiState(use24HourTime = input.use24HourTime)
         }
         .distinctUntilChanged()
@@ -244,6 +234,35 @@ private fun ZmanimDay.filterForDisplay(
     return copy(groups = filtered)
 }
 
+/**
+ * When both Rambam Yomi tracks are shown, collapse them into one "Rambam Yomi" entry whose value
+ * lists the 1-chapter and 3-chapter references on separate lines, so they read as one section
+ * rather than two look-alike rows.
+ */
+private fun ZmanimDay.mergeRambamRows(): ZmanimDay {
+    val merged = groups.map { group ->
+        if (group.title != DailyLearningGroupTitle) return@map group
+        val one = group.items.firstOrNull { it.id == DailyLearningType.RambamYomi.storageValue }
+        val three = group.items.firstOrNull { it.id == DailyLearningType.RambamYomiThreeChapters.storageValue }
+        if (one == null || three == null) return@map group
+        val mergedRow = one.copy(
+            description = "",
+            descriptionHebrew = "",
+            value = "1 chapter: ${one.value.orEmpty()}\n3 chapters: ${three.value.orEmpty()}",
+            valueHebrew = "פרק אחד: ${one.valueHebrew.orEmpty()}\n3 פרקים: ${three.valueHebrew.orEmpty()}",
+        )
+        val items = group.items.mapNotNull { item ->
+            when (item.id) {
+                one.id -> mergedRow
+                three.id -> null
+                else -> item
+            }
+        }
+        group.copy(items = items)
+    }
+    return copy(groups = merged)
+}
+
 private fun ZmanimDay.toUiState(use24HourTime: Boolean): ZmanimUiState {
     val englishLocale = Locale.getDefault()
     val hebrewLocale = Locale.forLanguageTag("he")
@@ -251,36 +270,31 @@ private fun ZmanimDay.toUiState(use24HourTime: Boolean): ZmanimUiState {
     val englishTimeFormatter = DateTimeFormatter.ofPattern(timePattern, englishLocale).withZone(zoneId)
     val hebrewTimeFormatter = DateTimeFormatter.ofPattern(timePattern, hebrewLocale).withZone(zoneId)
     val englishDateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d", englishLocale)
-    val hebrewDateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d", hebrewLocale)
-    val items = buildList(capacity = groups.size + groups.sumOf { group -> group.items.size }) {
-        groups.forEachIndexed { groupIndex, group ->
-            add(
-                ZmanimGroupHeaderUi(
-                    key = "group:$groupIndex:${group.title}",
-                    title = group.title,
-                    titleHebrew = group.titleHebrew,
-                ),
-            )
-            group.items.forEachIndexed { itemIndex, item ->
-                add(
-                    item.toUiRow(
-                        key = "row:$groupIndex:$itemIndex:${item.title}",
-                        englishTimeFormatter = englishTimeFormatter,
-                        hebrewTimeFormatter = hebrewTimeFormatter,
-                    ),
+    val hebrewDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", hebrewLocale)
+
+    val uiGroups = groups.mapIndexed { groupIndex, group ->
+        ZmanimGroupUi(
+            key = "group:$groupIndex:${group.title}",
+            title = group.title,
+            titleHebrew = group.titleHebrew,
+            rows = group.items.mapIndexed { itemIndex, item ->
+                item.toUiRow(
+                    key = "row:$groupIndex:$itemIndex:${item.title}",
+                    englishTimeFormatter = englishTimeFormatter,
+                    hebrewTimeFormatter = hebrewTimeFormatter,
                 )
-            }
-        }
+            },
+        )
     }
 
     return ZmanimUiState(
         header = ZmanimHeaderUi(
-            locationName = locationName,
-            date = date.format(englishDateFormatter),
-            dateHebrew = date.format(hebrewDateFormatter),
-            zoneId = zoneId.id,
+            jewishDate = hebrewDateEnglish,
+            jewishDateHebrew = hebrewDateHebrew,
+            gregorianDate = date.format(englishDateFormatter),
+            gregorianDateHebrew = date.format(hebrewDateFormatter),
         ),
-        items = items,
+        groups = uiGroups,
     )
 }
 
@@ -288,14 +302,73 @@ private fun ZmanItem.toUiRow(
     key: String,
     englishTimeFormatter: DateTimeFormatter,
     hebrewTimeFormatter: DateTimeFormatter,
-): ZmanimRowUi = ZmanimRowUi(
-    key = key,
-    title = title,
-    titleHebrew = titleHebrew,
-    description = description,
-    descriptionHebrew = descriptionHebrew,
-    value = value ?: time.formatTime(englishTimeFormatter),
-    valueHebrew = valueHebrew ?: time.formatTime(hebrewTimeFormatter),
-)
+): ZmanimRowUi {
+    val resolvedValueHebrew = valueHebrew ?: time.formatTime(hebrewTimeFormatter)
+    val displayValueHebrew = if (id.isRambamId()) {
+        resolvedValueHebrew.lines().joinToString("\n", transform = ::rambamLineWithoutHalachot)
+    } else {
+        resolvedValueHebrew
+    }
+    return ZmanimRowUi(
+        key = key,
+        title = title,
+        titleHebrew = titleHebrew,
+        description = description,
+        descriptionHebrew = descriptionHebrew,
+        value = value ?: time.formatTime(englishTimeFormatter),
+        valueHebrew = displayValueHebrew,
+        valueHebrewOneLineCandidates = rambamHebrewOneLineCandidates(displayValueHebrew, id),
+    )
+}
+
+private fun rambamHebrewOneLineCandidates(valueHebrew: String, id: String?): List<String> {
+    if (!id.isRambamId()) return emptyList()
+    val lineOptions = valueHebrew.lines().map(::rambamLineOneLineOptions)
+    return combinedLineOptions(lineOptions)
+        .distinct()
+}
+
+private fun String?.isRambamId(): Boolean =
+    this == DailyLearningType.RambamYomi.storageValue || this == DailyLearningType.RambamYomiThreeChapters.storageValue
+
+private fun rambamLineWithoutHalachot(line: String): String {
+    val prefixEnd = line.indexOf(": ")
+    val prefix = if (prefixEnd >= 0) line.substring(0, prefixEnd + 2) else ""
+    val reference = if (prefixEnd >= 0) line.substring(prefixEnd + 2) else line
+    return prefix + reference.removePrefix("הלכות ").trimStart()
+}
+
+private fun rambamLineOneLineOptions(line: String): List<String> {
+    val withoutChapterWord = line
+        .replace(Regex("\\s+פרקים\\s+"), " ")
+        .replace(Regex("\\s+פרק\\s+"), " ")
+        .replace(Regex("^פרקים\\s+"), "")
+        .replace(Regex("^פרק\\s+"), "")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+    return listOf(line, withoutChapterWord).distinct()
+}
+
+private fun combinedLineOptions(lineOptions: List<List<String>>): List<String> {
+    val combinations = mutableListOf<Pair<List<Int>, String>>()
+
+    fun build(index: Int, selectedIndexes: List<Int>, selectedLines: List<String>) {
+        if (index == lineOptions.size) {
+            combinations += selectedIndexes to selectedLines.joinToString("\n")
+            return
+        }
+        lineOptions[index].forEachIndexed { optionIndex, option ->
+            build(index + 1, selectedIndexes + optionIndex, selectedLines + option)
+        }
+    }
+
+    build(index = 0, selectedIndexes = emptyList(), selectedLines = emptyList())
+    return combinations
+        .sortedWith(compareBy<Pair<List<Int>, String>>(
+            { (indexes, _) -> indexes.maxOrNull() ?: 0 },
+            { (indexes, _) -> indexes.sum() },
+        ))
+        .map { (_, value) -> value }
+}
 
 private fun Instant?.formatTime(formatter: DateTimeFormatter): String = this?.let(formatter::format) ?: "--"

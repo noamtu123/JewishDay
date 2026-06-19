@@ -8,14 +8,16 @@ import java.time.LocalDate
 
 class ZmanimModelsTest {
     @Test
-    fun standardDefaultsUseMagenAvrahamBasisGeonimAndShowRabbeinuTam() {
+    fun standardDefaultsMatch2netIsraelConventions() {
         val settings = ZmanimCalculationSettings()
 
         // GRA is always shown as its own row; the configurable basis defaults to MGA 72.
         assertEquals(SofZmanShemaMethod.Mga72, settings.sofZmanShemaMethod)
         assertEquals(SofZmanTefillahMethod.Mga72, settings.sofZmanTefillahMethod)
         assertEquals(MinchaGedolaMethod.Standard, settings.minchaGedolaMethod)
-        assertEquals(TzeitHakochavimMethod.Geonim8Point5, settings.tzeitHakochavimMethod)
+        // Defaults aligned to 2net (Israel): degree-based dawn, tzeit = sunset + 20 min.
+        assertEquals(AlotHashacharMethod.Degrees16Point1, settings.alotHashacharMethod)
+        assertEquals(TzeitHakochavimMethod.Minutes20, settings.tzeitHakochavimMethod)
         assertEquals(MotzeiShabbatMethod.Geonim8Point5, settings.motzeiShabbatMethod)
         assertEquals(RabbeinuTamMethod.Minutes72, settings.rabbeinuTamMethod)
     }
@@ -40,7 +42,9 @@ class ZmanimModelsTest {
         assertEquals("Jerusalem", zmanimDay.locationName)
         assertEquals(date, zmanimDay.date)
         assertEquals(defaultJerusalemLocation.zoneId, zmanimDay.zoneId)
-        assertEquals(listOf("Daily", "Zmanim", "Shabbat", "Daily Learning"), zmanimDay.groups.map { it.title })
+        // No standalone "Daily" section: the parsha sits in Shabbat and day-events only appear
+        // (header-less) when present, so a quiet weekday has just these three groups.
+        assertEquals(listOf("Zmanim", "Shabbat", "Daily Learning"), zmanimDay.groups.map { it.title })
         assertTrue(zmanimDay.groups.all { it.items.isNotEmpty() })
         assertFalse(zmanimDay.groups.flatMap { it.items }.any { it.time == null && it.value == null })
     }
