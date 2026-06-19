@@ -62,7 +62,6 @@ data class AppSettings(
     val englishDateStatusIconEnabled: Boolean = false,
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
-    val advancedZmanimModeEnabled: Boolean = false,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
@@ -86,7 +85,6 @@ interface AppSettingsRepository {
     suspend fun setEnglishDateStatusIconEnabled(enabled: Boolean)
     suspend fun setAppLanguage(language: AppLanguage)
     suspend fun setUse24HourTime(enabled: Boolean)
-    suspend fun setAdvancedZmanimModeEnabled(enabled: Boolean)
     suspend fun setEnabledDailyLearning(types: Set<DailyLearningType>)
     suspend fun setEnabledZmanimTimes(options: Set<ZmanimTimeOption>)
     suspend fun setThemeOption(themeOption: AppThemeOption)
@@ -128,7 +126,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 englishDateStatusIconEnabled = preferences[EnglishDateStatusIconEnabled] ?: false,
                 language = rootUiSettings.language,
                 use24HourTime = preferences[Use24HourTime] ?: true,
-                advancedZmanimModeEnabled = preferences[AdvancedZmanimModeEnabled] ?: false,
                 enabledDailyLearning = preferences[EnabledDailyLearningKey]
                     ?.mapNotNull(DailyLearningType::fromStorageValue)?.toSet()
                     ?: DailyLearningType.Default,
@@ -162,12 +159,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setUse24HourTime(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[Use24HourTime] = enabled
-        }
-    }
-
-    override suspend fun setAdvancedZmanimModeEnabled(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[AdvancedZmanimModeEnabled] = enabled
         }
     }
 
@@ -311,7 +302,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
         // Retained read-only to migrate installs that predate the language picker.
         val UseHebrewInterface = booleanPreferencesKey("use_hebrew_interface")
         val Use24HourTime = booleanPreferencesKey("use_24_hour_time")
-        val AdvancedZmanimModeEnabled = booleanPreferencesKey("advanced_zmanim_mode_enabled")
         val EnabledDailyLearningKey = stringSetPreferencesKey("enabled_daily_learning")
         val EnabledZmanimTimesKey = stringSetPreferencesKey("enabled_zmanim_times")
         val ThemeOption = stringPreferencesKey("theme_option")

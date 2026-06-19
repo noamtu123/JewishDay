@@ -200,6 +200,7 @@ class ZmanimViewModel @Inject constructor(
             input.zmanimDay
                 .withDailyLearningItems(input.dailyLearningItems)
                 .filterForDisplay(input.enabledZmanimTimes, input.enabledDailyLearning)
+                .mergeRambamRows()
                 .toUiState(use24HourTime = input.use24HourTime)
         }
         .distinctUntilChanged()
@@ -230,6 +231,35 @@ private fun ZmanimDay.filterForDisplay(
         if (items.isEmpty()) null else group.copy(items = items)
     }
     return copy(groups = filtered)
+}
+
+/**
+ * When both Rambam Yomi tracks are shown, collapse them into one "Rambam Yomi" entry whose value
+ * lists the 1-chapter and 3-chapter references on separate lines, so they read as one section
+ * rather than two look-alike rows.
+ */
+private fun ZmanimDay.mergeRambamRows(): ZmanimDay {
+    val merged = groups.map { group ->
+        if (group.title != DailyLearningGroupTitle) return@map group
+        val one = group.items.firstOrNull { it.id == DailyLearningType.RambamYomi.storageValue }
+        val three = group.items.firstOrNull { it.id == DailyLearningType.RambamYomiThreeChapters.storageValue }
+        if (one == null || three == null) return@map group
+        val mergedRow = one.copy(
+            description = "",
+            descriptionHebrew = "",
+            value = "1 chapter: ${one.value.orEmpty()}\n3 chapters: ${three.value.orEmpty()}",
+            valueHebrew = "פרק אחד: ${one.valueHebrew.orEmpty()}\nשלושה פרקים: ${three.valueHebrew.orEmpty()}",
+        )
+        val items = group.items.mapNotNull { item ->
+            when (item.id) {
+                one.id -> mergedRow
+                three.id -> null
+                else -> item
+            }
+        }
+        group.copy(items = items)
+    }
+    return copy(groups = merged)
 }
 
 private fun ZmanimDay.toUiState(use24HourTime: Boolean): ZmanimUiState {

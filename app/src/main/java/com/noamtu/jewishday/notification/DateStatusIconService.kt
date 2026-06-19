@@ -16,13 +16,13 @@ import com.noamtu.jewishday.model.nextGregorianMidnight
 import com.noamtu.jewishday.model.nextTzeit
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Clock
-import java.time.Instant
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -57,12 +57,27 @@ class DateStatusIconService : Service() {
         return START_STICKY
     }
 
-    private suspend fun refresh() {
+    private suspend fun refresh(permissionRetryCount: Int = 0) {
         val settings = appSettingsRepository.settings.first()
         val showHebrew = settings.hebrewDateStatusIconEnabled
         val showEnglish = settings.englishDateStatusIconEnabled
-        if ((!showHebrew && !showEnglish) || !notifier.canPostNotifications()) {
+        if (!showHebrew && !showEnglish) {
             stopIcons()
+            return
+        }
+        if (!notifier.canPostNotifications()) {
+            // Permission was just granted but may not have propagated to the app process yet
+            // (race between the OS permission dialog callback and the process permission cache).
+            // Retry inside this foreground service instead of relying on AlarmManager for a
+            // seconds-long in-process race. If permission is genuinely absent, give up cleanly.
+            if (permissionRetryCount < PermissionPropagationMaxRetries) {
+                Log.d(TAG, "Notification permission not yet visible; retrying in ${PermissionPropagationRetryMillis}ms")
+                delay(PermissionPropagationRetryMillis)
+                refresh(permissionRetryCount + 1)
+            } else {
+                Log.w(TAG, "Notification permission still unavailable after retries; stopping date icons")
+                stopIcons()
+            }
             return
         }
         try {
@@ -119,6 +134,8 @@ class DateStatusIconService : Service() {
     companion object {
         private const val TAG = "DateStatusIconService"
         private const val RetryMinutes = 15L
+        private const val PermissionPropagationRetryMillis = 1_000L
+        private const val PermissionPropagationMaxRetries = 5
 
         /** Starts (or refreshes) the persistent date icons. */
         fun start(context: Context) {
