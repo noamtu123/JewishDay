@@ -53,7 +53,8 @@ android {
 
     lint {
         abortOnError = true
-        checkReleaseBuilds = true
+        // Lint runs explicitly via :app:lintDebug; don't re-run it during release assembly.
+        checkReleaseBuilds = false
     }
 
     compileOptions {
