@@ -71,6 +71,7 @@ data class ZmanimRowUi(
     val descriptionHebrew: String,
     val value: String,
     val valueHebrew: String,
+    val valueHebrewOneLineCandidates: List<String> = emptyList(),
 )
 
 private data class ZmanimSettingsSnapshot(
@@ -248,7 +249,7 @@ private fun ZmanimDay.mergeRambamRows(): ZmanimDay {
             description = "",
             descriptionHebrew = "",
             value = "1 chapter: ${one.value.orEmpty()}\n3 chapters: ${three.value.orEmpty()}",
-            valueHebrew = "פרק אחד: ${one.valueHebrew.orEmpty()}\nשלושה פרקים: ${three.valueHebrew.orEmpty()}",
+            valueHebrew = "פרק אחד: ${one.valueHebrew.orEmpty()}\n3 פרקים: ${three.valueHebrew.orEmpty()}",
         )
         val items = group.items.mapNotNull { item ->
             when (item.id) {
@@ -301,14 +302,73 @@ private fun ZmanItem.toUiRow(
     key: String,
     englishTimeFormatter: DateTimeFormatter,
     hebrewTimeFormatter: DateTimeFormatter,
-): ZmanimRowUi = ZmanimRowUi(
-    key = key,
-    title = title,
-    titleHebrew = titleHebrew,
-    description = description,
-    descriptionHebrew = descriptionHebrew,
-    value = value ?: time.formatTime(englishTimeFormatter),
-    valueHebrew = valueHebrew ?: time.formatTime(hebrewTimeFormatter),
-)
+): ZmanimRowUi {
+    val resolvedValueHebrew = valueHebrew ?: time.formatTime(hebrewTimeFormatter)
+    val displayValueHebrew = if (id.isRambamId()) {
+        resolvedValueHebrew.lines().joinToString("\n", transform = ::rambamLineWithoutHalachot)
+    } else {
+        resolvedValueHebrew
+    }
+    return ZmanimRowUi(
+        key = key,
+        title = title,
+        titleHebrew = titleHebrew,
+        description = description,
+        descriptionHebrew = descriptionHebrew,
+        value = value ?: time.formatTime(englishTimeFormatter),
+        valueHebrew = displayValueHebrew,
+        valueHebrewOneLineCandidates = rambamHebrewOneLineCandidates(displayValueHebrew, id),
+    )
+}
+
+private fun rambamHebrewOneLineCandidates(valueHebrew: String, id: String?): List<String> {
+    if (!id.isRambamId()) return emptyList()
+    val lineOptions = valueHebrew.lines().map(::rambamLineOneLineOptions)
+    return combinedLineOptions(lineOptions)
+        .distinct()
+}
+
+private fun String?.isRambamId(): Boolean =
+    this == DailyLearningType.RambamYomi.storageValue || this == DailyLearningType.RambamYomiThreeChapters.storageValue
+
+private fun rambamLineWithoutHalachot(line: String): String {
+    val prefixEnd = line.indexOf(": ")
+    val prefix = if (prefixEnd >= 0) line.substring(0, prefixEnd + 2) else ""
+    val reference = if (prefixEnd >= 0) line.substring(prefixEnd + 2) else line
+    return prefix + reference.removePrefix("הלכות ").trimStart()
+}
+
+private fun rambamLineOneLineOptions(line: String): List<String> {
+    val withoutChapterWord = line
+        .replace(Regex("\\s+פרקים\\s+"), " ")
+        .replace(Regex("\\s+פרק\\s+"), " ")
+        .replace(Regex("^פרקים\\s+"), "")
+        .replace(Regex("^פרק\\s+"), "")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+    return listOf(line, withoutChapterWord).distinct()
+}
+
+private fun combinedLineOptions(lineOptions: List<List<String>>): List<String> {
+    val combinations = mutableListOf<Pair<List<Int>, String>>()
+
+    fun build(index: Int, selectedIndexes: List<Int>, selectedLines: List<String>) {
+        if (index == lineOptions.size) {
+            combinations += selectedIndexes to selectedLines.joinToString("\n")
+            return
+        }
+        lineOptions[index].forEachIndexed { optionIndex, option ->
+            build(index + 1, selectedIndexes + optionIndex, selectedLines + option)
+        }
+    }
+
+    build(index = 0, selectedIndexes = emptyList(), selectedLines = emptyList())
+    return combinations
+        .sortedWith(compareBy<Pair<List<Int>, String>>(
+            { (indexes, _) -> indexes.maxOrNull() ?: 0 },
+            { (indexes, _) -> indexes.sum() },
+        ))
+        .map { (_, value) -> value }
+}
 
 private fun Instant?.formatTime(formatter: DateTimeFormatter): String = this?.let(formatter::format) ?: "--"

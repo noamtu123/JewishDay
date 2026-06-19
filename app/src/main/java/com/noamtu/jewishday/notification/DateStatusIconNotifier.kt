@@ -140,6 +140,7 @@ class DateStatusIconNotifier @Inject constructor(
             .setOnlyAlertOnce(true)
             .setShowWhen(false)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .applyForegroundServiceBehavior()
             .build()
             .apply {
                 flags = flags or Notification.FLAG_NO_CLEAR or Notification.FLAG_ONGOING_EVENT
@@ -156,7 +157,14 @@ class DateStatusIconNotifier @Inject constructor(
             .setOngoing(true)
             .setShowWhen(false)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .applyForegroundServiceBehavior()
             .build()
+
+    private fun Notification.Builder.applyForegroundServiceBehavior(): Notification.Builder = apply {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
+        }
+    }
 
     fun postSecondary(spec: DateIconSpec) {
         if (!canPostNotifications()) return

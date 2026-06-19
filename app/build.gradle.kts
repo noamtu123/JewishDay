@@ -99,3 +99,18 @@ dependencies {
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
+
+// Android lint can analyze generated Hilt sources while release compilation is still creating
+// them when `lintDebug` and `assembleRelease` are requested together. Keep the combined command
+// reliable by running debug lint after release assembly in that task graph.
+tasks.matching { it.name in DebugLintTaskNames }.configureEach {
+    mustRunAfter("assembleRelease")
+}
+
+val DebugLintTaskNames = setOf(
+    "lintAnalyzeDebug",
+    "lintAnalyzeDebugAndroidTest",
+    "lintAnalyzeDebugUnitTest",
+    "lintReportDebug",
+    "lintDebug",
+)

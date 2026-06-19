@@ -73,16 +73,22 @@ class SettingsViewModel @Inject constructor(
         )
 
     fun setHebrewDateStatusIconEnabled(enabled: Boolean) {
+        dateStatusIconScheduler.sync(
+            hebrewEnabled = enabled,
+            englishEnabled = uiState.value.englishDateStatusIconEnabled,
+        )
         viewModelScope.launch {
             appSettingsRepository.setHebrewDateStatusIconEnabled(enabled)
-            syncDateStatusIcons(hebrewEnabled = enabled)
         }
     }
 
     fun setEnglishDateStatusIconEnabled(enabled: Boolean) {
+        dateStatusIconScheduler.sync(
+            hebrewEnabled = uiState.value.hebrewDateStatusIconEnabled,
+            englishEnabled = enabled,
+        )
         viewModelScope.launch {
             appSettingsRepository.setEnglishDateStatusIconEnabled(enabled)
-            syncDateStatusIcons(englishEnabled = enabled)
         }
     }
 
@@ -222,17 +228,4 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    // The just-toggled value is passed in directly rather than re-read, so the service is
-    // (re)started with the correct state even right after the first permission grant (otherwise
-    // a stale read could sync the icons off and require a manual off/on to appear).
-    private suspend fun syncDateStatusIcons(
-        hebrewEnabled: Boolean? = null,
-        englishEnabled: Boolean? = null,
-    ) {
-        val settings = appSettingsRepository.settings.first()
-        dateStatusIconScheduler.sync(
-            hebrewEnabled = hebrewEnabled ?: settings.hebrewDateStatusIconEnabled,
-            englishEnabled = englishEnabled ?: settings.englishDateStatusIconEnabled,
-        )
-    }
 }
