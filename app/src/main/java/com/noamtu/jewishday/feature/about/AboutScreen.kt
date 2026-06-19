@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import com.noamtu.jewishday.BuildConfig
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.ui.components.InfoCard
 import com.noamtu.jewishday.ui.components.ScreenPaddingValues
@@ -75,6 +76,12 @@ private fun AboutHeader(modifier: Modifier = Modifier) {
         Text(
             text = localizedString(R.string.about_tagline, R.string.about_tagline_hebrew),
             style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = localizedString(R.string.about_version, R.string.about_version_hebrew, BuildConfig.VERSION_NAME),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
