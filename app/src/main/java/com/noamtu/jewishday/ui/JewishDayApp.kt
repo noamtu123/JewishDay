@@ -21,6 +21,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -45,7 +47,11 @@ import com.noamtu.jewishday.feature.zmanim.ZmanimScreen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JewishDayApp(useHebrewInterface: Boolean = false) {
-    CompositionLocalProvider(LocalUseHebrewInterface provides useHebrewInterface) {
+    val layoutDirection = if (useHebrewInterface) LayoutDirection.Rtl else LayoutDirection.Ltr
+    CompositionLocalProvider(
+        LocalUseHebrewInterface provides useHebrewInterface,
+        LocalLayoutDirection provides layoutDirection,
+    ) {
         JewishDayNavHost(useHebrewInterface = useHebrewInterface)
     }
 }

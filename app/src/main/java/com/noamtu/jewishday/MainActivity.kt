@@ -43,6 +43,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Persist the system-language default before any settings are read, so that a later
+        // system-language change cannot silently flip the in-app language on next launch.
+        runBlocking(Dispatchers.IO) { appSettingsRepository.seedLanguageDefault() }
         val initialRootSettings = startupSettingsCache.read() ?: runBlocking(Dispatchers.IO) {
             appSettingsRepository.rootUiSettings.first()
         }

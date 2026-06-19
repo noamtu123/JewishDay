@@ -81,6 +81,14 @@ interface AppSettingsRepository {
     val settings: Flow<AppSettings>
     val rootUiSettings: Flow<RootUiSettings>
 
+    /**
+     * Called once at startup to lock in the system-language default before any settings are read.
+     * If the language has already been stored (first launch happened previously, or the user
+     * changed it manually), this is a no-op. This prevents subsequent system-language changes
+     * from overriding the stored choice.
+     */
+    suspend fun seedLanguageDefault()
+
     suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean)
     suspend fun setEnglishDateStatusIconEnabled(enabled: Boolean)
     suspend fun setAppLanguage(language: AppLanguage)
@@ -136,6 +144,17 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 zmanimSettings = decodeZmanimSettings(preferences),
             )
         }
+
+    override suspend fun seedLanguageDefault() {
+        dataStore.edit { preferences ->
+            // Only write if neither the current key nor the legacy migration key is present.
+            // This means the user has never explicitly chosen a language and no prior migration
+            // value exists — i.e., genuine first launch.
+            if (AppLanguageKey !in preferences && UseHebrewInterface !in preferences) {
+                preferences[AppLanguageKey] = AppLanguage.systemDefault().storageValue
+            }
+        }
+    }
 
     override suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
