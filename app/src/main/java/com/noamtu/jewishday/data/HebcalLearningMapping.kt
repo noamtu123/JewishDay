@@ -25,7 +25,7 @@ internal fun List<HebcalLearningEntry>.toZmanItems(): List<ZmanItem> {
             add(it.toRow(DailyLearningType.RambamYomi, "Rambam Yomi", "רמב״ם יומי", "1 chapter", "פרק אחד"))
         }
         entry("dailyRambam3")?.let {
-            add(it.toRow(DailyLearningType.RambamYomiThreeChapters, "Rambam Yomi", "רמב״ם יומי", "3 chapters", "שלושה פרקים"))
+            add(it.toRow(DailyLearningType.RambamYomiThreeChapters, "Rambam Yomi", "רמב״ם יומי", "3 chapters", "3 פרקים"))
         }
 
         entry("dailyPsalms")?.let {
