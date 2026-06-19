@@ -18,7 +18,7 @@ class DateStatusIconScheduler @Inject constructor(
 ) {
     fun sync(hebrewEnabled: Boolean, englishEnabled: Boolean) {
         if (hebrewEnabled || englishEnabled) {
-            DateStatusIconService.start(context)
+            DateStatusIconService.start(context, hebrewEnabled, englishEnabled)
         } else {
             alarmScheduler.cancel()
             notifier.cancelAll()

@@ -1,5 +1,6 @@
 package com.noamtu.jewishday.model
 
+import com.kosherjava.zmanim.AstronomicalCalendar
 import com.kosherjava.zmanim.ComplexZmanimCalendar
 import java.util.Date
 
@@ -98,6 +99,12 @@ internal fun ComplexZmanimCalendar.chatzot(method: ChatzotMethod): Date? = when 
     ChatzotMethod.FixedLocal -> fixedLocalChatzos
 }
 
+// Midnight counterpart of chatzot: solar midnight, or 12h past fixed-local midday.
+internal fun ComplexZmanimCalendar.chatzotHaLaila(method: ChatzotMethod): Date? = when (method) {
+    ChatzotMethod.Solar -> solarMidnight
+    ChatzotMethod.FixedLocal -> AstronomicalCalendar.getTimeOffset(fixedLocalChatzos, 12L * 60 * 60 * 1000)
+}
+
 internal fun ComplexZmanimCalendar.minchaGedola(settings: ZmanimCalculationSettings): Date? = when (settings.minchaGedolaMethod) {
     MinchaGedolaMethod.Standard -> minchaGedola
     MinchaGedolaMethod.ThirtyMinutes -> minchaGedola30Minutes
@@ -163,6 +170,9 @@ internal fun ComplexZmanimCalendar.tzeit(method: TzeitHakochavimMethod): Date? =
     TzeitHakochavimMethod.Geonim8Point5 -> tzaisGeonim8Point5Degrees
     TzeitHakochavimMethod.Geonim9Point3 -> tzaisGeonim9Point3Degrees
     TzeitHakochavimMethod.Geonim9Point75 -> tzaisGeonim9Point75Degrees
+    TzeitHakochavimMethod.Minutes18 -> AstronomicalCalendar.getTimeOffset(seaLevelSunset, 18L * 60_000)
+    TzeitHakochavimMethod.Minutes20 -> AstronomicalCalendar.getTimeOffset(seaLevelSunset, 20L * 60_000)
+    TzeitHakochavimMethod.Minutes24 -> AstronomicalCalendar.getTimeOffset(seaLevelSunset, 24L * 60_000)
     TzeitHakochavimMethod.Minutes50 -> tzais50
     TzeitHakochavimMethod.Minutes60 -> tzais60
     TzeitHakochavimMethod.Minutes72 -> tzais72

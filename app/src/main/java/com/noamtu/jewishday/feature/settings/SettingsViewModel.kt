@@ -40,11 +40,8 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val hebrewDateStatusIconEnabled: Boolean = false,
     val englishDateStatusIconEnabled: Boolean = false,
-    val preferHebrewDates: Boolean = true,
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
-    val advancedZmanimModeEnabled: Boolean = false,
-    val rambamThreeChaptersEnabled: Boolean = false,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
@@ -61,11 +58,8 @@ class SettingsViewModel @Inject constructor(
             SettingsUiState(
                 hebrewDateStatusIconEnabled = settings.hebrewDateStatusIconEnabled,
                 englishDateStatusIconEnabled = settings.englishDateStatusIconEnabled,
-                preferHebrewDates = settings.preferHebrewDates,
                 language = settings.language,
                 use24HourTime = settings.use24HourTime,
-                advancedZmanimModeEnabled = settings.advancedZmanimModeEnabled,
-                rambamThreeChaptersEnabled = settings.rambamThreeChaptersEnabled,
                 enabledDailyLearning = settings.enabledDailyLearning,
                 enabledZmanimTimes = settings.enabledZmanimTimes,
                 themeOption = settings.themeOption,
@@ -79,24 +73,25 @@ class SettingsViewModel @Inject constructor(
         )
 
     fun setHebrewDateStatusIconEnabled(enabled: Boolean) {
+        dateStatusIconScheduler.sync(
+            hebrewEnabled = enabled,
+            englishEnabled = uiState.value.englishDateStatusIconEnabled,
+        )
         viewModelScope.launch {
             appSettingsRepository.setHebrewDateStatusIconEnabled(enabled)
-            syncDateStatusIcons()
         }
     }
 
     fun setEnglishDateStatusIconEnabled(enabled: Boolean) {
+        dateStatusIconScheduler.sync(
+            hebrewEnabled = uiState.value.hebrewDateStatusIconEnabled,
+            englishEnabled = enabled,
+        )
         viewModelScope.launch {
             appSettingsRepository.setEnglishDateStatusIconEnabled(enabled)
-            syncDateStatusIcons()
         }
     }
 
-    fun setPreferHebrewDates(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsRepository.setPreferHebrewDates(enabled)
-        }
-    }
 
     fun setAppLanguage(language: AppLanguage) {
         viewModelScope.launch {
@@ -110,16 +105,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setAdvancedZmanimModeEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsRepository.setAdvancedZmanimModeEnabled(enabled)
-        }
-    }
-
-    fun setRambamThreeChaptersEnabled(enabled: Boolean) {
-        viewModelScope.launch {
-            appSettingsRepository.setRambamThreeChaptersEnabled(enabled)
-        }
+    /** Resets all per-zman calculation methods to defaults, keeping the Outside-Israel choice. */
+    fun resetZmanimMethods() {
+        updateZmanimSettings { current -> ZmanimCalculationSettings(inIsrael = current.inIsrael) }
     }
 
     fun setThemeOption(themeOption: AppThemeOption) {
@@ -182,6 +170,10 @@ class SettingsViewModel @Inject constructor(
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, chatzotMethod = method) }
     }
 
+    fun setChatzotHaLailaMethod(method: ChatzotMethod) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, chatzotHaLailaMethod = method) }
+    }
+
     fun setMinchaGedolaMethod(method: MinchaGedolaMethod) {
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, minchaGedolaMethod = method) }
     }
@@ -236,11 +228,4 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private suspend fun syncDateStatusIcons() {
-        val settings = appSettingsRepository.settings.first()
-        dateStatusIconScheduler.sync(
-            hebrewEnabled = settings.hebrewDateStatusIconEnabled,
-            englishEnabled = settings.englishDateStatusIconEnabled,
-        )
-    }
 }

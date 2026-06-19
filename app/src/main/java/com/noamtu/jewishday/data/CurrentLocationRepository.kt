@@ -58,6 +58,10 @@ class CurrentLocationRepository @Inject constructor(
      * just because the in-memory state was empty after process restart.
      */
     suspend fun awaitCurrentLocation(timeoutMillis: Long = AwaitLocationTimeoutMillis): JewishLocation {
+        // Without location permission a fresh fix can never arrive, so don't block for the full
+        // timeout — fall back immediately to last-known/Jerusalem so callers (e.g. the date-icon
+        // service) stay responsive and still compute a correct date.
+        if (!context.hasLocationPermission()) return currentLocationOrDefault()
         refreshCurrentLocation()
         return withTimeoutOrNull(timeoutMillis) { currentLocation.filterNotNull().first() }
             ?: currentLocationOrDefault()

@@ -58,22 +58,16 @@ class DataStoreAppSettingsRepositoryTest {
 
             repository.setHebrewDateStatusIconEnabled(true)
             repository.setEnglishDateStatusIconEnabled(true)
-            repository.setPreferHebrewDates(false)
             repository.setAppLanguage(AppLanguage.Hebrew)
             repository.setUse24HourTime(false)
-            repository.setAdvancedZmanimModeEnabled(true)
-            repository.setRambamThreeChaptersEnabled(true)
             repository.setThemeOption(AppThemeOption.Midnight)
 
             assertEquals(
                 AppSettings(
                     hebrewDateStatusIconEnabled = true,
                     englishDateStatusIconEnabled = true,
-                    preferHebrewDates = false,
                     language = AppLanguage.Hebrew,
                     use24HourTime = false,
-                    advancedZmanimModeEnabled = true,
-                    rambamThreeChaptersEnabled = true,
                     themeOption = AppThemeOption.Midnight,
                 ),
                 repository.settings.first(),
