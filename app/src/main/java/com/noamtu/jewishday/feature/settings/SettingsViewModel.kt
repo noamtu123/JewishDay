@@ -39,7 +39,6 @@ import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val hebrewDateStatusIconEnabled: Boolean = false,
-    val englishDateStatusIconEnabled: Boolean = false,
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
@@ -57,7 +56,6 @@ class SettingsViewModel @Inject constructor(
         .map { settings ->
             SettingsUiState(
                 hebrewDateStatusIconEnabled = settings.hebrewDateStatusIconEnabled,
-                englishDateStatusIconEnabled = settings.englishDateStatusIconEnabled,
                 language = settings.language,
                 use24HourTime = settings.use24HourTime,
                 enabledDailyLearning = settings.enabledDailyLearning,
@@ -73,22 +71,9 @@ class SettingsViewModel @Inject constructor(
         )
 
     fun setHebrewDateStatusIconEnabled(enabled: Boolean) {
-        dateStatusIconScheduler.sync(
-            hebrewEnabled = enabled,
-            englishEnabled = uiState.value.englishDateStatusIconEnabled,
-        )
+        dateStatusIconScheduler.sync(enabled = enabled)
         viewModelScope.launch {
             appSettingsRepository.setHebrewDateStatusIconEnabled(enabled)
-        }
-    }
-
-    fun setEnglishDateStatusIconEnabled(enabled: Boolean) {
-        dateStatusIconScheduler.sync(
-            hebrewEnabled = uiState.value.hebrewDateStatusIconEnabled,
-            englishEnabled = enabled,
-        )
-        viewModelScope.launch {
-            appSettingsRepository.setEnglishDateStatusIconEnabled(enabled)
         }
     }
 
