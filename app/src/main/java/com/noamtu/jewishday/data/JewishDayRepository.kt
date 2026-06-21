@@ -55,8 +55,9 @@ class DefaultJewishDayRepository @Inject constructor(
         location: JewishLocation,
         settings: ZmanimCalculationSettings,
     ): ZmanimDay {
-        val date = clock.instant().atZone(location.zoneId).toLocalDate()
-        return zmanimForDate(location, date, settings)
+        val now = clock.instant()
+        val date = now.atZone(location.zoneId).toLocalDate()
+        return zmanimForDate(location, date, settings, now)
     }
 
     override fun getMizrach(location: JewishLocation): MizrachInfo = mizrachInfo(location)

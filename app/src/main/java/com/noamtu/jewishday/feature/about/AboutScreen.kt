@@ -44,11 +44,11 @@ fun AboutScreen(modifier: Modifier = Modifier) {
             }
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = localizedString(R.string.about_body, R.string.about_body_hebrew),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    AboutFeature(text = localizedString(R.string.about_feature_dates, R.string.about_feature_dates_hebrew))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+                    AboutFeature(text = localizedString(R.string.about_feature_zmanim, R.string.about_feature_zmanim_hebrew))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+                    AboutFeature(text = localizedString(R.string.about_feature_tools, R.string.about_feature_tools_hebrew))
                 }
             }
             item {
@@ -68,6 +68,15 @@ fun AboutScreen(modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+@Composable
+private fun AboutFeature(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 @Composable

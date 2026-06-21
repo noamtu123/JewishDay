@@ -59,13 +59,13 @@ enum class AppThemeOption(val storageValue: String) {
 
 data class AppSettings(
     val hebrewDateStatusIconEnabled: Boolean = false,
-    val englishDateStatusIconEnabled: Boolean = false,
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
+    val candleLightingPromptHandled: Boolean = false,
 ) {
     val useHebrewInterface: Boolean get() = language.useHebrewInterface
 }
@@ -90,13 +90,13 @@ interface AppSettingsRepository {
     suspend fun seedLanguageDefault()
 
     suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean)
-    suspend fun setEnglishDateStatusIconEnabled(enabled: Boolean)
     suspend fun setAppLanguage(language: AppLanguage)
     suspend fun setUse24HourTime(enabled: Boolean)
     suspend fun setEnabledDailyLearning(types: Set<DailyLearningType>)
     suspend fun setEnabledZmanimTimes(options: Set<ZmanimTimeOption>)
     suspend fun setThemeOption(themeOption: AppThemeOption)
     suspend fun setZmanimSettings(settings: ZmanimCalculationSettings)
+    suspend fun setCandleLightingPromptHandled(handled: Boolean)
 }
 
 class DataStoreAppSettingsRepository @Inject constructor(
@@ -131,7 +131,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
             val rootUiSettings = decodeRootUiSettings(preferences)
             AppSettings(
                 hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: false,
-                englishDateStatusIconEnabled = preferences[EnglishDateStatusIconEnabled] ?: false,
                 language = rootUiSettings.language,
                 use24HourTime = preferences[Use24HourTime] ?: true,
                 enabledDailyLearning = preferences[EnabledDailyLearningKey]
@@ -142,6 +141,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
                     ?: ZmanimTimeOption.Default,
                 themeOption = rootUiSettings.themeOption,
                 zmanimSettings = decodeZmanimSettings(preferences),
+                candleLightingPromptHandled = preferences[CandleLightingPromptHandled] ?: false,
             )
         }
 
@@ -159,12 +159,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[HebrewDateStatusIconEnabled] = enabled
-        }
-    }
-
-    override suspend fun setEnglishDateStatusIconEnabled(enabled: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[EnglishDateStatusIconEnabled] = enabled
         }
     }
 
@@ -228,6 +222,12 @@ class DataStoreAppSettingsRepository @Inject constructor(
             preferences[FastDayMethodKey] = settings.fastDayMethod.storageValue
             preferences[ChametzMethodKey] = settings.chametzMethod.storageValue
             preferences[AteretTorahOffsetMinutes] = settings.ateretTorahSunsetOffsetMinutes
+        }
+    }
+
+    override suspend fun setCandleLightingPromptHandled(handled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[CandleLightingPromptHandled] = handled
         }
     }
 
@@ -316,13 +316,13 @@ class DataStoreAppSettingsRepository @Inject constructor(
 
     private companion object {
         val HebrewDateStatusIconEnabled = booleanPreferencesKey("hebrew_date_status_icon_enabled")
-        val EnglishDateStatusIconEnabled = booleanPreferencesKey("english_date_status_icon_enabled")
         val AppLanguageKey = stringPreferencesKey("app_language")
         // Retained read-only to migrate installs that predate the language picker.
         val UseHebrewInterface = booleanPreferencesKey("use_hebrew_interface")
         val Use24HourTime = booleanPreferencesKey("use_24_hour_time")
         val EnabledDailyLearningKey = stringSetPreferencesKey("enabled_daily_learning")
         val EnabledZmanimTimesKey = stringSetPreferencesKey("enabled_zmanim_times")
+        val CandleLightingPromptHandled = booleanPreferencesKey("candle_lighting_prompt_handled")
         val ThemeOption = stringPreferencesKey("theme_option")
         val BlueWhiteTheme = booleanPreferencesKey("blue_white_theme")
         val AmoledBlackTheme = booleanPreferencesKey("amoled_black_theme")

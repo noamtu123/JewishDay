@@ -7,6 +7,7 @@ import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DailyLearningRepository
 import com.noamtu.jewishday.data.JewishDayRepository
+import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.DailyLearningGroupTitle
 import com.noamtu.jewishday.model.DailyLearningType
 import com.noamtu.jewishday.model.JewishLocation
@@ -14,6 +15,7 @@ import com.noamtu.jewishday.model.ZmanItem
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.ZmanimDay
 import com.noamtu.jewishday.model.ZmanimGroupTitle
+import com.noamtu.jewishday.model.ZmanimPreset
 import com.noamtu.jewishday.model.ZmanimTimeOption
 import com.noamtu.jewishday.model.dateBoundaryTicker
 import com.noamtu.jewishday.model.defaultJerusalemLocation
@@ -32,17 +34,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 @Immutable
 data class ZmanimUiState(
     val header: ZmanimHeaderUi? = null,
     val groups: List<ZmanimGroupUi> = emptyList(),
+    val showCandleLightingPrompt: Boolean = false,
 )
 
 /** Date header pinned at the top of the tab: the Jewish date with the Gregorian date beneath. */
@@ -79,6 +84,7 @@ private data class ZmanimSettingsSnapshot(
     val enabledZmanimTimes: Set<ZmanimTimeOption>,
     val enabledDailyLearning: Set<DailyLearningType>,
     val calculationSettings: ZmanimCalculationSettings,
+    val candleLightingPromptHandled: Boolean,
 )
 
 private data class ZmanimCalculationInput(
@@ -92,6 +98,7 @@ private data class ZmanimDisplayInput(
     val use24HourTime: Boolean,
     val enabledZmanimTimes: Set<ZmanimTimeOption>,
     val enabledDailyLearning: Set<DailyLearningType>,
+    val showCandleLightingPrompt: Boolean,
 )
 
 private data class DailyLearningRequest(
@@ -103,7 +110,7 @@ private data class DailyLearningRequest(
 @OptIn(ExperimentalCoroutinesApi::class)
 class ZmanimViewModel @Inject constructor(
     jewishDayRepository: JewishDayRepository,
-    appSettingsRepository: AppSettingsRepository,
+    private val appSettingsRepository: AppSettingsRepository,
     currentLocationRepository: CurrentLocationRepository,
     dailyLearningRepository: DailyLearningRepository,
     clock: Clock,
@@ -115,6 +122,7 @@ class ZmanimViewModel @Inject constructor(
                 enabledZmanimTimes = settings.enabledZmanimTimes,
                 enabledDailyLearning = settings.enabledDailyLearning,
                 calculationSettings = settings.zmanimSettings,
+                candleLightingPromptHandled = settings.candleLightingPromptHandled,
             )
         }
         .distinctUntilChanged()
@@ -189,11 +197,16 @@ class ZmanimViewModel @Inject constructor(
     val uiState: StateFlow<ZmanimUiState> = combine(
         zmanimDay,
         dailyLearningItems,
-        use24HourTime,
-        enabledZmanimTimes,
-        enabledDailyLearning,
-    ) { day, learning, use24, times, limudim ->
-        ZmanimDisplayInput(day, learning, use24, times, limudim)
+        settings,
+    ) { day, learning, settings ->
+        ZmanimDisplayInput(
+            zmanimDay = day,
+            dailyLearningItems = learning,
+            use24HourTime = settings.use24HourTime,
+            enabledZmanimTimes = settings.enabledZmanimTimes,
+            enabledDailyLearning = settings.enabledDailyLearning,
+            showCandleLightingPrompt = !settings.candleLightingPromptHandled,
+        )
     }
         .distinctUntilChanged()
         .conflate()
@@ -202,7 +215,10 @@ class ZmanimViewModel @Inject constructor(
                 .withDailyLearningItems(input.dailyLearningItems)
                 .filterForDisplay(input.enabledZmanimTimes, input.enabledDailyLearning)
                 .mergeRambamRows()
-                .toUiState(use24HourTime = input.use24HourTime)
+                .toUiState(
+                    use24HourTime = input.use24HourTime,
+                    showCandleLightingPrompt = input.showCandleLightingPrompt,
+                )
         }
         .distinctUntilChanged()
         .flowOn(Dispatchers.Default)
@@ -211,6 +227,19 @@ class ZmanimViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = ZmanimUiState(),
         )
+
+    fun selectCandleLightingMethod(method: CandleLightingMethod) {
+        viewModelScope.launch {
+            val current = appSettingsRepository.settings.first()
+            appSettingsRepository.setZmanimSettings(
+                current.zmanimSettings.copy(
+                    preset = ZmanimPreset.Custom,
+                    candleLightingMethod = method,
+                ),
+            )
+            appSettingsRepository.setCandleLightingPromptHandled(true)
+        }
+    }
 }
 
 /**
@@ -263,7 +292,10 @@ private fun ZmanimDay.mergeRambamRows(): ZmanimDay {
     return copy(groups = merged)
 }
 
-private fun ZmanimDay.toUiState(use24HourTime: Boolean): ZmanimUiState {
+private fun ZmanimDay.toUiState(
+    use24HourTime: Boolean,
+    showCandleLightingPrompt: Boolean,
+): ZmanimUiState {
     val englishLocale = Locale.getDefault()
     val hebrewLocale = Locale.forLanguageTag("he")
     val timePattern = if (use24HourTime) "HH:mm" else "h:mm a"
@@ -295,6 +327,7 @@ private fun ZmanimDay.toUiState(use24HourTime: Boolean): ZmanimUiState {
             gregorianDateHebrew = date.format(hebrewDateFormatter),
         ),
         groups = uiGroups,
+        showCandleLightingPrompt = showCandleLightingPrompt,
     )
 }
 

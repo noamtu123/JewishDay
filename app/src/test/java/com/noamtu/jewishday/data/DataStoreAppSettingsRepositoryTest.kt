@@ -57,18 +57,18 @@ class DataStoreAppSettingsRepositoryTest {
             assertEquals(RootUiSettings(language = defaultLanguage), repository.rootUiSettings.first())
 
             repository.setHebrewDateStatusIconEnabled(true)
-            repository.setEnglishDateStatusIconEnabled(true)
             repository.setAppLanguage(AppLanguage.Hebrew)
             repository.setUse24HourTime(false)
             repository.setThemeOption(AppThemeOption.Midnight)
+            repository.setCandleLightingPromptHandled(true)
 
             assertEquals(
                 AppSettings(
                     hebrewDateStatusIconEnabled = true,
-                    englishDateStatusIconEnabled = true,
                     language = AppLanguage.Hebrew,
                     use24HourTime = false,
                     themeOption = AppThemeOption.Midnight,
+                    candleLightingPromptHandled = true,
                 ),
                 repository.settings.first(),
             )

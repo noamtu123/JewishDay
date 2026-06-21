@@ -1,6 +1,7 @@
 package com.noamtu.jewishday.model
 
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -38,6 +39,29 @@ fun nextDateBoundary(
     nextTzeit(location, settings, now),
 )
 
+fun nextWeeklyParshaBoundary(
+    location: JewishLocation,
+    settings: ZmanimCalculationSettings,
+    now: Instant,
+): Instant {
+    val localToday = now.atZone(location.zoneId).toLocalDate()
+    return (0..7)
+        .map { localToday.plusDays(it.toLong()) }
+        .filter { it.dayOfWeek == DayOfWeek.SATURDAY }
+        .mapNotNull { date -> motzeiShabbatForDate(location, date, settings)?.plus(1, ChronoUnit.MINUTES) }
+        .firstOrNull { it.isAfter(now) }
+        ?: nextDateBoundary(location, settings, now)
+}
+
+fun nextZmanimRefreshBoundary(
+    location: JewishLocation,
+    settings: ZmanimCalculationSettings,
+    now: Instant,
+): Instant = minOf(
+    nextDateBoundary(location, settings, now),
+    nextWeeklyParshaBoundary(location, settings, now),
+)
+
 /**
  * Emits immediately and then again whenever the displayed date changes (tzeit or
  * midnight in the location's zone), so date-bound UI state recomputes while visible.
@@ -50,7 +74,7 @@ fun dateBoundaryTicker(
     while (true) {
         val now = clock.instant()
         emit(now)
-        val next = nextDateBoundary(location, settings, now)
+        val next = nextZmanimRefreshBoundary(location, settings, now)
         delay(Duration.between(now, next).toMillis().coerceAtLeast(MinimumTickMillis))
     }
 }

@@ -5,6 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
+import java.time.LocalTime
 
 class ZmanimModelsTest {
     @Test
@@ -87,6 +88,57 @@ class ZmanimModelsTest {
     }
 
     @Test
+    fun weeklyParshaRollsForwardAfterMotzeiShabbat() {
+        val location = defaultJerusalemLocation
+        val saturday = LocalDate.of(2026, 6, 13)
+        val sunday = saturday.plusDays(1)
+        val beforeMotzei = saturday.atTime(LocalTime.NOON).atZone(location.zoneId).toInstant()
+        val afterMotzei = saturday.atTime(23, 30).atZone(location.zoneId).toInstant()
+
+        val before = zmanimForDate(location = location, date = saturday, now = beforeMotzei).weeklyParsha()
+        val after = zmanimForDate(location = location, date = saturday, now = afterMotzei).weeklyParsha()
+        val sundayParsha = zmanimForDate(location = location, date = sunday).weeklyParsha()
+
+        assertEquals(sundayParsha, after)
+        assertFalse(before == after)
+    }
+
+    @Test
+    fun outsideIsraelShowsSecondDayYomTov() {
+        val secondDayShavuot = LocalDate.of(2026, 5, 23)
+
+        val israelEvents = zmanimForDate(
+            date = secondDayShavuot,
+            settings = ZmanimCalculationSettings(inIsrael = true),
+        ).eventValues()
+        val diasporaEvents = zmanimForDate(
+            date = secondDayShavuot,
+            settings = ZmanimCalculationSettings(inIsrael = false),
+        ).eventValues()
+
+        assertTrue(israelEvents.contains("Isru Chag"))
+        assertTrue(diasporaEvents.contains("Shavuos"))
+        assertFalse(israelEvents == diasporaEvents)
+        assertTrue(diasporaEvents.any { it.isNotBlank() })
+    }
+
+    @Test
+    fun outsideIsraelCanHaveDifferentWeeklyParsha() {
+        val splitParshaShabbat = LocalDate.of(2026, 5, 30)
+
+        val israelParsha = zmanimForDate(
+            date = splitParshaShabbat,
+            settings = ZmanimCalculationSettings(inIsrael = true),
+        ).weeklyParsha()
+        val diasporaParsha = zmanimForDate(
+            date = splitParshaShabbat,
+            settings = ZmanimCalculationSettings(inIsrael = false),
+        ).weeklyParsha()
+
+        assertFalse(israelParsha == diasporaParsha)
+    }
+
+    @Test
     fun directTzeitMatchesDisplayedTzeitRow() {
         val date = LocalDate.of(2026, 5, 29)
         val settings = ZmanimCalculationSettings()
@@ -98,4 +150,16 @@ class ZmanimModelsTest {
 
         assertEquals(displayedTzeit, tzeitForDate(date = date, settings = settings))
     }
+
+    private fun ZmanimDay.weeklyParsha(): String = groups
+        .first { it.title == "Shabbat" }
+        .items
+        .first { it.title == "Weekly Parsha" }
+        .value.orEmpty()
+
+    private fun ZmanimDay.eventValues(): List<String> = groups
+        .firstOrNull { it.title.isBlank() }
+        ?.items
+        ?.mapNotNull { it.value }
+        .orEmpty()
 }

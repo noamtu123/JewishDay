@@ -2,6 +2,7 @@ package com.noamtu.jewishday.feature.zmanim
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -14,12 +15,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -30,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.ui.LocalUseHebrewInterface
 import com.noamtu.jewishday.ui.components.InfoCard
 import com.noamtu.jewishday.ui.components.ScreenPaddingValues
@@ -48,6 +55,8 @@ fun ZmanimScreen(
     ZmanimContent(
         header = uiState.header,
         groups = uiState.groups,
+        showCandleLightingPrompt = uiState.showCandleLightingPrompt,
+        onCandleLightingSelected = viewModel::selectCandleLightingMethod,
         modifier = modifier,
     )
 }
@@ -57,6 +66,8 @@ fun ZmanimScreen(
 private fun ZmanimContent(
     header: ZmanimHeaderUi?,
     groups: List<ZmanimGroupUi>,
+    showCandleLightingPrompt: Boolean,
+    onCandleLightingSelected: (CandleLightingMethod) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val useHebrew = LocalUseHebrewInterface.current
@@ -75,6 +86,15 @@ private fun ZmanimContent(
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
             )
+            if (showCandleLightingPrompt) {
+                CandleLightingPrompt(
+                    useHebrew = useHebrew,
+                    onSelected = onCandleLightingSelected,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 4.dp),
+                )
+            }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = ScreenPaddingValues,
@@ -102,6 +122,70 @@ private fun ZmanimContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CandleLightingPrompt(
+    useHebrew: Boolean,
+    onSelected: (CandleLightingMethod) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    Surface(
+        modifier = modifier.clickable { showDialog = true },
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                modifier = Modifier.weight(1f),
+                text = if (useHebrew) "כמה דקות לפני שקיעה אתה מקבל שבת?" else "How many minutes before sunset do you welcome Shabbat?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = if (useHebrew) "בחר" else "Choose",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = {
+                Text(if (useHebrew) "קבלת שבת" else "Welcome Shabbat")
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(if (useHebrew) "בחר כמה דקות לפני שקיעה:" else "Choose how many minutes before sunset:")
+                    Spacer(Modifier.height(4.dp))
+                    CandleLightingMethod.entries.forEach { method ->
+                        TextButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = {
+                                showDialog = false
+                                onSelected(method)
+                            },
+                        ) {
+                            Text(if (useHebrew) "${method.offsetMinutes} דקות" else "${method.offsetMinutes} minutes")
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text(if (useHebrew) "ביטול" else "Cancel")
+                }
+            },
+        )
     }
 }
 

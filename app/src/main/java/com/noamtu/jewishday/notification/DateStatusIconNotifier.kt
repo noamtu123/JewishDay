@@ -21,8 +21,6 @@ import com.noamtu.jewishday.MainActivity
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.model.JewishDayInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -32,12 +30,6 @@ data class DateIconSpec(
     val iconText: String,
     val title: String,
     val content: String,
-)
-
-/** The icons to display: a foreground "anchor" plus an optional second icon. */
-data class RenderedDateIcons(
-    val primary: DateIconSpec,
-    val secondary: DateIconSpec?,
 )
 
 @Singleton
@@ -63,53 +55,29 @@ class DateStatusIconNotifier @Inject constructor(
     }
 
     /**
-     * Builds the icon specs for the current day and caches them so the foreground service can
+     * Builds the icon spec for the current day and caches it so the foreground service can
      * re-post the right glyph instantly after a cold start, before recomputation finishes.
-     * The foreground anchor (id [ForegroundId]) shows the Hebrew icon when enabled, otherwise
-     * the English one; the optional second icon is the English one when both are enabled.
      */
-    fun render(dayInfo: JewishDayInfo, showHebrew: Boolean, showEnglish: Boolean): RenderedDateIcons {
-        val hebrew = DateIconSpec(
+    fun render(dayInfo: JewishDayInfo): DateIconSpec {
+        val rendered = DateIconSpec(
             id = ForegroundId,
             iconText = dayInfo.hebrewDayOfMonthHebrew,
             title = context.getString(R.string.notification_status_hebrew_title),
             content = dayInfo.hebrewDateHebrew,
         )
-        val english = DateIconSpec(
-            id = if (showHebrew) SecondaryId else ForegroundId,
-            iconText = dayInfo.gregorianDate.dayOfMonth.toString(),
-            title = context.getString(R.string.notification_status_english_title),
-            content = dayInfo.gregorianDate.format(
-                DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy", Locale.getDefault()),
-            ),
-        )
-        val rendered = when {
-            showHebrew && showEnglish -> RenderedDateIcons(hebrew, english)
-            showHebrew -> RenderedDateIcons(hebrew, null)
-            else -> RenderedDateIcons(english, null)
-        }
         persist(rendered)
         return rendered
     }
 
-    /** The last rendered icons, if any were saved, for an immediate post on cold start. */
-    fun cachedRender(): RenderedDateIcons? {
+    /** The last rendered icon, if any was saved, for an immediate post on cold start. */
+    fun cachedRender(): DateIconSpec? {
         val primaryText = cache.getString(KeyPrimaryText, null) ?: return null
-        val primary = DateIconSpec(
+        return DateIconSpec(
             id = ForegroundId,
             iconText = primaryText,
             title = cache.getString(KeyPrimaryTitle, "").orEmpty(),
             content = cache.getString(KeyPrimaryContent, "").orEmpty(),
         )
-        val secondary = cache.getString(KeySecondaryText, null)?.let { text ->
-            DateIconSpec(
-                id = SecondaryId,
-                iconText = text,
-                title = cache.getString(KeySecondaryTitle, "").orEmpty(),
-                content = cache.getString(KeySecondaryContent, "").orEmpty(),
-            )
-        }
-        return RenderedDateIcons(primary, secondary)
     }
 
     fun buildNotification(spec: DateIconSpec): Notification {
@@ -166,11 +134,6 @@ class DateStatusIconNotifier @Inject constructor(
         }
     }
 
-    fun postSecondary(spec: DateIconSpec) {
-        if (!canPostNotifications()) return
-        notificationManager.notify(spec.id, buildNotification(spec))
-    }
-
     fun cancel(id: Int) = notificationManager.cancel(id)
 
     fun cancelAll() {
@@ -183,20 +146,14 @@ class DateStatusIconNotifier @Inject constructor(
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-    private fun persist(rendered: RenderedDateIcons) {
+    private fun persist(rendered: DateIconSpec) {
         cache.edit().apply {
-            putString(KeyPrimaryText, rendered.primary.iconText)
-            putString(KeyPrimaryTitle, rendered.primary.title)
-            putString(KeyPrimaryContent, rendered.primary.content)
-            if (rendered.secondary != null) {
-                putString(KeySecondaryText, rendered.secondary.iconText)
-                putString(KeySecondaryTitle, rendered.secondary.title)
-                putString(KeySecondaryContent, rendered.secondary.content)
-            } else {
-                remove(KeySecondaryText)
-                remove(KeySecondaryTitle)
-                remove(KeySecondaryContent)
-            }
+            putString(KeyPrimaryText, rendered.iconText)
+            putString(KeyPrimaryTitle, rendered.title)
+            putString(KeyPrimaryContent, rendered.content)
+            remove(KeySecondaryText)
+            remove(KeySecondaryTitle)
+            remove(KeySecondaryContent)
         }.apply()
     }
 

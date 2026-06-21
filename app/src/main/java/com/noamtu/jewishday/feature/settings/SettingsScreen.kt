@@ -65,7 +65,6 @@ fun SettingsScreen(
         if (granted) {
             when (pendingNotificationTarget) {
                 NotificationPermissionTarget.HebrewStatusIcon -> viewModel.setHebrewDateStatusIconEnabled(true)
-                NotificationPermissionTarget.EnglishStatusIcon -> viewModel.setEnglishDateStatusIconEnabled(true)
                 null -> Unit
             }
         }
@@ -112,22 +111,6 @@ fun SettingsScreen(
                                 enabled = enabled,
                                 target = NotificationPermissionTarget.HebrewStatusIcon,
                                 onAllowed = viewModel::setHebrewDateStatusIconEnabled,
-                            )
-                        },
-                    )
-                    SettingsDivider()
-                    SettingsSwitchRow(
-                        label = localizedString(R.string.settings_english_status_icon, R.string.settings_english_status_icon_hebrew),
-                        description = localizedString(
-                            R.string.settings_english_status_icon_description,
-                            R.string.settings_english_status_icon_description_hebrew,
-                        ),
-                        checked = uiState.englishDateStatusIconEnabled,
-                        onCheckedChange = { enabled ->
-                            updateNotificationSetting(
-                                enabled = enabled,
-                                target = NotificationPermissionTarget.EnglishStatusIcon,
-                                onAllowed = viewModel::setEnglishDateStatusIconEnabled,
                             )
                         },
                     )
@@ -320,7 +303,6 @@ private fun ExpandableSettingsHeader(
 
 private enum class NotificationPermissionTarget {
     HebrewStatusIcon,
-    EnglishStatusIcon,
 }
 
 @Composable

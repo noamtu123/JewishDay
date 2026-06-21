@@ -12,6 +12,7 @@ fun zmanimForDate(
     location: JewishLocation = defaultJerusalemLocation,
     date: LocalDate,
     settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
+    now: Instant? = null,
 ): ZmanimDay {
     val calendar = complexZmanimCalendar(location, date, settings)
     val jewishCalendar = JewishCalendar(date).apply {
@@ -20,7 +21,7 @@ fun zmanimForDate(
     }
     val englishFormatter = HebrewDateFormatter()
     val hebrewFormatter = HebrewDateFormatter().apply { isHebrewFormat = true }
-    val shabbatDates = shabbatDatesFor(date)
+    val shabbatDates = shabbatDatesFor(date, location, settings, now)
     val shabbatStartCalendar = complexZmanimCalendar(location, shabbatDates.startDate, settings)
     val shabbatEndCalendar = complexZmanimCalendar(location, shabbatDates.endDate, settings)
     // The parsha is only attached to a Shabbat date, so read it from the upcoming
@@ -111,8 +112,16 @@ private data class ShabbatDates(
     val endDate: LocalDate,
 )
 
-private fun shabbatDatesFor(date: LocalDate): ShabbatDates {
-    val friday = if (date.dayOfWeek == DayOfWeek.SATURDAY) {
+private fun shabbatDatesFor(
+    date: LocalDate,
+    location: JewishLocation,
+    settings: ZmanimCalculationSettings,
+    now: Instant?,
+): ShabbatDates {
+    val afterMotzeiShabbat = date.dayOfWeek == DayOfWeek.SATURDAY &&
+        now != null &&
+        motzeiShabbatForDate(location, date, settings)?.let { !now.isBefore(it) } == true
+    val friday = if (date.dayOfWeek == DayOfWeek.SATURDAY && !afterMotzeiShabbat) {
         date.minusDays(1)
     } else {
         date.plusDays(daysUntil(date.dayOfWeek, DayOfWeek.FRIDAY).toLong())
@@ -129,6 +138,14 @@ fun tzeitForDate(
     settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
 ): Instant? = complexZmanimCalendar(location, date, settings)
     .tzeit(settings)
+    ?.toInstant()
+
+fun motzeiShabbatForDate(
+    location: JewishLocation = defaultJerusalemLocation,
+    date: LocalDate,
+    settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
+): Instant? = complexZmanimCalendar(location, date, settings)
+    .motzeiShabbat(settings)
     ?.toInstant()
 
 private fun dailyItems(
