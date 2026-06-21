@@ -12,7 +12,6 @@ import androidx.core.content.ContextCompat
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.JewishDayRepository
-import com.noamtu.jewishday.model.nextGregorianMidnight
 import com.noamtu.jewishday.model.nextTzeit
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Clock
@@ -27,9 +26,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
- * Hosts the persistent Hebrew/English date status-bar icons as a foreground service so they
- * survive the app being swiped from recents. An exact alarm (scheduled here) wakes the service
- * at the next tzeit / midnight so the date flips immediately at the boundary.
+ * Hosts the persistent Hebrew date status-bar icon as a foreground service so it survives the app
+ * being swiped from recents. An exact alarm wakes the service at the next tzeit so the Hebrew date
+ * flips immediately at the boundary.
  */
 @AndroidEntryPoint
 class DateStatusIconService : Service() {
@@ -50,7 +49,6 @@ class DateStatusIconService : Service() {
         scope.launch {
             refresh(
                 requestedHebrew = intent.requestedShowHebrew(),
-                requestedEnglish = intent.requestedShowEnglish(),
             )
         }
         return START_STICKY
@@ -58,34 +56,29 @@ class DateStatusIconService : Service() {
 
     private fun immediateNotification(intent: Intent?): Notification {
         val showHebrew = intent.requestedShowHebrew() == true
-        val showEnglish = intent.requestedShowEnglish() == true
-        if (intent.hasRequestedState && (showHebrew || showEnglish) && notifier.canPostNotifications()) {
+        if (intent.hasRequestedState && showHebrew && notifier.canPostNotifications()) {
             return try {
                 val location = currentLocationRepository.currentLocationOrDefault()
                 val dayInfo = jewishDayRepository.getToday(location = location)
-                val rendered = notifier.render(dayInfo, showHebrew, showEnglish)
-                rendered.secondary?.let(notifier::postSecondary) ?: notifier.cancel(DateStatusIconNotifier.SecondaryId)
-                notifier.buildNotification(rendered.primary)
+                val rendered = notifier.render(dayInfo)
+                notifier.cancel(DateStatusIconNotifier.SecondaryId)
+                notifier.buildNotification(rendered)
             } catch (exception: Exception) {
                 Log.w(TAG, "Immediate date status icon render failed", exception)
                 notifier.buildSyncingNotification()
             }
         }
 
-        val cached = notifier.cachedRender()
-        cached?.secondary?.let(notifier::postSecondary)
-        return cached?.primary?.let(notifier::buildNotification) ?: notifier.buildSyncingNotification()
+        return notifier.cachedRender()?.let(notifier::buildNotification) ?: notifier.buildSyncingNotification()
     }
 
     private suspend fun refresh(
         permissionRetryCount: Int = 0,
         requestedHebrew: Boolean? = null,
-        requestedEnglish: Boolean? = null,
     ) {
         val settings = appSettingsRepository.settings.first()
         val showHebrew = requestedHebrew ?: settings.hebrewDateStatusIconEnabled
-        val showEnglish = requestedEnglish ?: settings.englishDateStatusIconEnabled
-        if (!showHebrew && !showEnglish) {
+        if (!showHebrew) {
             stopIcons()
             return
         }
@@ -100,7 +93,6 @@ class DateStatusIconService : Service() {
                 refresh(
                     permissionRetryCount = permissionRetryCount + 1,
                     requestedHebrew = requestedHebrew,
-                    requestedEnglish = requestedEnglish,
                 )
             } else {
                 Log.w(TAG, "Notification permission still unavailable after retries; stopping date icons")
@@ -111,23 +103,11 @@ class DateStatusIconService : Service() {
         try {
             val location = currentLocationRepository.currentLocationOrDefault()
             val dayInfo = jewishDayRepository.getToday(location = location, settings = settings.zmanimSettings)
-            val rendered = notifier.render(dayInfo, showHebrew, showEnglish)
-            startForegroundCompat(notifier.buildNotification(rendered.primary))
-            if (rendered.secondary != null) {
-                notifier.postSecondary(rendered.secondary)
-            } else {
-                notifier.cancel(DateStatusIconNotifier.SecondaryId)
-            }
+            val rendered = notifier.render(dayInfo)
+            startForegroundCompat(notifier.buildNotification(rendered))
+            notifier.cancel(DateStatusIconNotifier.SecondaryId)
             val now = clock.instant()
-            val next = when {
-                showHebrew && showEnglish -> minOf(
-                    nextTzeit(location, settings.zmanimSettings, now),
-                    nextGregorianMidnight(location, now),
-                )
-                showHebrew -> nextTzeit(location, settings.zmanimSettings, now)
-                else -> nextGregorianMidnight(location, now)
-            }
-            alarmScheduler.scheduleNext(next)
+            alarmScheduler.scheduleNext(nextTzeit(location, settings.zmanimSettings, now))
         } catch (exception: Exception) {
             // Keep the existing icon up and retry soon rather than disappearing it.
             Log.w(TAG, "Date status icon refresh failed; retrying later", exception)
@@ -165,7 +145,6 @@ class DateStatusIconService : Service() {
         private const val PermissionPropagationRetryMillis = 100L
         private const val PermissionPropagationMaxRetries = 50
         private const val ExtraShowHebrew = "com.noamtu.jewishday.notification.extra.SHOW_HEBREW"
-        private const val ExtraShowEnglish = "com.noamtu.jewishday.notification.extra.SHOW_ENGLISH"
 
         /** Starts (or refreshes) the persistent date icons. */
         fun start(context: Context) {
@@ -176,23 +155,19 @@ class DateStatusIconService : Service() {
         }
 
         /** Starts the service with enough state to render the selected date icon immediately. */
-        fun start(context: Context, showHebrew: Boolean, showEnglish: Boolean) {
+        fun start(context: Context, showHebrew: Boolean) {
             ContextCompat.startForegroundService(
                 context,
                 Intent(context, DateStatusIconService::class.java).apply {
                     putExtra(ExtraShowHebrew, showHebrew)
-                    putExtra(ExtraShowEnglish, showEnglish)
                 },
             )
         }
     }
 
     private val Intent?.hasRequestedState: Boolean
-        get() = this?.hasExtra(ExtraShowHebrew) == true && hasExtra(ExtraShowEnglish)
+        get() = this?.hasExtra(ExtraShowHebrew) == true
 
     private fun Intent?.requestedShowHebrew(): Boolean? =
         if (hasRequestedState) this?.getBooleanExtra(ExtraShowHebrew, false) else null
-
-    private fun Intent?.requestedShowEnglish(): Boolean? =
-        if (hasRequestedState) this?.getBooleanExtra(ExtraShowEnglish, false) else null
 }

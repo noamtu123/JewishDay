@@ -7,8 +7,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Turns the persistent date icons on or off. When on, it (re)starts the foreground service
- * that owns the icons; when off, it tears down the service, its alarm, and its notifications.
+ * Turns the persistent Hebrew date icon on or off. When on, it (re)starts the foreground service;
+ * when off, it tears down the service, its alarm, and its notifications.
  */
 @Singleton
 class DateStatusIconScheduler @Inject constructor(
@@ -16,9 +16,9 @@ class DateStatusIconScheduler @Inject constructor(
     private val notifier: DateStatusIconNotifier,
     private val alarmScheduler: DateStatusIconAlarmScheduler,
 ) {
-    fun sync(hebrewEnabled: Boolean, englishEnabled: Boolean) {
-        if (hebrewEnabled || englishEnabled) {
-            DateStatusIconService.start(context, hebrewEnabled, englishEnabled)
+    fun sync(enabled: Boolean) {
+        if (enabled) {
+            DateStatusIconService.start(context, showHebrew = true)
         } else {
             alarmScheduler.cancel()
             notifier.cancelAll()
