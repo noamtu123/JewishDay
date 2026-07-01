@@ -1,5 +1,6 @@
 package com.noamtu.jewishday.feature.developer
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
@@ -8,7 +9,9 @@ import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
+import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Clock
 import java.time.Duration
 import java.time.LocalDate
@@ -57,6 +60,7 @@ class DeveloperViewModel @Inject constructor(
     private val developerOverridesRepository: DeveloperOverridesRepository,
     private val appSettingsRepository: AppSettingsRepository,
     private val currentLocationRepository: CurrentLocationRepository,
+    @ApplicationContext private val context: Context,
     private val clock: Clock,
 ) : ViewModel() {
 
@@ -91,7 +95,7 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setVirtualTime(virtual)
     }
 
-    fun jumpTo(target: DeveloperJumpTarget) = viewModelScope.launch {
+    fun jumpTo(target: DeveloperJumpTarget) = launchOverride {
         val inIsrael = appSettingsRepository.settings.first().zmanimSettings.inIsrael
         val today = LocalDate.now(clock.zone)
         val date = (0..420L)
@@ -104,25 +108,30 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setVirtualTime(virtual)
     }
 
-    fun setLocationOverrideEnabled(enabled: Boolean) = viewModelScope.launch {
+    fun setLocationOverrideEnabled(enabled: Boolean) = launchOverride {
         developerOverridesRepository.setLocationOverrideEnabled(enabled)
     }
 
-    fun setLocationPreset(id: String) = viewModelScope.launch {
+    fun setLocationPreset(id: String) = launchOverride {
         developerOverridesRepository.setLocationPreset(id)
     }
 
-    fun setInIsrael(inIsrael: Boolean) = viewModelScope.launch {
+    fun setInIsrael(inIsrael: Boolean) = launchOverride {
         val current = appSettingsRepository.settings.first().zmanimSettings
         appSettingsRepository.setZmanimSettings(current.copy(inIsrael = inIsrael))
     }
 
-    fun resetOverrides() = viewModelScope.launch {
+    fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()
     }
 
     private fun launchOverride(block: suspend () -> Unit) {
-        viewModelScope.launch { block() }
+        viewModelScope.launch {
+            block()
+            // The virtual clock/location just changed; re-render the status-bar date icon so it
+            // reflects the override immediately instead of waiting for the next scheduled tzeit.
+            DateStatusIconScheduler.refresh(context)
+        }
     }
 
     private fun buildUiState(overrides: DeveloperOverrides, inIsrael: Boolean): DeveloperUiState {
