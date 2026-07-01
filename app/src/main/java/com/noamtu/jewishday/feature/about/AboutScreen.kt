@@ -1,5 +1,6 @@
 package com.noamtu.jewishday.feature.about
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,9 +14,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noamtu.jewishday.BuildConfig
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.ui.components.InfoCard
@@ -26,10 +32,20 @@ import com.noamtu.jewishday.ui.localizedString
 
 private const val GithubUrl = "https://github.com/noamtu123/JewishDay"
 private const val ContactEmail = "jewishdayapp@gmail.com"
+private const val TapsToUnlockDeveloperMode = 7
 
 @Composable
-fun AboutScreen(modifier: Modifier = Modifier) {
+fun AboutScreen(
+    modifier: Modifier = Modifier,
+    onOpenDeveloperTools: () -> Unit = {},
+    viewModel: AboutViewModel = hiltViewModel(),
+) {
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val developerModeUnlocked by viewModel.developerModeUnlocked.collectAsStateWithLifecycle()
+
+    // Hidden unlock: tap the version number 7x (like Android's Developer Options).
+    val tapState = remember { VersionTapState() }
 
     ScreenSurface(modifier = modifier) {
         LazyColumn(
@@ -40,7 +56,14 @@ fun AboutScreen(modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
-                AboutHeader()
+                AboutHeader(
+                    onVersionTap = {
+                        if (!developerModeUnlocked && tapState.registerTap()) {
+                            viewModel.unlockDeveloperMode()
+                            Toast.makeText(context, "Developer mode unlocked", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                )
             }
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
@@ -66,7 +89,36 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                     )
                 }
             }
+            if (developerModeUnlocked) {
+                item {
+                    InfoCard(modifier = Modifier.fillMaxWidth()) {
+                        AboutLinkRow(
+                            label = "Developer tools",
+                            value = "Override date, time and location for testing",
+                            onClick = onOpenDeveloperTools,
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+/** Counts rapid taps on the version line; a slow tap resets the run. */
+private class VersionTapState {
+    private var count = 0
+    private var lastTapMs = 0L
+
+    /** Returns true when this tap completes the unlock sequence. */
+    fun registerTap(): Boolean {
+        val now = System.currentTimeMillis()
+        count = if (now - lastTapMs <= TapWindowMs) count + 1 else 1
+        lastTapMs = now
+        return count >= TapsToUnlockDeveloperMode
+    }
+
+    private companion object {
+        const val TapWindowMs = 2_000L
     }
 }
 
@@ -80,7 +132,10 @@ private fun AboutFeature(text: String) {
 }
 
 @Composable
-private fun AboutHeader(modifier: Modifier = Modifier) {
+private fun AboutHeader(
+    onVersionTap: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = localizedString(R.string.about_tagline, R.string.about_tagline_hebrew),
@@ -89,6 +144,7 @@ private fun AboutHeader(modifier: Modifier = Modifier) {
         )
         Spacer(Modifier.height(4.dp))
         Text(
+            modifier = Modifier.clickable(onClick = onVersionTap),
             text = localizedString(R.string.about_version, R.string.about_version_hebrew, BuildConfig.VERSION_NAME),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

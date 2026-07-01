@@ -8,6 +8,8 @@
     <string name="nav_settings_hebrew">הגדרות</string>
     <string name="nav_about">About</string>
     <string name="nav_about_hebrew">אודות</string>
+    <string name="nav_developer">Developer</string>
+    <string name="nav_developer_hebrew">מפתח</string>
     <string name="report_issue">Report bug or request feature</string>
     <string name="report_issue_hebrew">דיווח באג או בקשת פיצ׳ר</string>
     <string name="zmanim_loading">Calculating zmanim</string>

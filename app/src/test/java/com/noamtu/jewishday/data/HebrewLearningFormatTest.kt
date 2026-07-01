@@ -34,9 +34,18 @@ class HebrewLearningFormatTest {
     }
 
     @Test
-    fun tanakhYomiDoesNotDisplayAsTehillim() {
+    fun tanakhYomiShowsTheRealBookName() {
         val item = listOf(
-            HebcalLearningEntry(category = "tanakhYomi", title = "Psalms Seder 3", hebrew = "תהלים ס׳ ג", memo = "Psalms 20:10-29:10"),
+            HebcalLearningEntry(category = "tanakhYomi", title = "Psalms Seder 3", hebrew = "תנ״ך ס׳ ג", memo = "Psalms 20:10-29:10"),
+        ).toZmanItems().single()
+
+        assertEquals("תהלים ס׳ ג׳", item.valueHebrew)
+    }
+
+    @Test
+    fun tanakhYomiFallsBackToGenericWhenNoBookMatches() {
+        val item = listOf(
+            HebcalLearningEntry(category = "tanakhYomi", title = "Seder 3", hebrew = "תנ״ך ס׳ ג", memo = "Seder 3"),
         ).toZmanItems().single()
 
         assertEquals("תנ״ך ס׳ ג׳", item.valueHebrew)

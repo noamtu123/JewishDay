@@ -6,13 +6,10 @@ import com.noamtu.jewishday.data.AppLanguage
 import com.noamtu.jewishday.data.AppThemeOption
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.model.AlotHashacharMethod
-import com.noamtu.jewishday.model.BainHashmashotMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.ChametzMethod
 import com.noamtu.jewishday.model.ChatzotMethod
 import com.noamtu.jewishday.model.DailyLearningType
-import com.noamtu.jewishday.model.FastDayMethod
-import com.noamtu.jewishday.model.HighLatitudeHandling
 import com.noamtu.jewishday.model.MinchaGedolaMethod
 import com.noamtu.jewishday.model.MinchaKetanaMethod
 import com.noamtu.jewishday.model.MisheyakirMethod
@@ -119,9 +116,10 @@ class SettingsViewModel @Inject constructor(
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, inIsrael = enabled) }
     }
 
-    fun setHighLatitudeHandling(method: HighLatitudeHandling) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, highLatitudeHandling = method) }
+    fun setUseElevation(enabled: Boolean) {
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, useElevation = enabled) }
     }
+
 
     fun setAlotHashacharMethod(method: AlotHashacharMethod) {
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, alotHashacharMethod = method) }
@@ -189,14 +187,6 @@ class SettingsViewModel @Inject constructor(
 
     fun setRabbeinuTamMethod(method: RabbeinuTamMethod) {
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, rabbeinuTamMethod = method) }
-    }
-
-    fun setBainHashmashotMethod(method: BainHashmashotMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, bainHashmashotMethod = method) }
-    }
-
-    fun setFastDayMethod(method: FastDayMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, fastDayMethod = method) }
     }
 
     fun setChametzMethod(method: ChametzMethod) {

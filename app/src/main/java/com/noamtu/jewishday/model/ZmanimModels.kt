@@ -25,6 +25,15 @@ data class ZmanimDay(
     val hebrewDateEnglish: String,
     val hebrewDateHebrew: String,
     val groups: List<ZmanimGroup>,
+    // Populated only on one of the six fasts, for the date header.
+    val fastDayInfo: FastDayInfo? = null,
+)
+
+data class FastDayInfo(
+    val name: String,
+    val nameHebrew: String,
+    val startTime: Instant?,
+    val endTime: Instant?,
 )
 
 data class ZmanimGroup(

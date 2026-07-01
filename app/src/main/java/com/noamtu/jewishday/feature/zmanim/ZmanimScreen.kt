@@ -224,17 +224,42 @@ private fun DateBar(
         color = MaterialTheme.colorScheme.primaryContainer,
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
-            Text(
-                text = if (useHebrew) header.jewishDateHebrew else header.jewishDate,
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (useHebrew) header.jewishDateHebrew else header.jewishDate,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                val fastName = if (useHebrew) header.fastNameHebrew else header.fastName
+                if (fastName != null) {
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = fastName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
             Spacer(Modifier.height(2.dp))
             Text(
                 text = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
             )
+            val fastStart = if (useHebrew) header.fastStartHebrew else header.fastStart
+            val fastEnd = if (useHebrew) header.fastEndHebrew else header.fastEnd
+            if (fastStart != null && fastEnd != null) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = if (useHebrew) {
+                        "כניסת הצום: $fastStart · צאת הצום: $fastEnd"
+                    } else {
+                        "Fast starts: $fastStart · Fast ends: $fastEnd"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
         }
     }
 }

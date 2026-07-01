@@ -57,6 +57,12 @@ data class ZmanimHeaderUi(
     val jewishDateHebrew: String,
     val gregorianDate: String,
     val gregorianDateHebrew: String,
+    val fastName: String? = null,
+    val fastNameHebrew: String? = null,
+    val fastStart: String? = null,
+    val fastStartHebrew: String? = null,
+    val fastEnd: String? = null,
+    val fastEndHebrew: String? = null,
 )
 
 @Immutable
@@ -325,6 +331,12 @@ private fun ZmanimDay.toUiState(
             jewishDateHebrew = hebrewDateHebrew,
             gregorianDate = date.format(englishDateFormatter),
             gregorianDateHebrew = date.format(hebrewDateFormatter),
+            fastName = fastDayInfo?.name,
+            fastNameHebrew = fastDayInfo?.nameHebrew,
+            fastStart = fastDayInfo?.startTime.formatTime(englishTimeFormatter).takeIf { fastDayInfo != null },
+            fastStartHebrew = fastDayInfo?.startTime.formatTime(hebrewTimeFormatter).takeIf { fastDayInfo != null },
+            fastEnd = fastDayInfo?.endTime.formatTime(englishTimeFormatter).takeIf { fastDayInfo != null },
+            fastEndHebrew = fastDayInfo?.endTime.formatTime(hebrewTimeFormatter).takeIf { fastDayInfo != null },
         ),
         groups = uiGroups,
         showCandleLightingPrompt = showCandleLightingPrompt,

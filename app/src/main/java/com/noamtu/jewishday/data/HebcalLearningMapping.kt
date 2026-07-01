@@ -88,7 +88,8 @@ private fun HebcalLearningEntry.formattedHebrew(): String = when (category) {
     "dailyPsalms" -> displayHebrew().replace("תהלים", "תהילים")
     // English-only "161:18-162:5" -> "קס״א: יח - קס״ב: ה".
     "kitzurShulchanAruch" -> formatKitzurShulchanAruch(title) ?: displayHebrew()
-    // Source can start with "תהלים" even though the track is Tanakh Yomi.
+    // Source can start with "תהלים" even though the track is Tanakh Yomi; the title carries
+    // both the real book name and the seder number (e.g. "Genesis 13", "Psalms Seder 3").
     "tanakhYomi" -> formatTanakhYomi(displayHebrew(), title)
     else -> displayHebrew()
 }
@@ -133,9 +134,56 @@ private fun formatTanakhYomi(sourceHebrew: String, title: String): String {
     val number = title.lastIntegerOrNull() ?: return sourceHebrew
     val tokens = sourceHebrew.trim().split(Regex("\\s+"))
     if (tokens.size < 2) return sourceHebrew
-    val name = if (tokens.first() == "תהלים") "תנ״ך" else tokens.first()
-    return (listOf(name) + tokens.drop(1).dropLast(1) + hebrewNumber(number)).joinToString(" ")
+    val bookName = EnglishToHebrewTanakhBook.entries
+        .firstOrNull { title.contains(it.key, ignoreCase = true) }?.value
+        ?: tokens.first()
+    return (listOf(bookName) + tokens.drop(1).dropLast(1) + hebrewNumber(number)).joinToString(" ")
 }
+
+private val EnglishToHebrewTanakhBook = linkedMapOf(
+    "I Chronicles" to "דברי הימים א",
+    "II Chronicles" to "דברי הימים ב",
+    "I Samuel" to "שמואל א",
+    "II Samuel" to "שמואל ב",
+    "I Kings" to "מלכים א",
+    "II Kings" to "מלכים ב",
+    "Song of Songs" to "שיר השירים",
+    "Genesis" to "בראשית",
+    "Exodus" to "שמות",
+    "Leviticus" to "ויקרא",
+    "Numbers" to "במדבר",
+    "Deuteronomy" to "דברים",
+    "Joshua" to "יהושע",
+    "Judges" to "שופטים",
+    "Isaiah" to "ישעיה",
+    "Jeremiah" to "ירמיה",
+    "Ezekiel" to "יחזקאל",
+    "Hosea" to "הושע",
+    "Joel" to "יואל",
+    "Amos" to "עמוס",
+    "Obadiah" to "עובדיה",
+    "Jonah" to "יונה",
+    "Micah" to "מיכה",
+    "Nahum" to "נחום",
+    "Habakkuk" to "חבקוק",
+    "Zephaniah" to "צפניה",
+    "Haggai" to "חגי",
+    "Zechariah" to "זכריה",
+    "Malachi" to "מלאכי",
+    "Psalms" to "תהלים",
+    "Proverbs" to "משלי",
+    "Job" to "איוב",
+    "Ruth" to "רות",
+    "Lamentations" to "איכה",
+    "Ecclesiastes" to "קהלת",
+    "Esther" to "אסתר",
+    "Daniel" to "דניאל",
+    "Ezra" to "עזרא",
+    "Nehemiah" to "נחמיה",
+    "Samuel" to "שמואל",
+    "Kings" to "מלכים",
+    "Chronicles" to "דברי הימים",
+)
 
 private data class ShemiratHaLashon(val hebrew: String, val halachaCount: Int)
 

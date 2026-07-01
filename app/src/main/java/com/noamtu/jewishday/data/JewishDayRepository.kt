@@ -21,7 +21,6 @@ interface JewishDayRepository {
         location: JewishLocation,
         settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
     ): JewishDayInfo
-    fun getToday(date: LocalDate): JewishDayInfo
     fun getZmanim(
         location: JewishLocation = defaultJerusalemLocation,
         settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
@@ -48,8 +47,6 @@ class DefaultJewishDayRepository @Inject constructor(
         }
         return jewishDayInfo(gregorianDate = gregorianDate, jewishDate = jewishDate)
     }
-
-    override fun getToday(date: LocalDate): JewishDayInfo = jewishDayInfo(date)
 
     override fun getZmanim(
         location: JewishLocation,

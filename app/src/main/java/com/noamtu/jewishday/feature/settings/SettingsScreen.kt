@@ -418,7 +418,6 @@ private fun AppThemeOption.localizedLabel(): String = when (this) {
     AppThemeOption.AmoledBlack -> localizedString(R.string.theme_amoled_black, R.string.theme_amoled_black_hebrew)
 }
 
-private fun HighLatitudeHandling.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
 private fun AlotHashacharMethod.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
 private fun MisheyakirMethod.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
 private fun SunriseMethod.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
@@ -433,8 +432,6 @@ private fun TzeitHakochavimMethod.localizedLabel(useHebrew: Boolean): String = i
 private fun CandleLightingMethod.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
 private fun MotzeiShabbatMethod.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
 private fun RabbeinuTamMethod.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
-private fun BainHashmashotMethod.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
-private fun FastDayMethod.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
 private fun ChametzMethod.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
 
 @Composable
@@ -464,11 +461,12 @@ private fun AdvancedZmanimChoices(
         },
     )
 
-    MethodChoiceRow(
-        title = text("High Latitude", "קו רוחב גבוה"),
-        description = text("Fallback behavior when sun-angle methods cannot be calculated.", "התנהגות כאשר שיטות מעלות אינן ניתנות לחישוב."),
-        value = settings.highLatitudeHandling.localizedLabel(useHebrew),
-        onClick = { activePicker = picker(text("High Latitude", "קו רוחב גבוה"), HighLatitudeHandling.entries, settings.highLatitudeHandling, { it.localizedLabel(useHebrew) }, viewModel::setHighLatitudeHandling) },
+    SettingsDivider()
+    SettingsSwitchRow(
+        label = text("Use Elevation", "שימוש בגובה המקום"),
+        description = text("Apply elevation adjustments to GRA-based calculations. Default: sea level.", "תיקון גובה המקום לחישובי גר״א. ברירת מחדל: מישור."),
+        checked = settings.useElevation,
+        onCheckedChange = { viewModel.setUseElevation(it) },
     )
     SettingsDivider()
     MethodChoiceRow(text("Alot Hashachar", "עלות השחר"), text("Dawn start used for Magen Avraham and fast days.", "תחילת היום למג״א ולתעניות."), settings.alotHashacharMethod.localizedLabel(useHebrew)) {
@@ -503,10 +501,6 @@ private fun AdvancedZmanimChoices(
         activePicker = picker(text("Chatzot HaYom", "חצות היום"), ChatzotMethod.entries, settings.chatzotMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Chatzot HaLaila", "חצות הלילה"), text("Solar or fixed-local midnight.", "חצות הלילה: שמשי או מקומי קבוע."), settings.chatzotHaLailaMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Chatzot HaLaila", "חצות הלילה"), ChatzotMethod.entries, settings.chatzotHaLailaMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotHaLailaMethod)
-    }
-    SettingsDivider()
     MethodChoiceRow(text("Mincha Gedola", "מנחה גדולה"), text("Earliest regular Mincha.", "הזמן המוקדם למנחה."), settings.minchaGedolaMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Mincha Gedola", "מנחה גדולה"), MinchaGedolaMethod.entries, settings.minchaGedolaMethod, { it.localizedLabel(useHebrew) }, viewModel::setMinchaGedolaMethod)
     }
@@ -527,6 +521,10 @@ private fun AdvancedZmanimChoices(
         activePicker = picker(text("Tzeit Hakochavim", "צאת הכוכבים"), TzeitHakochavimMethod.entries, settings.tzeitHakochavimMethod, { it.localizedLabel(useHebrew) }, viewModel::setTzeitHakochavimMethod)
     }
     SettingsDivider()
+    MethodChoiceRow(text("Chatzot HaLaila", "חצות הלילה"), text("Solar or fixed-local midnight.", "חצות הלילה: שמשי או מקומי קבוע."), settings.chatzotHaLailaMethod.localizedLabel(useHebrew)) {
+        activePicker = picker(text("Chatzot HaLaila", "חצות הלילה"), ChatzotMethod.entries, settings.chatzotHaLailaMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotHaLailaMethod)
+    }
+    SettingsDivider()
     MethodChoiceRow(text("Candle Lighting", "הדלקת נרות"), text("Minutes before sunset for candle lighting.", "דקות לפני שקיעה להדלקת נרות."), settings.candleLightingMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Candle Lighting", "הדלקת נרות"), CandleLightingMethod.entries, settings.candleLightingMethod, { it.localizedLabel(useHebrew) }, viewModel::setCandleLightingMethod)
     }
@@ -537,14 +535,6 @@ private fun AdvancedZmanimChoices(
     SettingsDivider()
     MethodChoiceRow(text("Rabbeinu Tam", "רבינו תם"), text("Separate Rabbeinu Tam Shabbat opinion.", "שיטת רבינו תם נפרדת לשבת."), settings.rabbeinuTamMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Rabbeinu Tam", "רבינו תם"), RabbeinuTamMethod.entries, settings.rabbeinuTamMethod, { it.localizedLabel(useHebrew) }, viewModel::setRabbeinuTamMethod)
-    }
-    SettingsDivider()
-    MethodChoiceRow(text("Bain Hashmashot", "בין השמשות"), text("Twilight boundary method shown with Shabbat times.", "שיטת בין השמשות המוצגת עם זמני שבת."), settings.bainHashmashotMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Bain Hashmashot", "בין השמשות"), BainHashmashotMethod.entries, settings.bainHashmashotMethod, { it.localizedLabel(useHebrew) }, viewModel::setBainHashmashotMethod)
-    }
-    SettingsDivider()
-    MethodChoiceRow(text("Fast Days", "תעניות"), text("Start/end method for public fasts.", "שיטת התחלה וסיום לתעניות ציבור."), settings.fastDayMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Fast Days", "תעניות"), FastDayMethod.entries, settings.fastDayMethod, { it.localizedLabel(useHebrew) }, viewModel::setFastDayMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Erev Pesach Chametz", "חמץ בערב פסח"), text("Sof zman eating and burning chametz.", "סוף זמן אכילת חמץ וביעור חמץ."), settings.chametzMethod.localizedLabel(useHebrew)) {

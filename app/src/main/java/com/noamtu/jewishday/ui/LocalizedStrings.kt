@@ -16,15 +16,3 @@ fun localizedString(
     val resId = if (LocalUseHebrewInterface.current) hebrewRes else englishRes
     return if (formatArgs.isEmpty()) stringResource(resId) else stringResource(resId, *formatArgs)
 }
-
-@Composable
-fun localizedLocationName(name: String): String =
-    if (!LocalUseHebrewInterface.current) {
-        name
-    } else {
-        when (name) {
-            "Jerusalem" -> "ירושלים"
-            "Current location" -> "מיקום נוכחי"
-            else -> name
-        }
-    }
