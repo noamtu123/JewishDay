@@ -60,24 +60,16 @@ private fun HebcalLearningEntry.toRow(
     id = type.storageValue,
 )
 
-/**
- * Shemirat HaLashon arrives only in English ("Book II 9.8-9.10"). Render it as
- * "כלל <chapter> <start>-<end>" with a "<n> הלכות יומיות" caption.
- */
-private fun HebcalLearningEntry.toShemiratHaLashonRow(): ZmanItem {
-    val parsed = parseShemiratHaLashon(title)
-    val count = parsed?.halachaCount ?: 0
-    return ZmanItem(
-        title = "Shemirat HaLashon",
-        titleHebrew = "שמירת הלשון",
-        time = null,
-        description = if (count > 0) "$count daily halachot" else "Daily Shemirat HaLashon",
-        descriptionHebrew = if (count > 0) "$count הלכות יומיות" else "שמירת הלשון יומית",
-        value = displayEnglish(),
-        valueHebrew = parsed?.hebrew ?: displayHebrew(),
-        id = DailyLearningType.ShemiratHaLashon.storageValue,
-    )
-}
+private fun HebcalLearningEntry.toShemiratHaLashonRow(): ZmanItem = ZmanItem(
+    title = "Shemirat HaLashon",
+    titleHebrew = "שמירת הלשון",
+    time = null,
+    description = "Daily Shemirat HaLashon",
+    descriptionHebrew = "שמירת הלשון יומית",
+    value = displayEnglish(),
+    valueHebrew = formatShemiratHaLashonHebrew(displayHebrew()),
+    id = DailyLearningType.ShemiratHaLashon.storageValue,
+)
 
 /** The Hebrew text to display for an entry, applying per-track gematria formatting. */
 private fun HebcalLearningEntry.formattedHebrew(): String = when (category) {
@@ -185,32 +177,22 @@ private val EnglishToHebrewTanakhBook = linkedMapOf(
     "Chronicles" to "דברי הימים",
 )
 
-private data class ShemiratHaLashon(val hebrew: String, val halachaCount: Int)
-
-private fun parseShemiratHaLashon(title: String): ShemiratHaLashon? {
-    Regex("(\\d+)\\.(\\d+)\\s*-\\s*(\\d+)\\.(\\d+)").find(title)?.let { match ->
-        val (c1, p1, c2, p2) = match.destructured
-        return if (c1 == c2) {
-            ShemiratHaLashon(
-                hebrew = "כלל ${hebrewNumber(c1.toInt())} ${gematriaLetters(p1.toInt())}-${gematriaLetters(p2.toInt())}",
-                halachaCount = (p2.toInt() - p1.toInt() + 1).coerceAtLeast(1),
-            )
-        } else {
-            ShemiratHaLashon(
-                hebrew = "כלל ${hebrewNumber(c1.toInt())} ${gematriaLetters(p1.toInt())} - כלל ${hebrewNumber(c2.toInt())} ${gematriaLetters(p2.toInt())}",
-                halachaCount = 0,
-            )
-        }
-    }
-    Regex("(\\d+)\\.(\\d+)").find(title)?.let { match ->
-        val (c, p) = match.destructured
-        return ShemiratHaLashon(
-            hebrew = "כלל ${hebrewNumber(c.toInt())} ${gematriaLetters(p.toInt())}",
-            halachaCount = 1,
-        )
-    }
-    return null
-}
+/**
+ * Hebcal's Shemirat HaLashon Hebrew comes as e.g. "Book I, הקדמה 1-2" or
+ * "Book I, שער הזכירה 1.1-1.4" — the gate name is already Hebrew, but with an English "Book I,"/
+ * "Book II," prefix and Arabic numerals (and on intro/epilogue days there is no chapter.halacha,
+ * only a plain range). Translate the book prefix, turn "chapter.halacha" into "chapter:halacha",
+ * and render the numbers as gematria.
+ */
+private fun formatShemiratHaLashonHebrew(hebrew: String): String = hebrew
+    .replace("Book II,", "ספר ב׳")
+    .replace("Book I,", "ספר א׳")
+    .replace("Book II", "ספר ב׳")
+    .replace("Book I", "ספר א׳")
+    .replace('.', ':')
+    .arabicDigitsToGematria()
+    .replace(Regex("\\s+"), " ")
+    .trim()
 
 private fun HebcalLearningEntry.displayEnglish(): String = memo?.takeIf(String::isNotBlank) ?: title
 private fun HebcalLearningEntry.displayHebrew(): String = hebrew?.takeIf(String::isNotBlank) ?: displayEnglish()

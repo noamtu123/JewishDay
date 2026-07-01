@@ -42,6 +42,7 @@ data class SettingsUiState(
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
+    val candleLightingDefault: CandleLightingMethod? = null,
 )
 
 @HiltViewModel
@@ -59,6 +60,7 @@ class SettingsViewModel @Inject constructor(
                 enabledZmanimTimes = settings.enabledZmanimTimes,
                 themeOption = settings.themeOption,
                 zmanimSettings = settings.zmanimSettings,
+                candleLightingDefault = settings.candleLightingDefault,
             )
         }
         .stateIn(
@@ -87,9 +89,35 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /** Resets all per-zman calculation methods to defaults, keeping the Outside-Israel choice. */
+    /**
+     * Resets all per-zman calculation methods to defaults, keeping the Outside-Israel choice and
+     * the candle-lighting offset the user chose at first launch.
+     */
     fun resetZmanimMethods() {
-        updateZmanimSettings { current -> ZmanimCalculationSettings(inIsrael = current.inIsrael) }
+        viewModelScope.launch {
+            val current = appSettingsRepository.settings.first()
+            val candle = current.candleLightingDefault ?: current.zmanimSettings.candleLightingMethod
+            appSettingsRepository.setZmanimSettings(
+                ZmanimCalculationSettings(
+                    inIsrael = current.zmanimSettings.inIsrael,
+                    candleLightingMethod = candle,
+                ),
+            )
+        }
+    }
+
+    /** Restores the shown-zmanim list to the default set. */
+    fun resetZmanimTimes() {
+        viewModelScope.launch {
+            appSettingsRepository.setEnabledZmanimTimes(ZmanimTimeOption.Default)
+        }
+    }
+
+    /** Restores the daily-learning list to the default set. */
+    fun resetDailyLearning() {
+        viewModelScope.launch {
+            appSettingsRepository.setEnabledDailyLearning(DailyLearningType.Default)
+        }
     }
 
     fun setThemeOption(themeOption: AppThemeOption) {

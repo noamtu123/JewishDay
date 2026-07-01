@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DailyLearningRepository
+import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.data.JewishDayRepository
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.DailyLearningGroupTitle
@@ -119,6 +120,7 @@ class ZmanimViewModel @Inject constructor(
     private val appSettingsRepository: AppSettingsRepository,
     currentLocationRepository: CurrentLocationRepository,
     dailyLearningRepository: DailyLearningRepository,
+    developerOverridesRepository: DeveloperOverridesRepository,
     clock: Clock,
 ) : ViewModel() {
     private val settings = appSettingsRepository.settings
@@ -159,17 +161,24 @@ class ZmanimViewModel @Inject constructor(
         .map { currentLocation -> currentLocation ?: defaultJerusalemLocation }
         .distinctUntilChanged()
 
+    // The developer time override changes the injected Clock; fold its state into the recompute
+    // trigger so picking a date/time in the developer tools refreshes the screen immediately.
+    // (StateFlow is already conflated/distinct, so no distinctUntilChanged here.)
+    private val developerOverrides = developerOverridesRepository.state
+
     private val zmanimDay = combine(
         calculationSettings,
         location,
-        ::ZmanimCalculationInput,
-    )
+        developerOverrides,
+    ) { settings, currentLocation, overrides ->
+        Triple(settings, currentLocation, overrides)
+    }
         .distinctUntilChanged()
         .conflate()
         // Re-emit at each date boundary so zmanim roll over while the screen stays open.
-        .flatMapLatest { input ->
-            dateBoundaryTicker(clock, input.location, input.calculationSettings)
-                .map { input }
+        .flatMapLatest { (settings, currentLocation, _) ->
+            dateBoundaryTicker(clock, currentLocation, settings)
+                .map { ZmanimCalculationInput(settings, currentLocation) }
         }
         .map { input ->
             jewishDayRepository.getZmanim(
@@ -244,6 +253,9 @@ class ZmanimViewModel @Inject constructor(
                 ),
             )
             appSettingsRepository.setCandleLightingPromptHandled(true)
+            // Remember the first-launch choice as the candle-lighting default (shown in the
+            // picker and restored by Reset).
+            appSettingsRepository.setCandleLightingDefault(method)
         }
     }
 }

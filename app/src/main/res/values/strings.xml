@@ -45,8 +45,6 @@
     <string name="settings_advanced_zmanim_hebrew">שיטות חישוב מפורטות</string>
     <string name="settings_advanced_zmanim_description">Choose the exact halachic method for each displayed zman.</string>
     <string name="settings_advanced_zmanim_description_hebrew">בחר את שיטת ההלכה המדויקת לכל זמן מוצג.</string>
-    <string name="settings_reset_methods">Reset calculation methods</string>
-    <string name="settings_reset_methods_hebrew">איפוס שיטות החישוב</string>
     <string name="settings_reset">Reset</string>
     <string name="settings_reset_hebrew">איפוס</string>
     <string name="settings_daily_learning_section">Daily learning to show</string>

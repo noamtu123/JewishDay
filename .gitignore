@@ -26,6 +26,3 @@ gmail-icon.png
 
 # AI handoff log — local communication between AI assistants, never pushed
 AI_HANDOFF.md
-
-# Cloudflare Wrangler local cache (leftover from the reverted translation worker)
-.wrangler/

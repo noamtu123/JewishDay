@@ -16,8 +16,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -163,20 +167,16 @@ fun SettingsScreen(
                     ExpandableSettingsHeader(
                         label = localizedString(R.string.settings_advanced_zmanim, R.string.settings_advanced_zmanim_hebrew),
                         description = localizedString(R.string.settings_advanced_zmanim_description, R.string.settings_advanced_zmanim_description_hebrew),
-                        expanded = showAdvancedMethods,
-                        onClick = { showAdvancedMethods = !showAdvancedMethods },
+                        resetContentDescription = localizedString(R.string.settings_reset, R.string.settings_reset_hebrew),
+                        onToggle = { showAdvancedMethods = !showAdvancedMethods },
+                        onReset = { viewModel.resetZmanimMethods() },
                     )
                     if (showAdvancedMethods) {
                         SettingsDivider()
                         AdvancedZmanimChoices(
                             settings = uiState.zmanimSettings,
+                            candleLightingDefault = uiState.candleLightingDefault,
                             viewModel = viewModel,
-                        )
-                        SettingsDivider()
-                        SettingsChoiceRow(
-                            label = localizedString(R.string.settings_reset_methods, R.string.settings_reset_methods_hebrew),
-                            value = localizedString(R.string.settings_reset, R.string.settings_reset_hebrew),
-                            onClick = { viewModel.resetZmanimMethods() },
                         )
                     }
                 }
@@ -187,8 +187,9 @@ fun SettingsScreen(
                     ExpandableSettingsHeader(
                         label = localizedString(R.string.settings_zmanim_times_section, R.string.settings_zmanim_times_section_hebrew),
                         description = localizedString(R.string.settings_zmanim_times_section_description, R.string.settings_zmanim_times_section_description_hebrew),
-                        expanded = showZmanimTimes,
-                        onClick = { showZmanimTimes = !showZmanimTimes },
+                        resetContentDescription = localizedString(R.string.settings_reset, R.string.settings_reset_hebrew),
+                        onToggle = { showZmanimTimes = !showZmanimTimes },
+                        onReset = { viewModel.resetZmanimTimes() },
                     )
                     if (showZmanimTimes) {
                         ZmanimTimeOption.entries.forEach { option ->
@@ -209,8 +210,9 @@ fun SettingsScreen(
                     ExpandableSettingsHeader(
                         label = localizedString(R.string.settings_daily_learning_section, R.string.settings_daily_learning_section_hebrew),
                         description = localizedString(R.string.settings_daily_learning_section_description, R.string.settings_daily_learning_section_description_hebrew),
-                        expanded = showDailyLearning,
-                        onClick = { showDailyLearning = !showDailyLearning },
+                        resetContentDescription = localizedString(R.string.settings_reset, R.string.settings_reset_hebrew),
+                        onToggle = { showDailyLearning = !showDailyLearning },
+                        onReset = { viewModel.resetDailyLearning() },
                     )
                     if (showDailyLearning) {
                         DailyLearningType.entries.forEach { type ->
@@ -284,21 +286,54 @@ fun SettingsScreen(
 
 }
 
+/**
+ * Header for an expandable settings section: tapping the label area expands/collapses it, and a
+ * circular reset icon on the side restores that section to its defaults (this replaces the old
+ * +/- indicator on every expandable header).
+ */
 @Composable
 private fun ExpandableSettingsHeader(
     label: String,
     description: String,
-    expanded: Boolean,
-    onClick: () -> Unit,
+    resetContentDescription: String,
+    onToggle: () -> Unit,
+    onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    SettingsChoiceRow(
-        label = label,
-        description = description,
-        value = if (expanded) "-" else "+",
-        onClick = onClick,
-        modifier = modifier,
-    )
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClick = onToggle),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (description.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        IconButton(onClick = onReset) {
+            Icon(
+                imageVector = Icons.Outlined.Refresh,
+                contentDescription = resetContentDescription,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
 }
 
 private enum class NotificationPermissionTarget {
@@ -437,10 +472,13 @@ private fun ChametzMethod.localizedLabel(useHebrew: Boolean): String = if (useHe
 @Composable
 private fun AdvancedZmanimChoices(
     settings: ZmanimCalculationSettings,
+    candleLightingDefault: CandleLightingMethod?,
     viewModel: SettingsViewModel,
 ) {
     val useHebrew = LocalUseHebrewInterface.current
     var activePicker by remember { mutableStateOf<ZmanimMethodPicker?>(null) }
+    // Used only to mark which option is the app default in each picker.
+    val defaults = remember { ZmanimCalculationSettings() }
 
     fun text(english: String, hebrew: String): String = if (useHebrew) hebrew else english
 
@@ -448,20 +486,21 @@ private fun AdvancedZmanimChoices(
         title: String,
         options: List<T>,
         selected: T,
+        default: T,
         label: (T) -> String,
         onSelect: (T) -> Unit,
     ): ZmanimMethodPicker = ZmanimMethodPicker(
         title = title,
         options = options.map { option ->
+            val optionLabel = label(option)
             ZmanimMethodOption(
-                label = label(option),
+                label = if (option == default) text("$optionLabel (default)", "$optionLabel (ברירת מחדל)") else optionLabel,
                 selected = option == selected,
                 onSelect = { onSelect(option) },
             )
         },
     )
 
-    SettingsDivider()
     SettingsSwitchRow(
         label = text("Use Elevation", "שימוש בגובה המקום"),
         description = text("Apply elevation adjustments to GRA-based calculations. Default: sea level.", "תיקון גובה המקום לחישובי גר״א. ברירת מחדל: מישור."),
@@ -470,75 +509,75 @@ private fun AdvancedZmanimChoices(
     )
     SettingsDivider()
     MethodChoiceRow(text("Alot Hashachar", "עלות השחר"), text("Dawn start used for Magen Avraham and fast days.", "תחילת היום למג״א ולתעניות."), settings.alotHashacharMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Alot Hashachar", "עלות השחר"), AlotHashacharMethod.entries, settings.alotHashacharMethod, { it.localizedLabel(useHebrew) }, viewModel::setAlotHashacharMethod)
+        activePicker = picker(text("Alot Hashachar", "עלות השחר"), AlotHashacharMethod.entries, settings.alotHashacharMethod, defaults.alotHashacharMethod, { it.localizedLabel(useHebrew) }, viewModel::setAlotHashacharMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Tallit & Tefillin", "זמן טלית ותפילין"), text("Earliest tallit and tefillin time (misheyakir).", "הזמן המוקדם לטלית ותפילין (משיכיר)."), settings.misheyakirMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Tallit & Tefillin", "זמן טלית ותפילין"), MisheyakirMethod.entries, settings.misheyakirMethod, { it.localizedLabel(useHebrew) }, viewModel::setMisheyakirMethod)
+        activePicker = picker(text("Tallit & Tefillin", "זמן טלית ותפילין"), MisheyakirMethod.entries, settings.misheyakirMethod, defaults.misheyakirMethod, { it.localizedLabel(useHebrew) }, viewModel::setMisheyakirMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Sunrise", "הנץ החמה"), text("Sea level is the common zmanim base; observed uses elevation.", "מישור הוא בסיס נפוץ לזמנים; נראית משתמשת בגובה."), settings.sunriseMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Sunrise", "הנץ החמה"), SunriseMethod.entries, settings.sunriseMethod, { it.localizedLabel(useHebrew) }, viewModel::setSunriseMethod)
+        activePicker = picker(text("Sunrise", "הנץ החמה"), SunriseMethod.entries, settings.sunriseMethod, defaults.sunriseMethod, { it.localizedLabel(useHebrew) }, viewModel::setSunriseMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)"), text("Method for the GRA Shema row.", "השיטה לשורת קריאת שמע של הגר״א."), settings.sofZmanShemaGraMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)"), SofZmanShemaMethod.entries.filter { it.family == ZmanOpinionFamily.Gra }, settings.sofZmanShemaGraMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanShemaGraMethod)
+        activePicker = picker(text("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)"), SofZmanShemaMethod.entries.filter { it.family == ZmanOpinionFamily.Gra }, settings.sofZmanShemaGraMethod, defaults.sofZmanShemaGraMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanShemaGraMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"), text("Method for the Magen Avraham Shema row.", "השיטה לשורת קריאת שמע של מג״א."), settings.sofZmanShemaMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"), SofZmanShemaMethod.entries.filter { it.family == ZmanOpinionFamily.MagenAvraham }, settings.sofZmanShemaMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanShemaMethod)
+        activePicker = picker(text("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"), SofZmanShemaMethod.entries.filter { it.family == ZmanOpinionFamily.MagenAvraham }, settings.sofZmanShemaMethod, defaults.sofZmanShemaMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanShemaMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)"), text("Method for the GRA Tefillah row.", "השיטה לשורת תפילה של הגר״א."), settings.sofZmanTefillahGraMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)"), SofZmanTefillahMethod.entries.filter { it.family == ZmanOpinionFamily.Gra }, settings.sofZmanTefillahGraMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanTefillahGraMethod)
+        activePicker = picker(text("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)"), SofZmanTefillahMethod.entries.filter { it.family == ZmanOpinionFamily.Gra }, settings.sofZmanTefillahGraMethod, defaults.sofZmanTefillahGraMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanTefillahGraMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מג״א)"), text("Method for the Magen Avraham Tefillah row.", "השיטה לשורת תפילה של מג״א."), settings.sofZmanTefillahMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מג״א)"), SofZmanTefillahMethod.entries.filter { it.family == ZmanOpinionFamily.MagenAvraham }, settings.sofZmanTefillahMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanTefillahMethod)
+        activePicker = picker(text("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מג״א)"), SofZmanTefillahMethod.entries.filter { it.family == ZmanOpinionFamily.MagenAvraham }, settings.sofZmanTefillahMethod, defaults.sofZmanTefillahMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanTefillahMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Chatzot HaYom", "חצות היום"), text("Solar or fixed-local midday.", "חצות היום: שמשי או מקומי קבוע."), settings.chatzotMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Chatzot HaYom", "חצות היום"), ChatzotMethod.entries, settings.chatzotMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotMethod)
+        activePicker = picker(text("Chatzot HaYom", "חצות היום"), ChatzotMethod.entries, settings.chatzotMethod, defaults.chatzotMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Mincha Gedola", "מנחה גדולה"), text("Earliest regular Mincha.", "הזמן המוקדם למנחה."), settings.minchaGedolaMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Mincha Gedola", "מנחה גדולה"), MinchaGedolaMethod.entries, settings.minchaGedolaMethod, { it.localizedLabel(useHebrew) }, viewModel::setMinchaGedolaMethod)
+        activePicker = picker(text("Mincha Gedola", "מנחה גדולה"), MinchaGedolaMethod.entries, settings.minchaGedolaMethod, defaults.minchaGedolaMethod, { it.localizedLabel(useHebrew) }, viewModel::setMinchaGedolaMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Mincha Ketana", "מנחה קטנה"), text("Preferred later Mincha window.", "תחילת זמן מנחה קטן."), settings.minchaKetanaMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Mincha Ketana", "מנחה קטנה"), MinchaKetanaMethod.entries, settings.minchaKetanaMethod, { it.localizedLabel(useHebrew) }, viewModel::setMinchaKetanaMethod)
+        activePicker = picker(text("Mincha Ketana", "מנחה קטנה"), MinchaKetanaMethod.entries, settings.minchaKetanaMethod, defaults.minchaKetanaMethod, { it.localizedLabel(useHebrew) }, viewModel::setMinchaKetanaMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Plag Hamincha", "פלג המנחה"), text("Earliest Shabbat or Maariv boundary.", "גבול מוקדם לקבלת שבת או מעריב."), settings.plagHaminchaMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Plag Hamincha", "פלג המנחה"), PlagHaminchaMethod.entries, settings.plagHaminchaMethod, { it.localizedLabel(useHebrew) }, viewModel::setPlagHaminchaMethod)
+        activePicker = picker(text("Plag Hamincha", "פלג המנחה"), PlagHaminchaMethod.entries, settings.plagHaminchaMethod, defaults.plagHaminchaMethod, { it.localizedLabel(useHebrew) }, viewModel::setPlagHaminchaMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Sunset", "שקיעה"), text("Sea level or elevation-adjusted sunset.", "שקיעה במישור או מתוקנת לפי גובה."), settings.sunsetMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Sunset", "שקיעה"), SunsetMethod.entries, settings.sunsetMethod, { it.localizedLabel(useHebrew) }, viewModel::setSunsetMethod)
+        activePicker = picker(text("Sunset", "שקיעה"), SunsetMethod.entries, settings.sunsetMethod, defaults.sunsetMethod, { it.localizedLabel(useHebrew) }, viewModel::setSunsetMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Tzeit Hakochavim", "צאת הכוכבים"), text("Nightfall used for the app's Hebrew-date rollover.", "צאת הכוכבים שמשמש גם להחלפת תאריך עברי באפליקציה."), settings.tzeitHakochavimMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Tzeit Hakochavim", "צאת הכוכבים"), TzeitHakochavimMethod.entries, settings.tzeitHakochavimMethod, { it.localizedLabel(useHebrew) }, viewModel::setTzeitHakochavimMethod)
+        activePicker = picker(text("Tzeit Hakochavim", "צאת הכוכבים"), TzeitHakochavimMethod.entries, settings.tzeitHakochavimMethod, defaults.tzeitHakochavimMethod, { it.localizedLabel(useHebrew) }, viewModel::setTzeitHakochavimMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Chatzot HaLaila", "חצות הלילה"), text("Solar or fixed-local midnight.", "חצות הלילה: שמשי או מקומי קבוע."), settings.chatzotHaLailaMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Chatzot HaLaila", "חצות הלילה"), ChatzotMethod.entries, settings.chatzotHaLailaMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotHaLailaMethod)
+        activePicker = picker(text("Chatzot HaLaila", "חצות הלילה"), ChatzotMethod.entries, settings.chatzotHaLailaMethod, defaults.chatzotHaLailaMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotHaLailaMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Candle Lighting", "הדלקת נרות"), text("Minutes before sunset for candle lighting.", "דקות לפני שקיעה להדלקת נרות."), settings.candleLightingMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Candle Lighting", "הדלקת נרות"), CandleLightingMethod.entries, settings.candleLightingMethod, { it.localizedLabel(useHebrew) }, viewModel::setCandleLightingMethod)
+        activePicker = picker(text("Candle Lighting", "הדלקת נרות"), CandleLightingMethod.entries, settings.candleLightingMethod, candleLightingDefault ?: defaults.candleLightingMethod, { it.localizedLabel(useHebrew) }, viewModel::setCandleLightingMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Motzei Shabbat", "צאת שבת"), text("Main end-of-Shabbat time.", "זמן צאת שבת הראשי."), settings.motzeiShabbatMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Motzei Shabbat", "צאת שבת"), MotzeiShabbatMethod.entries, settings.motzeiShabbatMethod, { it.localizedLabel(useHebrew) }, viewModel::setMotzeiShabbatMethod)
+        activePicker = picker(text("Motzei Shabbat", "צאת שבת"), MotzeiShabbatMethod.entries, settings.motzeiShabbatMethod, defaults.motzeiShabbatMethod, { it.localizedLabel(useHebrew) }, viewModel::setMotzeiShabbatMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Rabbeinu Tam", "רבינו תם"), text("Separate Rabbeinu Tam Shabbat opinion.", "שיטת רבינו תם נפרדת לשבת."), settings.rabbeinuTamMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Rabbeinu Tam", "רבינו תם"), RabbeinuTamMethod.entries, settings.rabbeinuTamMethod, { it.localizedLabel(useHebrew) }, viewModel::setRabbeinuTamMethod)
+        activePicker = picker(text("Rabbeinu Tam", "רבינו תם"), RabbeinuTamMethod.entries, settings.rabbeinuTamMethod, defaults.rabbeinuTamMethod, { it.localizedLabel(useHebrew) }, viewModel::setRabbeinuTamMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Erev Pesach Chametz", "חמץ בערב פסח"), text("Sof zman eating and burning chametz.", "סוף זמן אכילת חמץ וביעור חמץ."), settings.chametzMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Erev Pesach Chametz", "חמץ בערב פסח"), ChametzMethod.entries, settings.chametzMethod, { it.localizedLabel(useHebrew) }, viewModel::setChametzMethod)
+        activePicker = picker(text("Erev Pesach Chametz", "חמץ בערב פסח"), ChametzMethod.entries, settings.chametzMethod, defaults.chametzMethod, { it.localizedLabel(useHebrew) }, viewModel::setChametzMethod)
     }
 
     activePicker?.let { pickerConfig ->
