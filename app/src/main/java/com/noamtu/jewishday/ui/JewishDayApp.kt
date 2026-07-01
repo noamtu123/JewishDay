@@ -40,6 +40,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.feature.about.AboutScreen
+import com.noamtu.jewishday.feature.developer.DeveloperScreen
 import com.noamtu.jewishday.feature.mizrach.MizrachScreen
 import com.noamtu.jewishday.feature.settings.SettingsScreen
 import com.noamtu.jewishday.feature.zmanim.ZmanimScreen
@@ -128,7 +129,12 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean) {
                     composable(AppDestination.Zmanim.route) { ZmanimScreen() }
                     composable(AppDestination.Mizrach.route) { MizrachScreen() }
                     composable(AppDestination.Settings.route) { SettingsScreen() }
-                    composable(AppDestination.About.route) { AboutScreen() }
+                    composable(AppDestination.About.route) {
+                        AboutScreen(
+                            onOpenDeveloperTools = { navController.navigateSecondaryTo(AppDestination.Developer.route) },
+                        )
+                    }
+                    composable(AppDestination.Developer.route) { DeveloperScreen() }
                 }
             }
         }
