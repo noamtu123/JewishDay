@@ -47,7 +47,10 @@ fun zmanimForDate(
         hebrewFormatter = hebrewFormatter,
         calendar = calendar,
         settings = settings,
+        location = location,
+        date = date,
     )
+    val fastDayInfo = fastDayInfo(jewishCalendar, calendar, settings, location, date)
 
     return ZmanimDay(
         locationName = location.name,
@@ -55,6 +58,7 @@ fun zmanimForDate(
         zoneId = location.zoneId,
         hebrewDateEnglish = englishFormatter.format(jewishCalendar),
         hebrewDateHebrew = hebrewFormatter.format(jewishCalendar),
+        fastDayInfo = fastDayInfo,
         groups = listOfNotNull(
             eventItems.takeIf { it.isNotEmpty() }?.let { items ->
                 ZmanimGroup(title = "", titleHebrew = "", items = items)
@@ -68,7 +72,7 @@ fun zmanimForDate(
                 // Each row carries its ZmanimTimeOption id so it can be shown/hidden.
                 items = listOf(
                     ZmanItem("Alot Hashachar", "עלות השחר", calendar.alotHashachar(settings)?.toInstant(), settings.alotHashacharMethod.label, settings.alotHashacharMethod.labelHebrew, id = ZmanimTimeOption.AlotHashachar.storageValue),
-                    ZmanItem("Tallit & Tefillin", "זמן טלית ותפילין", calendar.misheyakir(settings.misheyakirMethod)?.toInstant(), settings.misheyakirMethod.label, settings.misheyakirMethod.labelHebrew, id = ZmanimTimeOption.TallitTefillin.storageValue),
+                    ZmanItem("Tallit & Tefillin", "זמן טלית ותפילין", calendar.misheyakir(settings)?.toInstant(), settings.misheyakirMethod.label, settings.misheyakirMethod.labelHebrew, id = ZmanimTimeOption.TallitTefillin.storageValue),
                     ZmanItem("Sunrise", "הנץ החמה", calendar.sunrise(settings.sunriseMethod)?.toInstant(), settings.sunriseMethod.label, settings.sunriseMethod.labelHebrew, id = ZmanimTimeOption.Sunrise.storageValue),
                     ZmanItem("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)", calendar.sofZmanShema(settings.sofZmanShemaMethod, settings)?.toInstant(), settings.sofZmanShemaMethod.label, settings.sofZmanShemaMethod.labelHebrew, id = ZmanimTimeOption.SofZmanShemaMagenAvraham.storageValue),
                     ZmanItem("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)", calendar.sofZmanShema(settings.sofZmanShemaGraMethod, settings)?.toInstant(), settings.sofZmanShemaGraMethod.label, settings.sofZmanShemaGraMethod.labelHebrew, id = ZmanimTimeOption.SofZmanShemaGra.storageValue),
@@ -154,12 +158,29 @@ private fun dailyItems(
     hebrewFormatter: HebrewDateFormatter,
     calendar: ComplexZmanimCalendar,
     settings: ZmanimCalculationSettings,
+    location: JewishLocation,
+    date: LocalDate,
 ): List<ZmanItem> = buildList {
     // The Jewish date is shown in the date header at the top of the tab, and the parsha at the
     // top of the Shabbat section; this list is only the occasional day events.
     val yomTov = englishFormatter.formatYomTov(jewishCalendar)
     if (yomTov.isNotBlank()) {
         add(ZmanItem("Yom Tov", "יום טוב", null, "Day information", "מידע על היום", yomTov, hebrewFormatter.formatYomTov(jewishCalendar)))
+    }
+    // Yom Tov candle lighting. Erev Shabbat candle lighting already lives in the Shabbat section, so
+    // only handle the eve of a melacha-forbidden Yom Tov here. When today is already Shabbat/Yom Tov
+    // (e.g. the 2nd night in the diaspora, or a Yom Tov right after Shabbat) one may not light before
+    // — candles are lit after nightfall from an existing flame.
+    val tomorrow = JewishCalendar(date.plusDays(1)).apply {
+        isUseModernHolidays = true
+        setInIsrael(settings.inIsrael)
+    }
+    if (tomorrow.isYomTovAssurBemelacha) {
+        if (jewishCalendar.isAssurBemelacha) {
+            add(ZmanItem("Yom Tov Candle Lighting", "הדלקת נרות יום טוב", calendar.tzeit(settings)?.toInstant(), "After nightfall, from an existing flame", "אחרי צאת הכוכבים, מאש קיימת"))
+        } else {
+            add(ZmanItem("Yom Tov Candle Lighting", "הדלקת נרות יום טוב", calendar.candleLighting?.toInstant(), "Before sunset", "לפני השקיעה"))
+        }
     }
     if (jewishCalendar.isRoshChodesh) {
         add(ZmanItem("Rosh Chodesh", "ראש חודש", null, "New Jewish month", "ראש חודש", englishFormatter.formatRoshChodesh(jewishCalendar), hebrewFormatter.formatRoshChodesh(jewishCalendar)))
@@ -175,9 +196,34 @@ private fun dailyItems(
         add(ZmanItem("Eat Chametz Until", "סוף זמן אכילת חמץ", chametzTimes.first?.toInstant(), settings.chametzMethod.label, settings.chametzMethod.labelHebrew))
         add(ZmanItem("Burn Chametz Until", "סוף זמן ביעור חמץ", chametzTimes.second?.toInstant(), settings.chametzMethod.label, settings.chametzMethod.labelHebrew))
     }
-    if (jewishCalendar.isTaanis) {
-        val fastTimes = calendar.fastDayTimes(settings.fastDayMethod)
-        add(ZmanItem("Fast Starts", "תחילת תענית", fastTimes.first?.toInstant(), settings.fastDayMethod.label, settings.fastDayMethod.labelHebrew))
-        add(ZmanItem("Fast Ends", "סוף תענית", fastTimes.second?.toInstant(), settings.fastDayMethod.label, settings.fastDayMethod.labelHebrew))
+}
+
+private val FastDayNames: Map<Int, Pair<String, String>> = mapOf(
+    JewishCalendar.FAST_OF_GEDALYAH to ("Fast of Gedalyah" to "צום גדליה"),
+    JewishCalendar.TISHA_BEAV to ("Tisha B'Av" to "תשעה באב"),
+    JewishCalendar.SEVENTEEN_OF_TAMMUZ to ("Seventeenth of Tammuz" to "י״ז בתמוז"),
+    JewishCalendar.TENTH_OF_TEVES to ("Tenth of Teves" to "עשרה בטבת"),
+    JewishCalendar.FAST_OF_ESTHER to ("Fast of Esther" to "תענית אסתר"),
+    JewishCalendar.YOM_KIPPUR to ("Yom Kippur" to "יום כיפור"),
+)
+
+private fun fastDayInfo(
+    jewishCalendar: JewishCalendar,
+    calendar: ComplexZmanimCalendar,
+    settings: ZmanimCalculationSettings,
+    location: JewishLocation,
+    date: LocalDate,
+): FastDayInfo? {
+    if (!jewishCalendar.isTaanis) return null
+    val (name, nameHebrew) = FastDayNames[jewishCalendar.yomTovIndex] ?: return null
+    val startsPreviousEvening = jewishCalendar.yomTovIndex == JewishCalendar.YOM_KIPPUR ||
+        jewishCalendar.yomTovIndex == JewishCalendar.TISHA_BEAV
+    val startTime = if (startsPreviousEvening) {
+        complexZmanimCalendar(location, date.minusDays(1), settings)
+            .sunset(settings.sunsetMethod)?.toInstant()
+    } else {
+        calendar.alotHashachar(settings)?.toInstant()
     }
+    val endTime = calendar.tzeit(settings)?.toInstant()
+    return FastDayInfo(name = name, nameHebrew = nameHebrew, startTime = startTime, endTime = endTime)
 }

@@ -2,12 +2,9 @@ package com.noamtu.jewishday.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.noamtu.jewishday.model.AlotHashacharMethod
-import com.noamtu.jewishday.model.BainHashmashotMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.ChametzMethod
 import com.noamtu.jewishday.model.ChatzotMethod
-import com.noamtu.jewishday.model.FastDayMethod
-import com.noamtu.jewishday.model.HighLatitudeHandling
 import com.noamtu.jewishday.model.MinchaGedolaMethod
 import com.noamtu.jewishday.model.MinchaKetanaMethod
 import com.noamtu.jewishday.model.MisheyakirMethod
@@ -104,12 +101,11 @@ class DataStoreAppSettingsRepositoryTest {
         val zmanimSettings = ZmanimCalculationSettings(
             preset = ZmanimPreset.Custom,
             inIsrael = false,
-            highLatitudeHandling = HighLatitudeHandling.Strict,
             alotHashacharMethod = AlotHashacharMethod.Degrees18,
             misheyakirMethod = MisheyakirMethod.Degrees7Point65,
             sunriseMethod = SunriseMethod.ElevationAdjusted,
-            sofZmanShemaMethod = SofZmanShemaMethod.KolEliyahu,
-            sofZmanTefillahMethod = SofZmanTefillahMethod.TwoHoursBeforeChatzot,
+            sofZmanShemaMethod = SofZmanShemaMethod.Mga18,
+            sofZmanTefillahMethod = SofZmanTefillahMethod.Mga18,
             chatzotMethod = ChatzotMethod.FixedLocal,
             minchaGedolaMethod = MinchaGedolaMethod.AhavatShalom,
             minchaKetanaMethod = MinchaKetanaMethod.BaalHatanya,
@@ -119,8 +115,6 @@ class DataStoreAppSettingsRepositoryTest {
             candleLightingMethod = CandleLightingMethod.Minutes40,
             motzeiShabbatMethod = MotzeiShabbatMethod.Minutes60,
             rabbeinuTamMethod = RabbeinuTamMethod.Degrees26,
-            bainHashmashotMethod = BainHashmashotMethod.Yereim18Minutes,
-            fastDayMethod = FastDayMethod.BaalHatanya,
             chametzMethod = ChametzMethod.BaalHatanya,
             ateretTorahSunsetOffsetMinutes = 37,
         )

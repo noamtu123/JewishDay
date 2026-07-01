@@ -9,13 +9,10 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.noamtu.jewishday.model.AlotHashacharMethod
-import com.noamtu.jewishday.model.BainHashmashotMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.ChametzMethod
 import com.noamtu.jewishday.model.ChatzotMethod
 import com.noamtu.jewishday.model.DailyLearningType
-import com.noamtu.jewishday.model.FastDayMethod
-import com.noamtu.jewishday.model.HighLatitudeHandling
 import com.noamtu.jewishday.model.MinchaGedolaMethod
 import com.noamtu.jewishday.model.MinchaKetanaMethod
 import com.noamtu.jewishday.model.MisheyakirMethod
@@ -200,7 +197,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
         dataStore.edit { preferences ->
             preferences[ZmanimPresetKey] = settings.preset.storageValue
             preferences[InIsrael] = settings.inIsrael
-            preferences[HighLatitudeHandlingKey] = settings.highLatitudeHandling.storageValue
+            preferences[UseElevation] = settings.useElevation
             preferences[AlotHashacharMethodKey] = settings.alotHashacharMethod.storageValue
             preferences[MisheyakirMethodKey] = settings.misheyakirMethod.storageValue
             preferences[SunriseMethodKey] = settings.sunriseMethod.storageValue
@@ -218,8 +215,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
             preferences[CandleLightingMethodKey] = settings.candleLightingMethod.storageValue
             preferences[MotzeiShabbatMethodKey] = settings.motzeiShabbatMethod.storageValue
             preferences[RabbeinuTamMethodKey] = settings.rabbeinuTamMethod.storageValue
-            preferences[BainHashmashotMethodKey] = settings.bainHashmashotMethod.storageValue
-            preferences[FastDayMethodKey] = settings.fastDayMethod.storageValue
             preferences[ChametzMethodKey] = settings.chametzMethod.storageValue
             preferences[AteretTorahOffsetMinutes] = settings.ateretTorahSunsetOffsetMinutes
         }
@@ -235,11 +230,11 @@ class DataStoreAppSettingsRepository @Inject constructor(
         return ZmanimCalculationSettings(
             preset = ZmanimPreset.fromStorageValue(preferences[ZmanimPresetKey]) ?: ZmanimPreset.Standard,
             inIsrael = preferences[InIsrael] ?: true,
-            highLatitudeHandling = HighLatitudeHandling.fromStorageValue(preferences[HighLatitudeHandlingKey]) ?: HighLatitudeHandling.FixedMinutesFallback,
+            useElevation = preferences[UseElevation] ?: false,
             alotHashacharMethod = AlotHashacharMethod.fromStorageValue(preferences[AlotHashacharMethodKey])
                 ?: preferences[AlotHashacharOffsetMinutes]?.let { legacyAlotMethod(it) }
                 ?: AlotHashacharMethod.Degrees16Point1,
-            misheyakirMethod = MisheyakirMethod.fromStorageValue(preferences[MisheyakirMethodKey]) ?: MisheyakirMethod.Degrees11Point5,
+            misheyakirMethod = MisheyakirMethod.fromStorageValue(preferences[MisheyakirMethodKey]) ?: MisheyakirMethod.Degrees11,
             sunriseMethod = SunriseMethod.fromStorageValue(preferences[SunriseMethodKey])
                 ?: if (preferences[UseSeaLevelSunrise] == false) SunriseMethod.ElevationAdjusted else SunriseMethod.SeaLevel,
             // Shema/Tefillah each have a GRA row and a Magen Avraham row, each with its
@@ -247,7 +242,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
             sofZmanShemaGraMethod = SofZmanShemaMethod.fromStorageValue(preferences[SofZmanShemaGraMethodKey])
                 ?: SofZmanShemaMethod.Gra,
             sofZmanShemaMethod = SofZmanShemaMethod.fromStorageValue(preferences[SofZmanShemaMethodKey])
-                ?: SofZmanShemaMethod.Mga72,
+                ?: SofZmanShemaMethod.Mga16Point1,
             sofZmanTefillahGraMethod = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahGraMethodKey])
                 ?: SofZmanTefillahMethod.Gra,
             sofZmanTefillahMethod = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahMethodKey])
@@ -260,13 +255,11 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 ?: legacyPlagMethod(preferences[PlagHaminchaOffsetMinutes] ?: 0),
             sunsetMethod = SunsetMethod.fromStorageValue(preferences[SunsetMethodKey])
                 ?: if (preferences[UseSeaLevelSunset] == false) SunsetMethod.ElevationAdjusted else SunsetMethod.SeaLevel,
-            tzeitHakochavimMethod = TzeitHakochavimMethod.fromStorageValue(preferences[TzeitHakochavimMethodKey]) ?: TzeitHakochavimMethod.Minutes20,
+            tzeitHakochavimMethod = TzeitHakochavimMethod.fromStorageValue(preferences[TzeitHakochavimMethodKey]) ?: TzeitHakochavimMethod.Degrees6Point2,
             candleLightingMethod = CandleLightingMethod.fromStorageValue(preferences[CandleLightingMethodKey])
                 ?: legacyCandleMethod(preferences[CandleLightingOffsetMinutes] ?: 18),
             motzeiShabbatMethod = MotzeiShabbatMethod.fromStorageValue(preferences[MotzeiShabbatMethodKey]) ?: MotzeiShabbatMethod.Geonim8Point5,
             rabbeinuTamMethod = RabbeinuTamMethod.fromStorageValue(preferences[RabbeinuTamMethodKey]) ?: RabbeinuTamMethod.Minutes72,
-            bainHashmashotMethod = BainHashmashotMethod.fromStorageValue(preferences[BainHashmashotMethodKey]) ?: BainHashmashotMethod.RabbeinuTam13Point24,
-            fastDayMethod = FastDayMethod.fromStorageValue(preferences[FastDayMethodKey]) ?: FastDayMethod.Alot72ToTzeit8Point5,
             chametzMethod = ChametzMethod.fromStorageValue(preferences[ChametzMethodKey]) ?: ChametzMethod.Gra,
             ateretTorahSunsetOffsetMinutes = preferences[AteretTorahOffsetMinutes] ?: 40,
         )
@@ -327,7 +320,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val BlueWhiteTheme = booleanPreferencesKey("blue_white_theme")
         val AmoledBlackTheme = booleanPreferencesKey("amoled_black_theme")
         val ZmanimPresetKey = stringPreferencesKey("zmanim_preset")
-        val HighLatitudeHandlingKey = stringPreferencesKey("zmanim_high_latitude_handling")
         val AlotHashacharMethodKey = stringPreferencesKey("zmanim_alot_method")
         val MisheyakirMethodKey = stringPreferencesKey("zmanim_misheyakir_method")
         val SunriseMethodKey = stringPreferencesKey("zmanim_sunrise_method")
@@ -345,11 +337,10 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val CandleLightingMethodKey = stringPreferencesKey("zmanim_candle_method")
         val MotzeiShabbatMethodKey = stringPreferencesKey("zmanim_motzei_method")
         val RabbeinuTamMethodKey = stringPreferencesKey("zmanim_rabbeinu_tam_method")
-        val BainHashmashotMethodKey = stringPreferencesKey("zmanim_bain_hashmashot_method")
-        val FastDayMethodKey = stringPreferencesKey("zmanim_fast_day_method")
         val ChametzMethodKey = stringPreferencesKey("zmanim_chametz_method")
         val AteretTorahOffsetMinutes = intPreferencesKey("zmanim_ateret_torah_offset_minutes")
         val InIsrael = booleanPreferencesKey("zmanim_in_israel")
+        val UseElevation = booleanPreferencesKey("zmanim_use_elevation")
         val AlotHashacharOffsetMinutes = intPreferencesKey("zmanim_alot_offset_minutes")
         val PlagHaminchaOffsetMinutes = intPreferencesKey("zmanim_plag_offset_minutes")
         val UseSeaLevelSunrise = booleanPreferencesKey("zmanim_use_sea_level_sunrise")

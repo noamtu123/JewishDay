@@ -12,13 +12,13 @@ class ZmanimModelsTest {
     fun standardDefaultsMatch2netIsraelConventions() {
         val settings = ZmanimCalculationSettings()
 
-        // GRA is always shown as its own row; the configurable basis defaults to MGA 72.
-        assertEquals(SofZmanShemaMethod.Mga72, settings.sofZmanShemaMethod)
+        // GRA is always shown as its own row; the configurable basis defaults to MGA 16.1/72.
+        assertEquals(SofZmanShemaMethod.Mga16Point1, settings.sofZmanShemaMethod)
         assertEquals(SofZmanTefillahMethod.Mga72, settings.sofZmanTefillahMethod)
         assertEquals(MinchaGedolaMethod.Standard, settings.minchaGedolaMethod)
-        // Defaults aligned to 2net (Israel): degree-based dawn, tzeit = sunset + 20 min.
+        // Defaults aligned to 2net (Israel): degree-based dawn, tzeit = 6.2° (Peninei Halacha).
         assertEquals(AlotHashacharMethod.Degrees16Point1, settings.alotHashacharMethod)
-        assertEquals(TzeitHakochavimMethod.Minutes20, settings.tzeitHakochavimMethod)
+        assertEquals(TzeitHakochavimMethod.Degrees6Point2, settings.tzeitHakochavimMethod)
         assertEquals(MotzeiShabbatMethod.Geonim8Point5, settings.motzeiShabbatMethod)
         assertEquals(RabbeinuTamMethod.Minutes72, settings.rabbeinuTamMethod)
     }

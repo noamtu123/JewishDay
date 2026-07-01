@@ -11,22 +11,29 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
+import com.noamtu.jewishday.di.ApplicationScope
 import com.noamtu.jewishday.model.JewishLocation
 import com.noamtu.jewishday.model.defaultJerusalemLocation
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withTimeoutOrNull
 
 @Singleton
 class CurrentLocationRepository @Inject constructor(
     @ApplicationContext private val context: Context,
+    @ApplicationScope private val appScope: CoroutineScope,
+    private val developerOverrides: DeveloperOverridesRepository,
 ) {
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -38,7 +45,18 @@ class CurrentLocationRepository @Inject constructor(
     // requestSingleUpdate monitor; @Volatile guarantees cross-thread visibility.
     @Volatile
     private var lastSuccessfulFreshLocationElapsed = 0L
-    val currentLocation: StateFlow<JewishLocation?> = _currentLocation.asStateFlow()
+
+    // The location seen by the rest of the app: the developer-pinned location when one is set,
+    // otherwise the real device location. Centralizing it here means both ViewModels and the
+    // status-icon service honor the override without changes.
+    val currentLocation: StateFlow<JewishLocation?> =
+        combine(developerOverrides.state, _currentLocation) { overrides, deviceLocation ->
+            overrides.overrideLocation ?: deviceLocation
+        }.stateIn(
+            scope = appScope,
+            started = SharingStarted.Eagerly,
+            initialValue = developerOverrides.overrideLocation ?: _currentLocation.value,
+        )
 
     fun refreshCurrentLocation() {
         val latest = getLastKnownJewishLocation()
@@ -49,7 +67,10 @@ class CurrentLocationRepository @Inject constructor(
     }
 
     fun currentLocationOrDefault(): JewishLocation =
-        currentLocation.value ?: getLastKnownJewishLocation() ?: defaultJerusalemLocation
+        developerOverrides.overrideLocation
+            ?: currentLocation.value
+            ?: getLastKnownJewishLocation()
+            ?: defaultJerusalemLocation
 
     /**
      * Requests a fresh fix and suspends until one (or any cached value) is available,

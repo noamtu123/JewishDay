@@ -6,7 +6,6 @@ enum class ZmanimPreset(val storageValue: String) {
     MagenAvraham16Point1("magen_avraham_16_1"),
     RabbeinuTam("rabbeinu_tam"),
     Chabad("chabad"),
-    Sephardi("sephardi"),
     Ashkenazi("ashkenazi"),
     Israeli("israeli"),
     Custom("custom"),
@@ -18,16 +17,6 @@ enum class ZmanimPreset(val storageValue: String) {
     }
 }
 
-enum class HighLatitudeHandling(val storageValue: String) {
-    Strict("strict"),
-    FixedMinutesFallback("fixed_minutes_fallback"),
-    ;
-
-    companion object {
-        fun fromStorageValue(value: String?): HighLatitudeHandling? =
-            entries.firstOrNull { it.storageValue == value }
-    }
-}
 
 enum class AlotHashacharMethod(val storageValue: String) {
     Minutes60("minutes_60"),
@@ -39,10 +28,21 @@ enum class AlotHashacharMethod(val storageValue: String) {
     Zmanis90("zmanis_90"),
     Zmanis96("zmanis_96"),
     Zmanis120("zmanis_120"),
+    Degrees12("degrees_12"),
+    Degrees14("degrees_14"),
+    Degrees16("degrees_16"),
+    Degrees16Point013("degrees_16_013"),
+    Degrees16Point04("degrees_16_04"),
+    Degrees16Point08("degrees_16_08"),
     Degrees16Point1("degrees_16_1"),
+    Degrees17Point5("degrees_17_5"),
     Degrees18("degrees_18"),
     Degrees19("degrees_19"),
+    Degrees19Point75("degrees_19_75"),
+    Degrees19Point784("degrees_19_784"),
     Degrees19Point8("degrees_19_8"),
+    Degrees19Point848("degrees_19_848"),
+    Degrees20("degrees_20"),
     Degrees26("degrees_26"),
     BaalHatanya("baal_hatanya"),
     ;
@@ -54,11 +54,24 @@ enum class AlotHashacharMethod(val storageValue: String) {
 }
 
 enum class MisheyakirMethod(val storageValue: String) {
-    Degrees7Point65("degrees_7_65"),
-    Degrees9Point5("degrees_9_5"),
-    Degrees10Point2("degrees_10_2"),
-    Degrees11("degrees_11"),
+    Degrees12Point85("degrees_12_85"),
+    Degrees12("degrees_12"),
     Degrees11Point5("degrees_11_5"),
+    Degrees11("degrees_11"),
+    Degrees10Point2("degrees_10_2"),
+    Degrees9Point5("degrees_9_5"),
+    Degrees7Point65("degrees_7_65"),
+    Minutes35BeforeSunrise("minutes_35_before_sunrise"),
+    Minutes36BeforeSunrise("minutes_36_before_sunrise"),
+    Minutes40BeforeSunrise("minutes_40_before_sunrise"),
+    Minutes42BeforeSunrise("minutes_42_before_sunrise"),
+    Minutes45BeforeSunrise("minutes_45_before_sunrise"),
+    Minutes48BeforeSunrise("minutes_48_before_sunrise"),
+    Minutes50BeforeSunrise("minutes_50_before_sunrise"),
+    Minutes52BeforeSunrise("minutes_52_before_sunrise"),
+    Minutes57BeforeSunrise("minutes_57_before_sunrise"),
+    Minutes60BeforeSunrise("minutes_60_before_sunrise"),
+    Minutes6AfterAlos("minutes_6_after_alos"),
     ;
 
     companion object {
@@ -87,6 +100,7 @@ enum class ZmanOpinionFamily { Gra, MagenAvraham }
 
 enum class SofZmanShemaMethod(val storageValue: String, val family: ZmanOpinionFamily) {
     Gra("gra", ZmanOpinionFamily.Gra),
+    FixedLocalGra("fixed_local_gra", ZmanOpinionFamily.Gra),
     Mga72("mga_72", ZmanOpinionFamily.MagenAvraham),
     Mga72Zmanis("mga_72_zmanis", ZmanOpinionFamily.MagenAvraham),
     Mga90("mga_90", ZmanOpinionFamily.MagenAvraham),
@@ -99,16 +113,11 @@ enum class SofZmanShemaMethod(val storageValue: String, val family: ZmanOpinionF
     Mga19Point8("mga_19_8", ZmanOpinionFamily.MagenAvraham),
     Alos16Point1ToSunset("alos_16_1_to_sunset", ZmanOpinionFamily.MagenAvraham),
     Alos16Point1ToTzeit7Point083("alos_16_1_to_tzeit_7_083", ZmanOpinionFamily.MagenAvraham),
-    ThreeHoursBeforeChatzot("three_hours_before_chatzot", ZmanOpinionFamily.Gra),
-    FixedLocal("fixed_local", ZmanOpinionFamily.Gra),
-    FixedLocalGra("fixed_local_gra", ZmanOpinionFamily.Gra),
     Mga18ToFixedLocalChatzot("mga_18_to_fixed_local_chatzot", ZmanOpinionFamily.MagenAvraham),
     Mga16Point1ToFixedLocalChatzot("mga_16_1_to_fixed_local_chatzot", ZmanOpinionFamily.MagenAvraham),
     Mga90ToFixedLocalChatzot("mga_90_to_fixed_local_chatzot", ZmanOpinionFamily.MagenAvraham),
     Mga72ToFixedLocalChatzot("mga_72_to_fixed_local_chatzot", ZmanOpinionFamily.MagenAvraham),
-    BaalHatanya("baal_hatanya", ZmanOpinionFamily.Gra),
     AteretTorah("ateret_torah", ZmanOpinionFamily.MagenAvraham),
-    KolEliyahu("kol_eliyahu", ZmanOpinionFamily.Gra),
     ;
 
     companion object {
@@ -119,6 +128,7 @@ enum class SofZmanShemaMethod(val storageValue: String, val family: ZmanOpinionF
 
 enum class SofZmanTefillahMethod(val storageValue: String, val family: ZmanOpinionFamily) {
     Gra("gra", ZmanOpinionFamily.Gra),
+    FixedLocalGra("fixed_local_gra", ZmanOpinionFamily.Gra),
     Mga72("mga_72", ZmanOpinionFamily.MagenAvraham),
     Mga72Zmanis("mga_72_zmanis", ZmanOpinionFamily.MagenAvraham),
     Mga90("mga_90", ZmanOpinionFamily.MagenAvraham),
@@ -129,11 +139,11 @@ enum class SofZmanTefillahMethod(val storageValue: String, val family: ZmanOpini
     Mga16Point1("mga_16_1", ZmanOpinionFamily.MagenAvraham),
     Mga18("mga_18", ZmanOpinionFamily.MagenAvraham),
     Mga19Point8("mga_19_8", ZmanOpinionFamily.MagenAvraham),
-    TwoHoursBeforeChatzot("two_hours_before_chatzot", ZmanOpinionFamily.Gra),
-    FixedLocal("fixed_local", ZmanOpinionFamily.Gra),
-    FixedLocalGra("fixed_local_gra", ZmanOpinionFamily.Gra),
-    BaalHatanya("baal_hatanya", ZmanOpinionFamily.Gra),
-    AteretTorah("ateret_torah", ZmanOpinionFamily.MagenAvraham),
+    Mga60("mga_60", ZmanOpinionFamily.MagenAvraham),
+    Mga120Zmanis("mga_120_zmanis", ZmanOpinionFamily.MagenAvraham),
+    Mga26("mga_26", ZmanOpinionFamily.MagenAvraham),
+    Alos16Point1ToSunset("alos_16_1_to_sunset", ZmanOpinionFamily.MagenAvraham),
+    Alos16Point1ToTzeit7Point083("alos_16_1_to_tzeit_7_083", ZmanOpinionFamily.MagenAvraham),
     ;
 
     companion object {
@@ -229,14 +239,12 @@ enum class SunsetMethod(val storageValue: String) {
 }
 
 enum class TzeitHakochavimMethod(val storageValue: String) {
+    Degrees6Point2("degrees_6_2"),
     Geonim3Point7("geonim_3_7"),
     Geonim3Point8("geonim_3_8"),
-    Geonim3Point65("geonim_3_65"),
-    Geonim3Point676("geonim_3_676"),
-    Geonim4Point37("geonim_4_37"),
-    Geonim4Point61("geonim_4_61"),
+    Geonim4Point42("geonim_4_42"),
+    Geonim4Point66("geonim_4_66"),
     Geonim4Point8("geonim_4_8"),
-    Geonim5Point88("geonim_5_88"),
     Geonim5Point95("geonim_5_95"),
     Geonim6Point45("geonim_6_45"),
     Geonim7Point083("geonim_7_083"),
@@ -244,9 +252,6 @@ enum class TzeitHakochavimMethod(val storageValue: String) {
     Geonim8Point5("geonim_8_5"),
     Geonim9Point3("geonim_9_3"),
     Geonim9Point75("geonim_9_75"),
-    Minutes18("minutes_18"),
-    Minutes20("minutes_20"),
-    Minutes24("minutes_24"),
     Minutes50("minutes_50"),
     Minutes60("minutes_60"),
     Minutes72("minutes_72"),
@@ -261,8 +266,8 @@ enum class TzeitHakochavimMethod(val storageValue: String) {
     Degrees18("degrees_18"),
     Degrees19Point8("degrees_19_8"),
     Degrees26("degrees_26"),
-    BaalHatanya("baal_hatanya"),
     AteretTorah("ateret_torah"),
+    BaalHatanya("baal_hatanya"),
     ;
 
     companion object {
@@ -285,21 +290,35 @@ enum class CandleLightingMethod(val storageValue: String, val offsetMinutes: Int
 }
 
 enum class MotzeiShabbatMethod(val storageValue: String) {
-    Geonim5Point88("geonim_5_88"),
+    Degrees6Point2("degrees_6_2"),
+    Geonim3Point7("geonim_3_7"),
+    Geonim3Point8("geonim_3_8"),
+    Geonim4Point42("geonim_4_42"),
+    Geonim4Point66("geonim_4_66"),
+    Geonim4Point8("geonim_4_8"),
+    Geonim5Point95("geonim_5_95"),
+    Geonim6Point45("geonim_6_45"),
     Geonim7Point083("geonim_7_083"),
+    Geonim7Point67("geonim_7_67"),
     Geonim8Point5("geonim_8_5"),
     Geonim9Point3("geonim_9_3"),
+    Geonim9Point75("geonim_9_75"),
     Minutes50("minutes_50"),
     Minutes60("minutes_60"),
     Minutes72("minutes_72"),
     Minutes90("minutes_90"),
     Minutes96("minutes_96"),
     Minutes120("minutes_120"),
-    RabbeinuTam72("rabbeinu_tam_72"),
-    RabbeinuTam90("rabbeinu_tam_90"),
-    RabbeinuTam120("rabbeinu_tam_120"),
-    BaalHatanya("baal_hatanya"),
+    Zmanis72("zmanis_72"),
+    Zmanis90("zmanis_90"),
+    Zmanis96("zmanis_96"),
+    Zmanis120("zmanis_120"),
+    Degrees16Point1("degrees_16_1"),
+    Degrees18("degrees_18"),
+    Degrees19Point8("degrees_19_8"),
+    Degrees26("degrees_26"),
     AteretTorah("ateret_torah"),
+    BaalHatanya("baal_hatanya"),
     ;
 
     companion object {
@@ -329,43 +348,10 @@ enum class RabbeinuTamMethod(val storageValue: String) {
     }
 }
 
-enum class BainHashmashotMethod(val storageValue: String) {
-    RabbeinuTam13Point24("rabbeinu_tam_13_24"),
-    RabbeinuTam58Point5("rabbeinu_tam_58_5"),
-    RabbeinuTam13Point5Before7Point083("rabbeinu_tam_13_5_before_7_083"),
-    RabbeinuTam2Stars("rabbeinu_tam_2_stars"),
-    Yereim18Minutes("yereim_18_minutes"),
-    Yereim3Point05("yereim_3_05"),
-    Yereim16Point875Minutes("yereim_16_875_minutes"),
-    Yereim2Point8("yereim_2_8"),
-    Yereim13Point5Minutes("yereim_13_5_minutes"),
-    Yereim2Point1("yereim_2_1"),
-    ;
-
-    companion object {
-        fun fromStorageValue(value: String?): BainHashmashotMethod? =
-            entries.firstOrNull { it.storageValue == value }
-    }
-}
-
-enum class FastDayMethod(val storageValue: String) {
-    Alot72ToTzeit8Point5("alot_72_to_tzeit_8_5"),
-    Alot72ToTzeit7Point083("alot_72_to_tzeit_7_083"),
-    Alot72ToTzeit5Point88("alot_72_to_tzeit_5_88"),
-    Alot16Point1ToTzeit8Point5("alot_16_1_to_tzeit_8_5"),
-    Alot16Point1ToTzeit7Point083("alot_16_1_to_tzeit_7_083"),
-    BaalHatanya("baal_hatanya"),
-    ;
-
-    companion object {
-        fun fromStorageValue(value: String?): FastDayMethod? =
-            entries.firstOrNull { it.storageValue == value }
-    }
-}
-
 enum class ChametzMethod(val storageValue: String) {
     Gra("gra"),
     Mga72("mga_72"),
+    Mga72Zmanis("mga_72_zmanis"),
     Mga16Point1("mga_16_1"),
     BaalHatanya("baal_hatanya"),
     ;
