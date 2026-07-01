@@ -61,12 +61,30 @@ class HebrewLearningFormatTest {
     }
 
     @Test
-    fun shemiratHaLashonUsesKlalFormatAndCountsHalachot() {
+    fun shemiratHaLashonTranslatesBookPrefixAndGematria() {
         val item = listOf(
-            HebcalLearningEntry(category = "shemiratHaLashon", title = "Book II 9.8-9.10", memo = "Book II 9.8-9.10"),
+            HebcalLearningEntry(
+                category = "shemiratHaLashon",
+                title = "Book I, Shar Hazechira 1.1-1.4",
+                hebrew = "Book I, שער הזכירה 1.1-1.4",
+                memo = "Book I, The Gate of Remembering 1.1-1.4",
+            ),
         ).toZmanItems().single()
 
-        assertEquals("כלל ט׳ ח-י", item.valueHebrew)
-        assertEquals("3 הלכות יומיות", item.descriptionHebrew)
+        assertEquals("ספר א׳ שער הזכירה א׳:א׳-א׳:ד׳", item.valueHebrew)
+    }
+
+    @Test
+    fun shemiratHaLashonHandlesIntroDaysWithoutChapterHalacha() {
+        val item = listOf(
+            HebcalLearningEntry(
+                category = "shemiratHaLashon",
+                title = "Book I, Hakdamah 1-2",
+                hebrew = "Book I, הקדמה 1-2",
+                memo = "Book I, Introduction 1-2",
+            ),
+        ).toZmanItems().single()
+
+        assertEquals("ספר א׳ הקדמה א׳-ב׳", item.valueHebrew)
     }
 }

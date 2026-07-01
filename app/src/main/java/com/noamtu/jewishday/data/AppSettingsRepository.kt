@@ -63,6 +63,9 @@ data class AppSettings(
     val themeOption: AppThemeOption = AppThemeOption.Default,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
     val candleLightingPromptHandled: Boolean = false,
+    // The candle-lighting offset the user picked at first launch; used as the "default" marker
+    // in the picker and as the value the Reset button restores to. Null until first launch answered.
+    val candleLightingDefault: CandleLightingMethod? = null,
 ) {
     val useHebrewInterface: Boolean get() = language.useHebrewInterface
 }
@@ -94,6 +97,7 @@ interface AppSettingsRepository {
     suspend fun setThemeOption(themeOption: AppThemeOption)
     suspend fun setZmanimSettings(settings: ZmanimCalculationSettings)
     suspend fun setCandleLightingPromptHandled(handled: Boolean)
+    suspend fun setCandleLightingDefault(method: CandleLightingMethod)
 }
 
 class DataStoreAppSettingsRepository @Inject constructor(
@@ -139,6 +143,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 themeOption = rootUiSettings.themeOption,
                 zmanimSettings = decodeZmanimSettings(preferences),
                 candleLightingPromptHandled = preferences[CandleLightingPromptHandled] ?: false,
+                candleLightingDefault = CandleLightingMethod.fromStorageValue(preferences[CandleLightingDefaultKey]),
             )
         }
 
@@ -223,6 +228,12 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setCandleLightingPromptHandled(handled: Boolean) {
         dataStore.edit { preferences ->
             preferences[CandleLightingPromptHandled] = handled
+        }
+    }
+
+    override suspend fun setCandleLightingDefault(method: CandleLightingMethod) {
+        dataStore.edit { preferences ->
+            preferences[CandleLightingDefaultKey] = method.storageValue
         }
     }
 
@@ -316,6 +327,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val EnabledDailyLearningKey = stringSetPreferencesKey("enabled_daily_learning")
         val EnabledZmanimTimesKey = stringSetPreferencesKey("enabled_zmanim_times")
         val CandleLightingPromptHandled = booleanPreferencesKey("candle_lighting_prompt_handled")
+        val CandleLightingDefaultKey = stringPreferencesKey("candle_lighting_default")
         val ThemeOption = stringPreferencesKey("theme_option")
         val BlueWhiteTheme = booleanPreferencesKey("blue_white_theme")
         val AmoledBlackTheme = booleanPreferencesKey("amoled_black_theme")

@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -86,6 +87,18 @@ private fun ZmanimContent(
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
             )
+            val fastStart = if (useHebrew) header.fastStartHebrew else header.fastStart
+            val fastEnd = if (useHebrew) header.fastEndHebrew else header.fastEnd
+            if (fastStart != null && fastEnd != null) {
+                FastDayCard(
+                    startTime = fastStart,
+                    endTime = fastEnd,
+                    useHebrew = useHebrew,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 4.dp),
+                )
+            }
             if (showCandleLightingPrompt) {
                 CandleLightingPrompt(
                     useHebrew = useHebrew,
@@ -218,48 +231,78 @@ private fun DateBar(
     useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val fastName = if (useHebrew) header.fastNameHebrew else header.fastName
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primaryContainer,
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = if (useHebrew) header.jewishDateHebrew else header.jewishDate,
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
-                val fastName = if (useHebrew) header.fastNameHebrew else header.fastName
-                if (fastName != null) {
-                    Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                )
+            }
+            // On a fast day the fast name sits in its own chip at the far side of the card,
+            // vertically centered (the far side is the visual left in the RTL Hebrew layout).
+            if (fastName != null) {
+                Surface(
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                ) {
                     Text(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         text = fastName,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
                     )
                 }
             }
-            Spacer(Modifier.height(2.dp))
+        }
+    }
+}
+
+/**
+ * The fast entry/exit times in their own small card (like the candle-lighting prompt). Start and
+ * end each sit on one line at opposite ends of the card; because the Row follows the layout
+ * direction, in Hebrew (RTL) the start is on the right and the end on the left, mirrored in English.
+ */
+@Composable
+private fun FastDayCard(
+    startTime: String,
+    endTime: String,
+    useHebrew: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
-                text = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate,
+                text = if (useHebrew) "כניסת הצום $startTime" else "Fast starts $startTime",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
-            val fastStart = if (useHebrew) header.fastStartHebrew else header.fastStart
-            val fastEnd = if (useHebrew) header.fastEndHebrew else header.fastEnd
-            if (fastStart != null && fastEnd != null) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = if (useHebrew) {
-                        "כניסת הצום: $fastStart · צאת הצום: $fastEnd"
-                    } else {
-                        "Fast starts: $fastStart · Fast ends: $fastEnd"
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
+            Text(
+                text = if (useHebrew) "צאת הצום $endTime" else "Fast ends $endTime",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
         }
     }
 }
