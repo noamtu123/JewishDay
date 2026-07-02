@@ -19,6 +19,19 @@ fun zmanimForDate(
         isUseModernHolidays = true
         setInIsrael(settings.inIsrael)
     }
+    // The displayed Hebrew date rolls over to the next day at sunset (the day/night boundary),
+    // so from sunset onward the header shows the current Jewish date. Day events, fasts and the
+    // zmanim themselves stay on the civil date (fasts, for instance, still end at tzeit).
+    val sunset = calendar.sunset(settings.sunsetMethod)?.toInstant()
+    val afterSunset = now != null && sunset != null && !now.isBefore(sunset)
+    val displayJewishCalendar = if (afterSunset) {
+        JewishCalendar(date.plusDays(1)).apply {
+            isUseModernHolidays = true
+            setInIsrael(settings.inIsrael)
+        }
+    } else {
+        jewishCalendar
+    }
     val englishFormatter = HebrewDateFormatter()
     val hebrewFormatter = HebrewDateFormatter().apply { isHebrewFormat = true }
     val shabbatDates = shabbatDatesFor(date, location, settings, now)
@@ -56,8 +69,8 @@ fun zmanimForDate(
         locationName = location.name,
         date = date,
         zoneId = location.zoneId,
-        hebrewDateEnglish = englishFormatter.format(jewishCalendar),
-        hebrewDateHebrew = hebrewFormatter.format(jewishCalendar),
+        hebrewDateEnglish = englishFormatter.format(displayJewishCalendar),
+        hebrewDateHebrew = hebrewFormatter.format(displayJewishCalendar),
         fastDayInfo = fastDayInfo,
         groups = listOfNotNull(
             eventItems.takeIf { it.isNotEmpty() }?.let { items ->
@@ -142,6 +155,15 @@ fun tzeitForDate(
     settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
 ): Instant? = complexZmanimCalendar(location, date, settings)
     .tzeit(settings)
+    ?.toInstant()
+
+/** Sunset for [date] — the instant at which the displayed Hebrew date rolls to the next day. */
+fun sunsetForDate(
+    location: JewishLocation = defaultJerusalemLocation,
+    date: LocalDate,
+    settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
+): Instant? = complexZmanimCalendar(location, date, settings)
+    .sunset(settings.sunsetMethod)
     ?.toInstant()
 
 fun motzeiShabbatForDate(

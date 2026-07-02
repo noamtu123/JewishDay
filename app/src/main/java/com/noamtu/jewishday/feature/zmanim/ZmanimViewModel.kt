@@ -83,7 +83,10 @@ data class ZmanimRowUi(
     val descriptionHebrew: String,
     val value: String,
     val valueHebrew: String,
-    val valueHebrewOneLineCandidates: List<String> = emptyList(),
+    // Alternative renderings of the value (most informative first), used to decide whether it fits
+    // beside the title; currently only the merged Rambam Yomi row provides more than one.
+    val valueCandidates: List<String> = emptyList(),
+    val valueHebrewCandidates: List<String> = emptyList(),
 )
 
 private data class ZmanimSettingsSnapshot(
@@ -293,8 +296,8 @@ private fun ZmanimDay.mergeRambamRows(): ZmanimDay {
         val three = group.items.firstOrNull { it.id == DailyLearningType.RambamYomiThreeChapters.storageValue }
         if (one == null || three == null) return@map group
         val mergedRow = one.copy(
-            description = "",
-            descriptionHebrew = "",
+            description = "Daily Rambam cycle",
+            descriptionHebrew = "הרמב״ם היומי",
             value = "1 chapter: ${one.value.orEmpty()}\n3 chapters: ${three.value.orEmpty()}",
             valueHebrew = "פרק אחד: ${one.valueHebrew.orEmpty()}\n3 פרקים: ${three.valueHebrew.orEmpty()}",
         )
@@ -374,58 +377,53 @@ private fun ZmanItem.toUiRow(
         descriptionHebrew = descriptionHebrew,
         value = value ?: time.formatTime(englishTimeFormatter),
         valueHebrew = displayValueHebrew,
-        valueHebrewOneLineCandidates = rambamHebrewOneLineCandidates(displayValueHebrew, id),
+        valueCandidates = rambamValueCandidates(value ?: time.formatTime(englishTimeFormatter), id, chapterWords = listOf("chapters", "chapter")),
+        valueHebrewCandidates = rambamValueCandidates(displayValueHebrew, id, chapterWords = listOf("פרקים", "פרק")),
     )
 }
 
-private fun rambamHebrewOneLineCandidates(valueHebrew: String, id: String?): List<String> {
+/**
+ * Rendering candidates for a merged Rambam Yomi value ("פרק אחד: <ref1>\n3 פרקים: <ref2>"). The
+ * "פרק אחד"/"3 פרקים" labels are always kept; the only variation offered is dropping the inner
+ * "פרק"/"chapter" word from the references so the (still two-line) bubble is narrow enough to sit
+ * beside the title when the halacha names are short. The row places whichever candidate fits beside
+ * the title there, and stacks the full one below only when neither fits.
+ */
+private fun rambamValueCandidates(value: String, id: String?, chapterWords: List<String>): List<String> {
     if (!id.isRambamId()) return emptyList()
-    val lineOptions = valueHebrew.lines().map(::rambamLineOneLineOptions)
-    return combinedLineOptions(lineOptions)
-        .distinct()
+    val lines = value.lines().map { rambamPrefixAndReference(it) }
+    val full = lines.joinToString("\n") { (label, reference) -> label + reference }
+    val abbreviated = lines.joinToString("\n") { (label, reference) -> label + abbreviateRambamReference(reference, chapterWords) }
+    return listOf(full, abbreviated).distinct()
 }
 
 private fun String?.isRambamId(): Boolean =
     this == DailyLearningType.RambamYomi.storageValue || this == DailyLearningType.RambamYomiThreeChapters.storageValue
 
 private fun rambamLineWithoutHalachot(line: String): String {
+    val (label, reference) = rambamPrefixAndReference(line)
+    return label + reference.removePrefix("הלכות ").trimStart()
+}
+
+/** Splits a Rambam line into its "פרק אחד: "/"3 פרקים: " label (empty when unmerged) and reference. */
+private fun rambamPrefixAndReference(line: String): Pair<String, String> {
     val prefixEnd = line.indexOf(": ")
-    val prefix = if (prefixEnd >= 0) line.substring(0, prefixEnd + 2) else ""
-    val reference = if (prefixEnd >= 0) line.substring(prefixEnd + 2) else line
-    return prefix + reference.removePrefix("הלכות ").trimStart()
-}
-
-private fun rambamLineOneLineOptions(line: String): List<String> {
-    val withoutChapterWord = line
-        .replace(Regex("\\s+פרקים\\s+"), " ")
-        .replace(Regex("\\s+פרק\\s+"), " ")
-        .replace(Regex("^פרקים\\s+"), "")
-        .replace(Regex("^פרק\\s+"), "")
-        .replace(Regex("\\s+"), " ")
-        .trim()
-    return listOf(line, withoutChapterWord).distinct()
-}
-
-private fun combinedLineOptions(lineOptions: List<List<String>>): List<String> {
-    val combinations = mutableListOf<Pair<List<Int>, String>>()
-
-    fun build(index: Int, selectedIndexes: List<Int>, selectedLines: List<String>) {
-        if (index == lineOptions.size) {
-            combinations += selectedIndexes to selectedLines.joinToString("\n")
-            return
-        }
-        lineOptions[index].forEachIndexed { optionIndex, option ->
-            build(index + 1, selectedIndexes + optionIndex, selectedLines + option)
-        }
+    return if (prefixEnd >= 0) {
+        line.substring(0, prefixEnd + 2) to line.substring(prefixEnd + 2)
+    } else {
+        "" to line
     }
+}
 
-    build(index = 0, selectedIndexes = emptyList(), selectedLines = emptyList())
-    return combinations
-        .sortedWith(compareBy<Pair<List<Int>, String>>(
-            { (indexes, _) -> indexes.maxOrNull() ?: 0 },
-            { (indexes, _) -> indexes.sum() },
-        ))
-        .map { (_, value) -> value }
+/** Drops the "chapter"/"פרק" word from a reference (e.g. "שבת פרק כח" -> "שבת כח") so it fits. */
+private fun abbreviateRambamReference(reference: String, chapterWords: List<String>): String {
+    var result = reference
+    for (word in chapterWords) {
+        result = result
+            .replace(Regex("\\s+" + Regex.escape(word) + "\\s+"), " ")
+            .replace(Regex("^" + Regex.escape(word) + "\\s+"), "")
+    }
+    return result.replace(Regex("\\s+"), " ").trim()
 }
 
 private fun Instant?.formatTime(formatter: DateTimeFormatter): String = this?.let(formatter::format) ?: "--"

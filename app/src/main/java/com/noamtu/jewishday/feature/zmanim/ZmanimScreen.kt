@@ -340,7 +340,6 @@ private fun ZmanimRow(
         val valueStyle = MaterialTheme.typography.labelLarge
         val titleStyle = MaterialTheme.typography.bodyLarge
         val rowWidth = with(density) { (maxWidth - 8.dp).roundToPx().coerceAtLeast(0) }
-        val fullWidthBubbleTextWidth = with(density) { (maxWidth - 32.dp).roundToPx().coerceAtLeast(0) }
         val pillExtraWidth = with(density) { (12.dp + 24.dp).roundToPx() }
         val titleText = if (useHebrew) row.titleHebrew else row.title
         val titleWidth = textMeasurer.measure(
@@ -353,26 +352,18 @@ private fun ZmanimRow(
             style = valueStyle,
             maxLines = 1,
         ).size.width
+        fun widestLineWidth(candidate: String): Int = candidate.lines().maxOf(::textWidth)
 
-        val sidePillValue = if (useHebrew && row.valueHebrewOneLineCandidates.isNotEmpty()) {
-            row.valueHebrewOneLineCandidates.firstOrNull { candidate ->
-                !candidate.contains('\n') && titleWidth + textWidth(candidate) + pillExtraWidth <= rowWidth
-            }
-        } else {
-            null
+        val candidates = (if (useHebrew) row.valueHebrewCandidates else row.valueCandidates)
+            .ifEmpty { listOf(rawValue) }
+        // Place the value beside the title (like every other daily-learning row) when its widest
+        // line fits there — this includes the two-line merged Rambam bubble. Only stack it in a
+        // full-width bubble below the title when even the narrowest candidate is too wide.
+        val besideTitleValue = candidates.firstOrNull { candidate ->
+            titleWidth + widestLineWidth(candidate) + pillExtraWidth <= rowWidth
         }
-        val value = sidePillValue ?: if (useHebrew && row.valueHebrewOneLineCandidates.isNotEmpty()) {
-            row.valueHebrewOneLineCandidates.firstOrNull { candidate ->
-                candidate.lines().all { line ->
-                    textWidth(line) <= fullWidthBubbleTextWidth
-                }
-            } ?: rawValue
-        } else {
-            rawValue
-        }
-        val oneLineCandidateSelected = value != rawValue
-        // Long values (e.g. daily-learning references) stack under the title instead of a pill.
-        val stackValue = sidePillValue == null && (value.length > 18 || value.contains(" · "))
+        val value = besideTitleValue ?: candidates.first()
+        val stackBelow = besideTitleValue == null
 
         Row(
             modifier = Modifier
@@ -395,26 +386,36 @@ private fun ZmanimRow(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (stackValue) {
+                if (stackBelow) {
                     Spacer(Modifier.height(4.dp))
-                    Surface(
-                        shape = MaterialTheme.shapes.medium,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            text = value,
-                            style = valueStyle,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            maxLines = if (oneLineCandidateSelected) value.lines().size else Int.MAX_VALUE,
-                        )
-                    }
+                    ValueBubble(text = value, valueStyle = valueStyle)
                 }
             }
-            if (!stackValue) {
+            if (!stackBelow) {
                 Spacer(Modifier.width(12.dp))
-                ValuePill(text = value)
+                // A multi-line value (the merged Rambam bubble) uses a rounded bubble; a single
+                // line uses the standard round pill like every other row.
+                if (value.contains('\n')) {
+                    ValueBubble(text = value, valueStyle = valueStyle)
+                } else {
+                    ValuePill(text = value)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun ValueBubble(text: String, valueStyle: androidx.compose.ui.text.TextStyle) {
+    Surface(
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.primaryContainer,
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            text = text,
+            style = valueStyle,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
     }
 }

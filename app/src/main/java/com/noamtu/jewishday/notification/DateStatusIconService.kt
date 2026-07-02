@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.JewishDayRepository
-import com.noamtu.jewishday.model.nextTzeit
+import com.noamtu.jewishday.model.nextSunset
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Clock
 import java.time.temporal.ChronoUnit
@@ -107,7 +107,7 @@ class DateStatusIconService : Service() {
             startForegroundCompat(notifier.buildNotification(rendered))
             notifier.cancel(DateStatusIconNotifier.SecondaryId)
             val now = clock.instant()
-            alarmScheduler.scheduleNext(nextTzeit(location, settings.zmanimSettings, now))
+            alarmScheduler.scheduleNext(nextSunset(location, settings.zmanimSettings, now))
         } catch (exception: Exception) {
             // Keep the existing icon up and retry soon rather than disappearing it.
             Log.w(TAG, "Date status icon refresh failed; retrying later", exception)

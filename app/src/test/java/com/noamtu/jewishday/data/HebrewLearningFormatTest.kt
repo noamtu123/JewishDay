@@ -61,7 +61,7 @@ class HebrewLearningFormatTest {
     }
 
     @Test
-    fun shemiratHaLashonTranslatesBookPrefixAndGematria() {
+    fun shemiratHaLashonTranslatesBookPrefixAndFormatsChapterHalacha() {
         val item = listOf(
             HebcalLearningEntry(
                 category = "shemiratHaLashon",
@@ -71,7 +71,7 @@ class HebrewLearningFormatTest {
             ),
         ).toZmanItems().single()
 
-        assertEquals("ספר א׳ שער הזכירה א׳:א׳-א׳:ד׳", item.valueHebrew)
+        assertEquals("חלק א׳ שער הזכירה א׳: א-ד", item.valueHebrew)
     }
 
     @Test
@@ -85,6 +85,22 @@ class HebrewLearningFormatTest {
             ),
         ).toZmanItems().single()
 
-        assertEquals("ספר א׳ הקדמה א׳-ב׳", item.valueHebrew)
+        assertEquals("חלק א׳ הקדמה א-ב", item.valueHebrew)
+    }
+
+    @Test
+    fun shemiratHaLashonBookTwoHasNoNamedGateSoHebrewSourceIsUntranslated() {
+        // Chelek Bet has no named shaarim, so Hebcal's Hebrew field for its body is literally
+        // identical to the English title (e.g. "Book II 1.1-1.2") — must be parsed structurally.
+        val item = listOf(
+            HebcalLearningEntry(
+                category = "shemiratHaLashon",
+                title = "Book II 9.8-9.10",
+                hebrew = "Book II 9.8-9.10",
+                memo = "Book II 9.8-9.10",
+            ),
+        ).toZmanItems().single()
+
+        assertEquals("חלק ב׳ ט׳: ח-י", item.valueHebrew)
     }
 }
