@@ -178,21 +178,57 @@ private val EnglishToHebrewTanakhBook = linkedMapOf(
 )
 
 /**
- * Hebcal's Shemirat HaLashon Hebrew comes as e.g. "Book I, הקדמה 1-2" or
- * "Book I, שער הזכירה 1.1-1.4" — the gate name is already Hebrew, but with an English "Book I,"/
- * "Book II," prefix and Arabic numerals (and on intro/epilogue days there is no chapter.halacha,
- * only a plain range). Translate the book prefix, turn "chapter.halacha" into "chapter:halacha",
- * and render the numbers as gematria.
+ * Sefer Shemirat HaLashon has two chelek (books): chelek alef is divided into named shaarim
+ * (Hakdamah; Shaar HaZechira/Shaar Alef, 17 perakim; Shaar HaTevuna/Shaar Bet, 17 perakim; Shaar
+ * HaTorah/Shaar Gimel, 10 perakim; a 7-perek Chatima), while chelek bet has no named shaarim —
+ * just 30 perakim followed by a 4-perek Chatima.
+ *
+ * Hebcal's Hebrew field already translates a shaar/Chatima name when there is one (e.g.
+ * "Book I, שער הזכירה 1.1-1.4"), but for chelek bet's unnamed body it isn't translated at all
+ * (e.g. "Book II 1.1-1.2" — identical to the English title). This parses the "Book I"/"Book II"
+ * prefix and the trailing perek.halacha reference structurally instead of relying on the source
+ * always supplying a translated name, and renders "<gate> <perek>: <halacha>" to match the
+ * chapter:halacha convention already used for Mishnah Yomi / Kitzur Shulchan Aruch.
  */
-private fun formatShemiratHaLashonHebrew(hebrew: String): String = hebrew
-    .replace("Book II,", "ספר ב׳")
-    .replace("Book I,", "ספר א׳")
-    .replace("Book II", "ספר ב׳")
-    .replace("Book I", "ספר א׳")
-    .replace('.', ':')
-    .arabicDigitsToGematria()
-    .replace(Regex("\\s+"), " ")
-    .trim()
+private fun formatShemiratHaLashonHebrew(hebrew: String): String {
+    val bookNumber = when {
+        hebrew.startsWith("Book II") -> 2
+        hebrew.startsWith("Book I") -> 1
+        else -> return hebrew.arabicDigitsToGematria()
+    }
+    val rest = hebrew
+        .removePrefix("Book II,").removePrefix("Book II")
+        .removePrefix("Book I,").removePrefix("Book I")
+        .trim()
+    val bookLabel = "חלק ${hebrewNumber(bookNumber)}"
+    val match = Regex("^(.*?)\\s*([\\d.\\-]+)$").find(rest)
+        ?: return listOf(bookLabel, rest).filter(String::isNotBlank).joinToString(" ")
+    val gateName = match.groupValues[1].trim()
+    val reference = formatShemiratHaLashonReference(match.groupValues[2])
+    return listOf(bookLabel, gateName, reference).filter(String::isNotBlank).joinToString(" ")
+}
+
+/** Renders a "perek.halacha[-perek.halacha]" or plain "halacha-halacha" (e.g. Hakdamah) reference. */
+private fun formatShemiratHaLashonReference(reference: String): String {
+    Regex("^(\\d+)\\.(\\d+)-(\\d+)\\.(\\d+)$").find(reference)?.let { match ->
+        val (c1, h1, c2, h2) = match.destructured
+        return if (c1 == c2) {
+            "${hebrewNumber(c1.toInt())}: ${gematriaLetters(h1.toInt())}-${gematriaLetters(h2.toInt())}"
+        } else {
+            "${hebrewNumber(c1.toInt())}: ${gematriaLetters(h1.toInt())} - ${hebrewNumber(c2.toInt())}: ${gematriaLetters(h2.toInt())}"
+        }
+    }
+    Regex("^(\\d+)\\.(\\d+)$").find(reference)?.let { match ->
+        val (chapter, halacha) = match.destructured
+        return "${hebrewNumber(chapter.toInt())}: ${gematriaLetters(halacha.toInt())}"
+    }
+    Regex("^(\\d+)-(\\d+)$").find(reference)?.let { match ->
+        val (first, last) = match.destructured
+        return "${gematriaLetters(first.toInt())}-${gematriaLetters(last.toInt())}"
+    }
+    Regex("^(\\d+)$").find(reference)?.let { match -> return gematriaLetters(match.value.toInt()) }
+    return reference.arabicDigitsToGematria()
+}
 
 private fun HebcalLearningEntry.displayEnglish(): String = memo?.takeIf(String::isNotBlank) ?: title
 private fun HebcalLearningEntry.displayHebrew(): String = hebrew?.takeIf(String::isNotBlank) ?: displayEnglish()
