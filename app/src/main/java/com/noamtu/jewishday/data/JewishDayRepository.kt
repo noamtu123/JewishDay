@@ -8,7 +8,7 @@ import com.noamtu.jewishday.model.ZmanimDay
 import com.noamtu.jewishday.model.defaultJerusalemLocation
 import com.noamtu.jewishday.model.jewishDayInfo
 import com.noamtu.jewishday.model.mizrachInfo
-import com.noamtu.jewishday.model.tzeitForDate
+import com.noamtu.jewishday.model.sunsetForDate
 import com.noamtu.jewishday.model.zmanimForDate
 import java.time.Clock
 import java.time.Instant
@@ -39,8 +39,9 @@ class DefaultJewishDayRepository @Inject constructor(
     ): JewishDayInfo {
         val now = clock.instant()
         val gregorianDate = now.atZone(location.zoneId).toLocalDate()
-        val tzeit = findTzeit(location, gregorianDate, settings)
-        val jewishDate = if (tzeit != null && !now.isBefore(tzeit)) {
+        // The Hebrew date rolls over to the next day at sunset (the day/night boundary).
+        val sunset = sunsetForDate(location, gregorianDate, settings)
+        val jewishDate = if (sunset != null && !now.isBefore(sunset)) {
             gregorianDate.plusDays(1)
         } else {
             gregorianDate
@@ -58,10 +59,4 @@ class DefaultJewishDayRepository @Inject constructor(
     }
 
     override fun getMizrach(location: JewishLocation): MizrachInfo = mizrachInfo(location)
-
-    private fun findTzeit(
-        location: JewishLocation,
-        date: LocalDate,
-        settings: ZmanimCalculationSettings,
-    ): Instant? = tzeitForDate(location, date, settings)
 }
