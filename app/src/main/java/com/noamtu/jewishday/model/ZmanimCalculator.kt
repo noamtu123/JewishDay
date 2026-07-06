@@ -20,8 +20,8 @@ fun zmanimForDate(
         setInIsrael(settings.inIsrael)
     }
     // The displayed Hebrew date rolls over to the next day at sunset (the day/night boundary),
-    // so from sunset onward the header shows the current Jewish date. Day events, fasts and the
-    // zmanim themselves stay on the civil date (fasts, for instance, still end at tzeit).
+    // so from sunset onward the header shows the current Jewish date. Day events and the zmanim
+    // themselves stay on the civil date; the fast chip/card follows the active fast (see below).
     val sunset = calendar.sunset(settings.sunsetMethod)?.toInstant()
     val afterSunset = now != null && sunset != null && !now.isBefore(sunset)
     val displayJewishCalendar = if (afterSunset) {
@@ -63,7 +63,25 @@ fun zmanimForDate(
         location = location,
         date = date,
     )
-    val fastDayInfo = fastDayInfo(jewishCalendar, calendar, settings, location, date)
+    // The header's fast chip/card tracks the fast that is actually relevant right now:
+    // the civil day's fast while it hasn't ended yet, and otherwise — once the displayed
+    // date has rolled at sunset — the display day's fast. This closes the Erev Tisha B'Av /
+    // Erev Yom Kippur evening gap (the fast begins at sunset, before the civil fast date),
+    // and clears the chip after a fast ends instead of letting it linger until midnight.
+    val civilFastInfo = fastDayInfo(jewishCalendar, calendar, settings, location, date)
+    val civilFastStillRelevant = civilFastInfo != null &&
+        (now == null || civilFastInfo.endTime == null || now.isBefore(civilFastInfo.endTime))
+    val fastDayInfo = when {
+        civilFastStillRelevant -> civilFastInfo
+        afterSunset -> fastDayInfo(
+            jewishCalendar = displayJewishCalendar,
+            calendar = complexZmanimCalendar(location, date.plusDays(1), settings),
+            settings = settings,
+            location = location,
+            date = date.plusDays(1),
+        )
+        else -> null
+    }
 
     return ZmanimDay(
         locationName = location.name,

@@ -55,10 +55,18 @@ private fun HebcalLearningEntry.toRow(
     time = null,
     description = description,
     descriptionHebrew = descriptionHebrew,
-    value = displayEnglish(),
+    value = formattedEnglish(),
     valueHebrew = formattedHebrew(),
     id = type.storageValue,
 )
+
+/** The English text to display for an entry. */
+private fun HebcalLearningEntry.formattedEnglish(): String = when (category) {
+    // On multi-book Rambam days Hebcal's memo is a Sefaria link list ("<name> 8\nhttps://…"),
+    // so the memo must never be used as the display value — the title already has both books.
+    "dailyRambam1", "dailyRambam3" -> title
+    else -> displayEnglish()
+}
 
 private fun HebcalLearningEntry.toShemiratHaLashonRow(): ZmanItem = ZmanItem(
     title = "Shemirat HaLashon",

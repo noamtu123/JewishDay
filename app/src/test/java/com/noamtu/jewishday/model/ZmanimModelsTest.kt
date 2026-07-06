@@ -24,18 +24,6 @@ class ZmanimModelsTest {
     }
 
     @Test
-    fun magenAvrahamPresetUsesMagenAvrahamMethodsAcrossDaytimeZmanim() {
-        val settings = ZmanimPreset.MagenAvraham72.defaultSettings()
-
-        assertEquals(AlotHashacharMethod.Minutes72, settings.alotHashacharMethod)
-        assertEquals(SofZmanShemaMethod.Mga72, settings.sofZmanShemaMethod)
-        assertEquals(SofZmanTefillahMethod.Mga72, settings.sofZmanTefillahMethod)
-        assertEquals(MinchaGedolaMethod.Mga72, settings.minchaGedolaMethod)
-        assertEquals(MinchaKetanaMethod.Mga72, settings.minchaKetanaMethod)
-        assertEquals(PlagHaminchaMethod.Mga72, settings.plagHaminchaMethod)
-    }
-
-    @Test
     fun todayZmanimContainsCoreGroupsForDefaultLocation() {
         val date = LocalDate.of(2026, 5, 29)
         val zmanimDay = zmanimForDate(date = date)

@@ -61,6 +61,22 @@ class HebrewLearningFormatTest {
     }
 
     @Test
+    fun rambamEnglishNeverUsesTheSefariaLinkMemo() {
+        // On multi-book days Hebcal's memo is a list of Sefaria URLs; the English value must
+        // come from the title instead of the memo.
+        val item = listOf(
+            HebcalLearningEntry(
+                category = "dailyRambam3",
+                title = "The Chosen Temple 8, Vessels of the Sanctuary and Those who Serve Therein 1-2",
+                hebrew = "הלכות בית הבחירה פרק ח, הלכות כלי המקדש והעובדין בו פרק 1-2",
+                memo = "The Chosen Temple 8\nhttps://www.sefaria.org/Mishneh_Torah\n\nVessels 1-2\nhttps://www.sefaria.org/Mishneh_Torah2",
+            ),
+        ).toZmanItems().single()
+
+        assertEquals("The Chosen Temple 8, Vessels of the Sanctuary and Those who Serve Therein 1-2", item.value)
+    }
+
+    @Test
     fun shemiratHaLashonTranslatesBookPrefixAndFormatsChapterHalacha() {
         val item = listOf(
             HebcalLearningEntry(

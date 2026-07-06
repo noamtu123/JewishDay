@@ -238,41 +238,43 @@ class DataStoreAppSettingsRepository @Inject constructor(
     }
 
     private fun decodeZmanimSettings(preferences: Preferences): ZmanimCalculationSettings {
+        // Single source of truth for fallbacks: absent keys resolve to the model's own
+        // defaults, so a default change in ZmanimCalculationSettings can never drift from
+        // what a fresh install decodes.
+        val defaults = ZmanimCalculationSettings()
         return ZmanimCalculationSettings(
-            preset = ZmanimPreset.fromStorageValue(preferences[ZmanimPresetKey]) ?: ZmanimPreset.Standard,
-            inIsrael = preferences[InIsrael] ?: true,
-            useElevation = preferences[UseElevation] ?: false,
+            preset = ZmanimPreset.fromStorageValue(preferences[ZmanimPresetKey]) ?: defaults.preset,
+            inIsrael = preferences[InIsrael] ?: defaults.inIsrael,
+            useElevation = preferences[UseElevation] ?: defaults.useElevation,
             alotHashacharMethod = AlotHashacharMethod.fromStorageValue(preferences[AlotHashacharMethodKey])
                 ?: preferences[AlotHashacharOffsetMinutes]?.let { legacyAlotMethod(it) }
-                ?: AlotHashacharMethod.Degrees16Point1,
-            misheyakirMethod = MisheyakirMethod.fromStorageValue(preferences[MisheyakirMethodKey]) ?: MisheyakirMethod.Degrees11,
+                ?: defaults.alotHashacharMethod,
+            misheyakirMethod = MisheyakirMethod.fromStorageValue(preferences[MisheyakirMethodKey]) ?: defaults.misheyakirMethod,
             sunriseMethod = SunriseMethod.fromStorageValue(preferences[SunriseMethodKey])
-                ?: if (preferences[UseSeaLevelSunrise] == false) SunriseMethod.ElevationAdjusted else SunriseMethod.SeaLevel,
-            // Shema/Tefillah each have a GRA row and a Magen Avraham row, each with its
-            // own configurable method (defaults: GRA and Magen Avraham 72-minute basis).
+                ?: if (preferences[UseSeaLevelSunrise] == false) SunriseMethod.ElevationAdjusted else defaults.sunriseMethod,
             sofZmanShemaGraMethod = SofZmanShemaMethod.fromStorageValue(preferences[SofZmanShemaGraMethodKey])
-                ?: SofZmanShemaMethod.Gra,
+                ?: defaults.sofZmanShemaGraMethod,
             sofZmanShemaMethod = SofZmanShemaMethod.fromStorageValue(preferences[SofZmanShemaMethodKey])
-                ?: SofZmanShemaMethod.Mga16Point1,
+                ?: defaults.sofZmanShemaMethod,
             sofZmanTefillahGraMethod = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahGraMethodKey])
-                ?: SofZmanTefillahMethod.Gra,
+                ?: defaults.sofZmanTefillahGraMethod,
             sofZmanTefillahMethod = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahMethodKey])
-                ?: SofZmanTefillahMethod.Mga72,
-            chatzotMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotMethodKey]) ?: ChatzotMethod.Solar,
-            chatzotHaLailaMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotHaLailaMethodKey]) ?: ChatzotMethod.Solar,
-            minchaGedolaMethod = MinchaGedolaMethod.fromStorageValue(preferences[MinchaGedolaMethodKey]) ?: MinchaGedolaMethod.Standard,
-            minchaKetanaMethod = MinchaKetanaMethod.fromStorageValue(preferences[MinchaKetanaMethodKey]) ?: MinchaKetanaMethod.Standard,
+                ?: defaults.sofZmanTefillahMethod,
+            chatzotMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotMethodKey]) ?: defaults.chatzotMethod,
+            chatzotHaLailaMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotHaLailaMethodKey]) ?: defaults.chatzotHaLailaMethod,
+            minchaGedolaMethod = MinchaGedolaMethod.fromStorageValue(preferences[MinchaGedolaMethodKey]) ?: defaults.minchaGedolaMethod,
+            minchaKetanaMethod = MinchaKetanaMethod.fromStorageValue(preferences[MinchaKetanaMethodKey]) ?: defaults.minchaKetanaMethod,
             plagHaminchaMethod = PlagHaminchaMethod.fromStorageValue(preferences[PlagHaminchaMethodKey])
                 ?: legacyPlagMethod(preferences[PlagHaminchaOffsetMinutes] ?: 0),
             sunsetMethod = SunsetMethod.fromStorageValue(preferences[SunsetMethodKey])
-                ?: if (preferences[UseSeaLevelSunset] == false) SunsetMethod.ElevationAdjusted else SunsetMethod.SeaLevel,
-            tzeitHakochavimMethod = TzeitHakochavimMethod.fromStorageValue(preferences[TzeitHakochavimMethodKey]) ?: TzeitHakochavimMethod.Degrees6Point2,
+                ?: if (preferences[UseSeaLevelSunset] == false) SunsetMethod.ElevationAdjusted else defaults.sunsetMethod,
+            tzeitHakochavimMethod = TzeitHakochavimMethod.fromStorageValue(preferences[TzeitHakochavimMethodKey]) ?: defaults.tzeitHakochavimMethod,
             candleLightingMethod = CandleLightingMethod.fromStorageValue(preferences[CandleLightingMethodKey])
-                ?: legacyCandleMethod(preferences[CandleLightingOffsetMinutes] ?: 18),
-            motzeiShabbatMethod = MotzeiShabbatMethod.fromStorageValue(preferences[MotzeiShabbatMethodKey]) ?: MotzeiShabbatMethod.Geonim8Point5,
-            rabbeinuTamMethod = RabbeinuTamMethod.fromStorageValue(preferences[RabbeinuTamMethodKey]) ?: RabbeinuTamMethod.Minutes72,
-            chametzMethod = ChametzMethod.fromStorageValue(preferences[ChametzMethodKey]) ?: ChametzMethod.Gra,
-            ateretTorahSunsetOffsetMinutes = preferences[AteretTorahOffsetMinutes] ?: 40,
+                ?: legacyCandleMethod(preferences[CandleLightingOffsetMinutes] ?: defaults.candleLightingMethod.offsetMinutes),
+            motzeiShabbatMethod = MotzeiShabbatMethod.fromStorageValue(preferences[MotzeiShabbatMethodKey]) ?: defaults.motzeiShabbatMethod,
+            rabbeinuTamMethod = RabbeinuTamMethod.fromStorageValue(preferences[RabbeinuTamMethodKey]) ?: defaults.rabbeinuTamMethod,
+            chametzMethod = ChametzMethod.fromStorageValue(preferences[ChametzMethodKey]) ?: defaults.chametzMethod,
+            ateretTorahSunsetOffsetMinutes = preferences[AteretTorahOffsetMinutes] ?: defaults.ateretTorahSunsetOffsetMinutes,
         )
     }
 
