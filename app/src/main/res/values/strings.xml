@@ -23,6 +23,10 @@
     <string name="mizrach_allow_location_hebrew">אפשר מיקום</string>
     <string name="mizrach_waiting_location">Waiting for current location…</string>
     <string name="mizrach_waiting_location_hebrew">ממתין למיקום הנוכחי…</string>
+    <string name="mizrach_location_off">Location is turned off. Turn it on so Prayer Compass can find where you are now.</string>
+    <string name="mizrach_location_off_hebrew">המיקום כבוי. יש להפעיל אותו כדי שהמצפן יוכל למצוא את המקום הנוכחי.</string>
+    <string name="mizrach_turn_on_location">Turn on location</string>
+    <string name="mizrach_turn_on_location_hebrew">הפעל מיקום</string>
     <string name="mizrach_heading_unavailable">Move your phone in a figure-eight if the compass does not update.</string>
     <string name="mizrach_heading_unavailable_hebrew">אם המצפן לא מתעדכן, הזז את הטלפון בצורת שמונה.</string>
     <string name="mizrach_toward_jerusalem">toward Kodesh HaKodashim</string>
@@ -55,10 +59,6 @@
     <string name="settings_zmanim_times_section_hebrew">זמנים להצגה</string>
     <string name="settings_zmanim_times_section_description">Choose which times appear in the Zmanim list.</string>
     <string name="settings_zmanim_times_section_description_hebrew">בחרו אילו זמנים יופיעו ברשימת הזמנים.</string>
-    <string name="settings_outside_israel">Outside Israel (Chutz LaAretz)</string>
-    <string name="settings_outside_israel_hebrew">חוץ לארץ</string>
-    <string name="settings_outside_israel_description">Use diaspora Yom Tov and parsha rules (two days of Yom Tov). Off keeps the Israel calendar.</string>
-    <string name="settings_outside_israel_description_hebrew">השתמש בכללי יום טוב ופרשה של חוץ לארץ (יומיים יום טוב). כבוי משאיר את לוח ארץ ישראל.</string>
     <string name="settings_cancel">Cancel</string>
     <string name="settings_cancel_hebrew">ביטול</string>
     <string name="settings_summary">Keep the daily view focused and personal.</string>
