@@ -6,8 +6,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 
 class ZmanimModelsTest {
+    // Israel vs. diaspora is now derived from the location, so these tests pick where you are.
+    private val diasporaLocation =
+        JewishLocation("New York", 40.7128, -74.0060, 10.0, ZoneId.of("America/New_York"))
     @Test
     fun standardDefaultsMatch2netIsraelConventions() {
         val settings = ZmanimCalculationSettings()
@@ -21,18 +25,6 @@ class ZmanimModelsTest {
         assertEquals(TzeitHakochavimMethod.Degrees6Point2, settings.tzeitHakochavimMethod)
         assertEquals(MotzeiShabbatMethod.Geonim8Point5, settings.motzeiShabbatMethod)
         assertEquals(RabbeinuTamMethod.Minutes72, settings.rabbeinuTamMethod)
-    }
-
-    @Test
-    fun magenAvrahamPresetUsesMagenAvrahamMethodsAcrossDaytimeZmanim() {
-        val settings = ZmanimPreset.MagenAvraham72.defaultSettings()
-
-        assertEquals(AlotHashacharMethod.Minutes72, settings.alotHashacharMethod)
-        assertEquals(SofZmanShemaMethod.Mga72, settings.sofZmanShemaMethod)
-        assertEquals(SofZmanTefillahMethod.Mga72, settings.sofZmanTefillahMethod)
-        assertEquals(MinchaGedolaMethod.Mga72, settings.minchaGedolaMethod)
-        assertEquals(MinchaKetanaMethod.Mga72, settings.minchaKetanaMethod)
-        assertEquals(PlagHaminchaMethod.Mga72, settings.plagHaminchaMethod)
     }
 
     @Test
@@ -108,12 +100,12 @@ class ZmanimModelsTest {
         val secondDayShavuot = LocalDate.of(2026, 5, 23)
 
         val israelEvents = zmanimForDate(
+            location = defaultJerusalemLocation,
             date = secondDayShavuot,
-            settings = ZmanimCalculationSettings(inIsrael = true),
         ).eventValues()
         val diasporaEvents = zmanimForDate(
+            location = diasporaLocation,
             date = secondDayShavuot,
-            settings = ZmanimCalculationSettings(inIsrael = false),
         ).eventValues()
 
         assertTrue(israelEvents.contains("Isru Chag"))
@@ -127,16 +119,32 @@ class ZmanimModelsTest {
         val splitParshaShabbat = LocalDate.of(2026, 5, 30)
 
         val israelParsha = zmanimForDate(
+            location = defaultJerusalemLocation,
             date = splitParshaShabbat,
-            settings = ZmanimCalculationSettings(inIsrael = true),
         ).weeklyParsha()
         val diasporaParsha = zmanimForDate(
+            location = diasporaLocation,
             date = splitParshaShabbat,
-            settings = ZmanimCalculationSettings(inIsrael = false),
         ).weeklyParsha()
 
         assertFalse(israelParsha == diasporaParsha)
     }
+
+    @Test
+    fun isInIsraelClassifiesByCoordinates() {
+        // Inside: Jerusalem, Tel Aviv, Eilat (south), and the Golan.
+        assertTrue(defaultJerusalemLocation.isInIsrael)
+        assertTrue(location(32.0853, 34.7818).isInIsrael) // Tel Aviv
+        assertTrue(location(29.5577, 34.9519).isInIsrael) // Eilat
+        assertTrue(location(33.13, 35.85).isInIsrael) // Golan
+        // Outside: the diaspora, and neighbouring border cities the box must exclude.
+        assertFalse(diasporaLocation.isInIsrael)
+        assertFalse(location(31.9539, 35.9284).isInIsrael) // Amman, Jordan
+        assertFalse(location(51.5074, -0.1278).isInIsrael) // London
+    }
+
+    private fun location(latitude: Double, longitude: Double): JewishLocation =
+        JewishLocation("test", latitude, longitude, 0.0, ZoneId.of("UTC"))
 
     @Test
     fun directTzeitMatchesDisplayedTzeitRow() {

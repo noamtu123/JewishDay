@@ -1,39 +1,5 @@
 package com.noamtu.jewishday.model
 
-val ZmanimPreset.label: String get() = when (this) {
-    ZmanimPreset.Standard -> "Standard GRA/Geonim"
-    ZmanimPreset.MagenAvraham72 -> "Magen Avraham 72"
-    ZmanimPreset.MagenAvraham16Point1 -> "Magen Avraham 16.1"
-    ZmanimPreset.RabbeinuTam -> "Rabbeinu Tam"
-    ZmanimPreset.Chabad -> "Chabad/Baal Hatanya"
-    ZmanimPreset.Ashkenazi -> "MGA + Rabbeinu Tam"
-    ZmanimPreset.Israeli -> "Fixed-local Israel"
-    ZmanimPreset.Custom -> "Custom"
-}
-
-val ZmanimPreset.labelHebrew: String get() = when (this) {
-    ZmanimPreset.Standard -> "רגיל גר״א/גאונים"
-    ZmanimPreset.MagenAvraham72 -> "מג״א 72"
-    ZmanimPreset.MagenAvraham16Point1 -> "מג״א 16.1"
-    ZmanimPreset.RabbeinuTam -> "רבינו תם"
-    ZmanimPreset.Chabad -> "חב״ד"
-    ZmanimPreset.Ashkenazi -> "מג״א ורבינו תם"
-    ZmanimPreset.Israeli -> "ישראלי חצות מקומי"
-    ZmanimPreset.Custom -> "מותאם אישית"
-}
-
-val ZmanimPreset.description: String get() = when (this) {
-    ZmanimPreset.Standard -> "Widely used default: GRA for daytime zmanim, Geonim 8.5 for Tzeit, and Rabbeinu Tam shown for Shabbat."
-    ZmanimPreset.MagenAvraham72 -> "Magen Avraham day from Alot 72 to Tzeit 72."
-    ZmanimPreset.MagenAvraham16Point1 -> "Magen Avraham day from 16.1-degree Alot to 16.1-degree Tzeit."
-    ZmanimPreset.RabbeinuTam -> "End-of-day and Motzei Shabbat centered on Rabbeinu Tam 72."
-    ZmanimPreset.Chabad -> "Baal Hatanya/Chabad calculations."
-    ZmanimPreset.Ashkenazi -> "Magen Avraham 72 for day-based zmanim with Rabbeinu Tam Motzei Shabbat."
-    ZmanimPreset.Israeli -> "Israel rules with fixed-local Chatzot-based zmanim."
-    ZmanimPreset.Custom -> "Full manual control."
-}
-
-
 val AlotHashacharMethod.label: String get() = when (this) {
     AlotHashacharMethod.Minutes60 -> "60 minutes"
     AlotHashacharMethod.Minutes72 -> "72 minutes"
