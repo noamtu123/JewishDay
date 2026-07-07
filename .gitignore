@@ -26,3 +26,9 @@ gmail-icon.png
 
 # AI handoff log — local communication between AI assistants, never pushed
 AI_HANDOFF.md
+
+# Claude project instructions — local AI context, like AI_HANDOFF.md
+CLAUDE.md
+
+# Personal task runner (hardcodes this machine's JAVA_HOME path)
+justfile
