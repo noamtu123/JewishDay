@@ -11,12 +11,11 @@ import kotlin.math.sqrt
 
 private const val EARTH_RADIUS_KM = 6371.0088
 
-// Approximate Holy of Holies / Foundation Stone location. The precise historical point has
-// small uncertainty, which matters only when the user is already on or very near Har HaBayit.
+// The point the prayer compass faces: 31°46′40.8″N 35°14′07.44″E (the Foundation Stone / Har HaBayit).
 val kodeshHakodashimLocation = JewishLocation(
     name = "Kodesh HaKodashim",
-    latitude = 31.7781,
-    longitude = 35.2354,
+    latitude = 31.778000,
+    longitude = 35.235400,
     elevationMeters = 740.0,
     zoneId = ZoneId.of("Asia/Jerusalem"),
 )

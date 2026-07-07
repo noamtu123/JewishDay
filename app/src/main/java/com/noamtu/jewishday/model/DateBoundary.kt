@@ -17,14 +17,15 @@ fun nextGregorianMidnight(location: JewishLocation, now: Instant): Instant =
         .plusMinutes(1)
         .toInstant()
 
-fun nextTzeit(
+/** The next sunset (plus a minute), the instant at which the displayed Hebrew date rolls over. */
+fun nextSunset(
     location: JewishLocation,
     settings: ZmanimCalculationSettings,
     now: Instant,
 ): Instant {
     val localToday = now.atZone(location.zoneId).toLocalDate()
     return listOf(localToday, localToday.plusDays(1), localToday.plusDays(2))
-        .mapNotNull { date -> tzeitForDate(location, date, settings)?.plus(1, ChronoUnit.MINUTES) }
+        .mapNotNull { date -> sunsetForDate(location, date, settings)?.plus(1, ChronoUnit.MINUTES) }
         .firstOrNull { it.isAfter(now) }
         ?: nextGregorianMidnight(location, now)
 }
@@ -36,7 +37,7 @@ fun nextDateBoundary(
     now: Instant,
 ): Instant = minOf(
     nextGregorianMidnight(location, now),
-    nextTzeit(location, settings, now),
+    nextSunset(location, settings, now),
 )
 
 fun nextWeeklyParshaBoundary(

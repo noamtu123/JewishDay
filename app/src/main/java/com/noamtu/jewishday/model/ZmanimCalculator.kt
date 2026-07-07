@@ -15,9 +15,24 @@ fun zmanimForDate(
     now: Instant? = null,
 ): ZmanimDay {
     val calendar = complexZmanimCalendar(location, date, settings)
+    // Israel vs. diaspora calendar is derived from where you are, not a manual setting.
+    val inIsrael = location.isInIsrael
     val jewishCalendar = JewishCalendar(date).apply {
         isUseModernHolidays = true
-        setInIsrael(settings.inIsrael)
+        setInIsrael(inIsrael)
+    }
+    // The displayed Hebrew date rolls over to the next day at sunset (the day/night boundary),
+    // so from sunset onward the header shows the current Jewish date. Day events and the zmanim
+    // themselves stay on the civil date; the fast chip/card follows the active fast (see below).
+    val sunset = calendar.sunset(settings.sunsetMethod)?.toInstant()
+    val afterSunset = now != null && sunset != null && !now.isBefore(sunset)
+    val displayJewishCalendar = if (afterSunset) {
+        JewishCalendar(date.plusDays(1)).apply {
+            isUseModernHolidays = true
+            setInIsrael(inIsrael)
+        }
+    } else {
+        jewishCalendar
     }
     val englishFormatter = HebrewDateFormatter()
     val hebrewFormatter = HebrewDateFormatter().apply { isHebrewFormat = true }
@@ -28,7 +43,7 @@ fun zmanimForDate(
     // Shabbat to always show "this week's" reading even on a weekday.
     val shabbatJewishCalendar = JewishCalendar(shabbatDates.endDate).apply {
         isUseModernHolidays = true
-        setInIsrael(settings.inIsrael)
+        setInIsrael(inIsrael)
     }
 
     val weeklyParshaEnglish = englishFormatter.formatParsha(shabbatJewishCalendar)
@@ -50,14 +65,32 @@ fun zmanimForDate(
         location = location,
         date = date,
     )
-    val fastDayInfo = fastDayInfo(jewishCalendar, calendar, settings, location, date)
+    // The header's fast chip/card tracks the fast that is actually relevant right now:
+    // the civil day's fast while it hasn't ended yet, and otherwise — once the displayed
+    // date has rolled at sunset — the display day's fast. This closes the Erev Tisha B'Av /
+    // Erev Yom Kippur evening gap (the fast begins at sunset, before the civil fast date),
+    // and clears the chip after a fast ends instead of letting it linger until midnight.
+    val civilFastInfo = fastDayInfo(jewishCalendar, calendar, settings, location, date)
+    val civilFastStillRelevant = civilFastInfo != null &&
+        (now == null || civilFastInfo.endTime == null || now.isBefore(civilFastInfo.endTime))
+    val fastDayInfo = when {
+        civilFastStillRelevant -> civilFastInfo
+        afterSunset -> fastDayInfo(
+            jewishCalendar = displayJewishCalendar,
+            calendar = complexZmanimCalendar(location, date.plusDays(1), settings),
+            settings = settings,
+            location = location,
+            date = date.plusDays(1),
+        )
+        else -> null
+    }
 
     return ZmanimDay(
         locationName = location.name,
         date = date,
         zoneId = location.zoneId,
-        hebrewDateEnglish = englishFormatter.format(jewishCalendar),
-        hebrewDateHebrew = hebrewFormatter.format(jewishCalendar),
+        hebrewDateEnglish = englishFormatter.format(displayJewishCalendar),
+        hebrewDateHebrew = hebrewFormatter.format(displayJewishCalendar),
         fastDayInfo = fastDayInfo,
         groups = listOfNotNull(
             eventItems.takeIf { it.isNotEmpty() }?.let { items ->
@@ -144,6 +177,15 @@ fun tzeitForDate(
     .tzeit(settings)
     ?.toInstant()
 
+/** Sunset for [date] — the instant at which the displayed Hebrew date rolls to the next day. */
+fun sunsetForDate(
+    location: JewishLocation = defaultJerusalemLocation,
+    date: LocalDate,
+    settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
+): Instant? = complexZmanimCalendar(location, date, settings)
+    .sunset(settings.sunsetMethod)
+    ?.toInstant()
+
 fun motzeiShabbatForDate(
     location: JewishLocation = defaultJerusalemLocation,
     date: LocalDate,
@@ -163,8 +205,10 @@ private fun dailyItems(
 ): List<ZmanItem> = buildList {
     // The Jewish date is shown in the date header at the top of the tab, and the parsha at the
     // top of the Shabbat section; this list is only the occasional day events.
+    // On a fast day the fast already has its own name chip in the date header plus a start/end
+    // card, so skip the duplicate "Day information" caption here.
     val yomTov = englishFormatter.formatYomTov(jewishCalendar)
-    if (yomTov.isNotBlank()) {
+    if (yomTov.isNotBlank() && !jewishCalendar.isTaanis) {
         add(ZmanItem("Yom Tov", "יום טוב", null, "Day information", "מידע על היום", yomTov, hebrewFormatter.formatYomTov(jewishCalendar)))
     }
     // Yom Tov candle lighting. Erev Shabbat candle lighting already lives in the Shabbat section, so
@@ -173,7 +217,7 @@ private fun dailyItems(
     // — candles are lit after nightfall from an existing flame.
     val tomorrow = JewishCalendar(date.plusDays(1)).apply {
         isUseModernHolidays = true
-        setInIsrael(settings.inIsrael)
+        setInIsrael(inIsrael)
     }
     if (tomorrow.isYomTovAssurBemelacha) {
         if (jewishCalendar.isAssurBemelacha) {
@@ -201,8 +245,8 @@ private fun dailyItems(
 private val FastDayNames: Map<Int, Pair<String, String>> = mapOf(
     JewishCalendar.FAST_OF_GEDALYAH to ("Fast of Gedalyah" to "צום גדליה"),
     JewishCalendar.TISHA_BEAV to ("Tisha B'Av" to "תשעה באב"),
-    JewishCalendar.SEVENTEEN_OF_TAMMUZ to ("Seventeenth of Tammuz" to "י״ז בתמוז"),
-    JewishCalendar.TENTH_OF_TEVES to ("Tenth of Teves" to "עשרה בטבת"),
+    JewishCalendar.SEVENTEEN_OF_TAMMUZ to ("17th of Tammuz" to "י״ז בתמוז"),
+    JewishCalendar.TENTH_OF_TEVES to ("10th of Teves" to "עשרה בטבת"),
     JewishCalendar.FAST_OF_ESTHER to ("Fast of Esther" to "תענית אסתר"),
     JewishCalendar.YOM_KIPPUR to ("Yom Kippur" to "יום כיפור"),
 )
