@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.JewishDayRepository
-import com.noamtu.jewishday.model.nextTzeit
+import com.noamtu.jewishday.model.nextSunset
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Clock
 import java.time.temporal.ChronoUnit
@@ -45,7 +45,7 @@ class DateStatusIconService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         notifier.ensureChannel()
-        startForegroundCompat(immediateNotification(intent))
+        startForegroundCompat(immediateNotification())
         scope.launch {
             refresh(
                 requestedHebrew = intent.requestedShowHebrew(),
@@ -54,23 +54,15 @@ class DateStatusIconService : Service() {
         return START_STICKY
     }
 
-    private fun immediateNotification(intent: Intent?): Notification {
-        val showHebrew = intent.requestedShowHebrew() == true
-        if (intent.hasRequestedState && showHebrew && notifier.canPostNotifications()) {
-            return try {
-                val location = currentLocationRepository.currentLocationOrDefault()
-                val dayInfo = jewishDayRepository.getToday(location = location)
-                val rendered = notifier.render(dayInfo)
-                notifier.cancel(DateStatusIconNotifier.SecondaryId)
-                notifier.buildNotification(rendered)
-            } catch (exception: Exception) {
-                Log.w(TAG, "Immediate date status icon render failed", exception)
-                notifier.buildSyncingNotification()
-            }
-        }
-
-        return notifier.cachedRender()?.let(notifier::buildNotification) ?: notifier.buildSyncingNotification()
-    }
+    /**
+     * A notification that can be posted synchronously to satisfy the foreground-service
+     * deadline: the last rendered icon if one is cached, or a placeholder. The async
+     * [refresh] immediately follows and re-renders with the user's stored calculation
+     * settings — computing the date here with default settings could briefly show (and
+     * cache) the wrong Hebrew date around sunset for users on non-default sunset methods.
+     */
+    private fun immediateNotification(): Notification =
+        notifier.cachedRender()?.let(notifier::buildNotification) ?: notifier.buildSyncingNotification()
 
     private suspend fun refresh(
         permissionRetryCount: Int = 0,
@@ -107,7 +99,7 @@ class DateStatusIconService : Service() {
             startForegroundCompat(notifier.buildNotification(rendered))
             notifier.cancel(DateStatusIconNotifier.SecondaryId)
             val now = clock.instant()
-            alarmScheduler.scheduleNext(nextTzeit(location, settings.zmanimSettings, now))
+            alarmScheduler.scheduleNext(nextSunset(location, settings.zmanimSettings, now))
         } catch (exception: Exception) {
             // Keep the existing icon up and retry soon rather than disappearing it.
             Log.w(TAG, "Date status icon refresh failed; retrying later", exception)

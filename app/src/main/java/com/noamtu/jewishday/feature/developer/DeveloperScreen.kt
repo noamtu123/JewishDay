@@ -143,12 +143,8 @@ fun DeveloperScreen(
                             onSelect = viewModel::setLocationPreset,
                         )
                     }
-                    Spacer(Modifier.height(12.dp))
-                    SwitchRow(
-                        label = "In Israel (diaspora Yom Tov when off)",
-                        checked = state.inIsrael,
-                        onCheckedChange = viewModel::setInIsrael,
-                    )
+                    // "In Israel" is derived from the effective location (see the readout above);
+                    // pick a diaspora location preset to exercise two-day Yom Tov.
                 }
             }
 

@@ -61,7 +61,23 @@ class HebrewLearningFormatTest {
     }
 
     @Test
-    fun shemiratHaLashonTranslatesBookPrefixAndGematria() {
+    fun rambamEnglishNeverUsesTheSefariaLinkMemo() {
+        // On multi-book days Hebcal's memo is a list of Sefaria URLs; the English value must
+        // come from the title instead of the memo.
+        val item = listOf(
+            HebcalLearningEntry(
+                category = "dailyRambam3",
+                title = "The Chosen Temple 8, Vessels of the Sanctuary and Those who Serve Therein 1-2",
+                hebrew = "הלכות בית הבחירה פרק ח, הלכות כלי המקדש והעובדין בו פרק 1-2",
+                memo = "The Chosen Temple 8\nhttps://www.sefaria.org/Mishneh_Torah\n\nVessels 1-2\nhttps://www.sefaria.org/Mishneh_Torah2",
+            ),
+        ).toZmanItems().single()
+
+        assertEquals("The Chosen Temple 8, Vessels of the Sanctuary and Those who Serve Therein 1-2", item.value)
+    }
+
+    @Test
+    fun shemiratHaLashonTranslatesBookPrefixAndFormatsChapterHalacha() {
         val item = listOf(
             HebcalLearningEntry(
                 category = "shemiratHaLashon",
@@ -71,7 +87,7 @@ class HebrewLearningFormatTest {
             ),
         ).toZmanItems().single()
 
-        assertEquals("ספר א׳ שער הזכירה א׳:א׳-א׳:ד׳", item.valueHebrew)
+        assertEquals("חלק א׳ שער הזכירה א׳: א-ד", item.valueHebrew)
     }
 
     @Test
@@ -85,6 +101,22 @@ class HebrewLearningFormatTest {
             ),
         ).toZmanItems().single()
 
-        assertEquals("ספר א׳ הקדמה א׳-ב׳", item.valueHebrew)
+        assertEquals("חלק א׳ הקדמה א-ב", item.valueHebrew)
+    }
+
+    @Test
+    fun shemiratHaLashonBookTwoHasNoNamedGateSoHebrewSourceIsUntranslated() {
+        // Chelek Bet has no named shaarim, so Hebcal's Hebrew field for its body is literally
+        // identical to the English title (e.g. "Book II 1.1-1.2") — must be parsed structurally.
+        val item = listOf(
+            HebcalLearningEntry(
+                category = "shemiratHaLashon",
+                title = "Book II 9.8-9.10",
+                hebrew = "Book II 9.8-9.10",
+                memo = "Book II 9.8-9.10",
+            ),
+        ).toZmanItems().single()
+
+        assertEquals("חלק ב׳ ט׳: ח-י", item.valueHebrew)
     }
 }
