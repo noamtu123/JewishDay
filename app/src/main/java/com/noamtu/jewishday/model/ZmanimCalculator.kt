@@ -15,9 +15,11 @@ fun zmanimForDate(
     now: Instant? = null,
 ): ZmanimDay {
     val calendar = complexZmanimCalendar(location, date, settings)
+    // Israel vs. diaspora calendar is derived from where you are, not a manual setting.
+    val inIsrael = location.isInIsrael
     val jewishCalendar = JewishCalendar(date).apply {
         isUseModernHolidays = true
-        setInIsrael(settings.inIsrael)
+        setInIsrael(inIsrael)
     }
     // The displayed Hebrew date rolls over to the next day at sunset (the day/night boundary),
     // so from sunset onward the header shows the current Jewish date. Day events and the zmanim
@@ -27,7 +29,7 @@ fun zmanimForDate(
     val displayJewishCalendar = if (afterSunset) {
         JewishCalendar(date.plusDays(1)).apply {
             isUseModernHolidays = true
-            setInIsrael(settings.inIsrael)
+            setInIsrael(inIsrael)
         }
     } else {
         jewishCalendar
@@ -41,7 +43,7 @@ fun zmanimForDate(
     // Shabbat to always show "this week's" reading even on a weekday.
     val shabbatJewishCalendar = JewishCalendar(shabbatDates.endDate).apply {
         isUseModernHolidays = true
-        setInIsrael(settings.inIsrael)
+        setInIsrael(inIsrael)
     }
 
     val weeklyParshaEnglish = englishFormatter.formatParsha(shabbatJewishCalendar)
@@ -203,8 +205,10 @@ private fun dailyItems(
 ): List<ZmanItem> = buildList {
     // The Jewish date is shown in the date header at the top of the tab, and the parsha at the
     // top of the Shabbat section; this list is only the occasional day events.
+    // On a fast day the fast already has its own name chip in the date header plus a start/end
+    // card, so skip the duplicate "Day information" caption here.
     val yomTov = englishFormatter.formatYomTov(jewishCalendar)
-    if (yomTov.isNotBlank()) {
+    if (yomTov.isNotBlank() && !jewishCalendar.isTaanis) {
         add(ZmanItem("Yom Tov", "יום טוב", null, "Day information", "מידע על היום", yomTov, hebrewFormatter.formatYomTov(jewishCalendar)))
     }
     // Yom Tov candle lighting. Erev Shabbat candle lighting already lives in the Shabbat section, so
@@ -213,7 +217,7 @@ private fun dailyItems(
     // — candles are lit after nightfall from an existing flame.
     val tomorrow = JewishCalendar(date.plusDays(1)).apply {
         isUseModernHolidays = true
-        setInIsrael(settings.inIsrael)
+        setInIsrael(inIsrael)
     }
     if (tomorrow.isYomTovAssurBemelacha) {
         if (jewishCalendar.isAssurBemelacha) {
@@ -241,8 +245,8 @@ private fun dailyItems(
 private val FastDayNames: Map<Int, Pair<String, String>> = mapOf(
     JewishCalendar.FAST_OF_GEDALYAH to ("Fast of Gedalyah" to "צום גדליה"),
     JewishCalendar.TISHA_BEAV to ("Tisha B'Av" to "תשעה באב"),
-    JewishCalendar.SEVENTEEN_OF_TAMMUZ to ("Seventeenth of Tammuz" to "י״ז בתמוז"),
-    JewishCalendar.TENTH_OF_TEVES to ("Tenth of Teves" to "עשרה בטבת"),
+    JewishCalendar.SEVENTEEN_OF_TAMMUZ to ("17th of Tammuz" to "י״ז בתמוז"),
+    JewishCalendar.TENTH_OF_TEVES to ("10th of Teves" to "עשרה בטבת"),
     JewishCalendar.FAST_OF_ESTHER to ("Fast of Esther" to "תענית אסתר"),
     JewishCalendar.YOM_KIPPUR to ("Yom Kippur" to "יום כיפור"),
 )

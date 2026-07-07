@@ -5,10 +5,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
-import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
+import com.noamtu.jewishday.model.isInIsrael
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -22,7 +22,6 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -58,17 +57,17 @@ data class DeveloperUiState(
 @HiltViewModel
 class DeveloperViewModel @Inject constructor(
     private val developerOverridesRepository: DeveloperOverridesRepository,
-    private val appSettingsRepository: AppSettingsRepository,
     private val currentLocationRepository: CurrentLocationRepository,
     @ApplicationContext private val context: Context,
     private val clock: Clock,
 ) : ViewModel() {
 
+    // Israel/diaspora now follows the effective location, so re-render whenever it changes.
     val uiState: StateFlow<DeveloperUiState> = combine(
         developerOverridesRepository.state,
-        appSettingsRepository.settings,
-    ) { overrides, settings ->
-        buildUiState(overrides, settings.zmanimSettings.inIsrael)
+        currentLocationRepository.currentLocation,
+    ) { overrides, _ ->
+        buildUiState(overrides)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeveloperUiState())
 
     fun setTimeOverrideEnabled(enabled: Boolean) = launchOverride {
@@ -96,7 +95,7 @@ class DeveloperViewModel @Inject constructor(
     }
 
     fun jumpTo(target: DeveloperJumpTarget) = launchOverride {
-        val inIsrael = appSettingsRepository.settings.first().zmanimSettings.inIsrael
+        val inIsrael = currentLocationRepository.currentLocationOrDefault().isInIsrael
         val today = LocalDate.now(clock.zone)
         val date = (0..420L)
             .map { today.plusDays(it) }
@@ -116,11 +115,6 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setLocationPreset(id)
     }
 
-    fun setInIsrael(inIsrael: Boolean) = launchOverride {
-        val current = appSettingsRepository.settings.first().zmanimSettings
-        appSettingsRepository.setZmanimSettings(current.copy(inIsrael = inIsrael))
-    }
-
     fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()
     }
@@ -134,8 +128,9 @@ class DeveloperViewModel @Inject constructor(
         }
     }
 
-    private fun buildUiState(overrides: DeveloperOverrides, inIsrael: Boolean): DeveloperUiState {
+    private fun buildUiState(overrides: DeveloperOverrides): DeveloperUiState {
         val location = currentLocationRepository.currentLocationOrDefault()
+        val inIsrael = location.isInIsrael
         val instant = clock.instant()
         val zoned = instant.atZone(location.zoneId)
         val localDate = zoned.toLocalDate()

@@ -31,7 +31,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -232,42 +234,100 @@ private fun DateBar(
     modifier: Modifier = Modifier,
 ) {
     val fastName = if (useHebrew) header.fastNameHebrew else header.fastName
+    val jewishDate = if (useHebrew) header.jewishDateHebrew else header.jewishDate
+    val headlineStyle = MaterialTheme.typography.headlineSmall
+    val chipLabelStyle = MaterialTheme.typography.labelLarge
+    val density = LocalDensity.current
+    val textMeasurer = rememberTextMeasurer()
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
         color = MaterialTheme.colorScheme.primaryContainer,
     ) {
-        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = if (useHebrew) header.jewishDateHebrew else header.jewishDate,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
-                )
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
+            val gregorianDate = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate
+            // Would the prominent Hebrew-date line run past the fast chip's left edge if the chip sat
+            // beside it? If so, switch to the "title" layout instead of overlapping.
+            val dateOverlapsChip = fastName != null && run {
+                val contentWidthPx = with(density) { maxWidth.toPx() }
+                val dateWidthPx = textMeasurer.measure(jewishDate, headlineStyle).size.width
+                val chipTextWidthPx = textMeasurer.measure(fastName, chipLabelStyle).size.width
+                // Chip span = its text + its horizontal padding (10.dp each side). Require a few dp of
+                // real overlap before rearranging, so a near-miss (like a short "Fast of Esther") is
+                // left in the compact layout.
+                val chipPaddingPx = with(density) { 20.dp.toPx() }
+                val minOverlapPx = with(density) { 4.dp.toPx() }
+                dateWidthPx + chipTextWidthPx + chipPaddingPx - contentWidthPx > minOverlapPx
             }
-            // On a fast day the fast name sits in its own chip at the far side of the card,
-            // vertically centered (the far side is the visual left in the RTL Hebrew layout).
-            if (fastName != null) {
-                Surface(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    shape = MaterialTheme.shapes.small,
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                ) {
+            if (fastName != null && dateOverlapsChip) {
+                // A long fast name can't fit beside the date, so give the Hebrew date its own line,
+                // centered like a title, and put the fast chip on the day line beside the civil date.
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                        text = fastName,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.fillMaxWidth(),
+                        text = jewishDate,
+                        style = headlineStyle,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            modifier = Modifier.weight(1f),
+                            text = gregorianDate,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                        )
+                        Spacer(Modifier.width(12.dp))
+                        FastNameChip(fastName = fastName, style = chipLabelStyle)
+                    }
+                }
+            } else {
+                // Date fits beside the chip: keep the compact layout — date at the start, chip pinned
+                // to the far side (the visual left in the RTL Hebrew layout), vertically centered.
+                if (fastName != null) {
+                    Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+                        FastNameChip(fastName = fastName, style = chipLabelStyle)
+                    }
+                }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = jewishDate,
+                        style = headlineStyle,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = gregorianDate,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FastNameChip(
+    fastName: String,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            text = fastName,
+            style = style,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+        )
     }
 }
 

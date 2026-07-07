@@ -1,7 +1,14 @@
 package com.noamtu.jewishday.feature.mizrach
 
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.location.LocationManager
+import android.provider.Settings
+import androidx.core.content.ContextCompat
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -59,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.data.hasLocationPermission
+import com.noamtu.jewishday.data.isLocationServicesEnabled
 import com.noamtu.jewishday.model.MizrachInfo
 import com.noamtu.jewishday.ui.components.InfoCard
 import com.noamtu.jewishday.ui.components.ScreenPaddingValues
@@ -87,6 +95,7 @@ fun MizrachScreen(
 ) {
     val context = LocalContext.current
     var hasLocationPermission by remember { mutableStateOf(context.hasLocationPermission()) }
+    var locationServicesEnabled by remember { mutableStateOf(context.isLocationServicesEnabled()) }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val mizrach = uiState.mizrachInfo
     val magneticDeclinationDegrees = remember(mizrach.fromLatitude, mizrach.fromLongitude, mizrach.fromElevationMeters) {
@@ -109,26 +118,49 @@ fun MizrachScreen(
         if (hasLocationPermission) viewModel.refreshCurrentLocation()
     }
 
-    LaunchedEffect(hasLocationPermission) {
-        if (hasLocationPermission) viewModel.refreshCurrentLocation()
+    // Try for a fix whenever we have both permission and the system location toggle on; without
+    // either, a fix can never arrive, so we prompt instead of waiting.
+    LaunchedEffect(hasLocationPermission, locationServicesEnabled) {
+        if (hasLocationPermission && locationServicesEnabled) viewModel.refreshCurrentLocation()
     }
 
-    // Re-check on every resume so a grant made in system Settings takes effect
-    // without recreating the process.
+    // Re-check on every resume so a change made in system Settings (granting permission or turning
+    // location on) takes effect without recreating the process.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, context) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 hasLocationPermission = context.hasLocationPermission()
+                locationServicesEnabled = context.isLocationServicesEnabled()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Listen for the system location switch flipping while we're on screen (e.g. toggled from the
+    // Quick Settings shade, which doesn't pause the activity). This updates the state live so the
+    // compass appears the moment location is turned on, without a manual refresh.
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                hasLocationPermission = context.hasLocationPermission()
+                locationServicesEnabled = context.isLocationServicesEnabled()
+            }
+        }
+        ContextCompat.registerReceiver(
+            context,
+            receiver,
+            IntentFilter(LocationManager.MODE_CHANGED_ACTION),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+        onDispose { context.unregisterReceiver(receiver) }
+    }
+
     MizrachContent(
         mizrach = mizrach,
         hasLocationPermission = hasLocationPermission,
+        locationServicesEnabled = locationServicesEnabled,
         hasCurrentLocation = uiState.hasCurrentLocation,
         compassSensorState = compassSensorState,
         onRequestLocation = {
@@ -139,6 +171,19 @@ fun MizrachScreen(
                 ),
             )
         },
+        onOpenLocationSettings = {
+            try {
+                context.startActivity(
+                    Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            } catch (_: ActivityNotFoundException) {
+                // Some devices lack the location-settings activity; fall back to app settings.
+                context.startActivity(
+                    Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            }
+        },
         modifier = modifier,
     )
 }
@@ -147,9 +192,11 @@ fun MizrachScreen(
 private fun MizrachContent(
     mizrach: MizrachInfo,
     hasLocationPermission: Boolean,
+    locationServicesEnabled: Boolean,
     hasCurrentLocation: Boolean,
     compassSensorState: State<CompassSensorState>,
     onRequestLocation: () -> Unit,
+    onOpenLocationSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     ScreenSurface(modifier = modifier) {
@@ -166,11 +213,17 @@ private fun MizrachContent(
                 }
             } else if (!hasCurrentLocation) {
                 item {
-                    Text(
-                        text = localizedString(R.string.mizrach_waiting_location, R.string.mizrach_waiting_location_hebrew),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (!locationServicesEnabled) {
+                        // Permission is granted but the system location toggle is off, so no fix
+                        // will ever arrive — send the user to turn it on instead of waiting.
+                        EnableLocationServicesCard(onOpenLocationSettings = onOpenLocationSettings)
+                    } else {
+                        Text(
+                            text = localizedString(R.string.mizrach_waiting_location, R.string.mizrach_waiting_location_hebrew),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
             if (hasCurrentLocation) {
@@ -203,6 +256,24 @@ private fun LocationPermissionCard(
         Spacer(Modifier.height(14.dp))
         Button(onClick = onRequestLocation) {
             Text(localizedString(R.string.mizrach_allow_location, R.string.mizrach_allow_location_hebrew))
+        }
+    }
+}
+
+@Composable
+private fun EnableLocationServicesCard(
+    onOpenLocationSettings: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    InfoCard(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = localizedString(R.string.mizrach_location_off, R.string.mizrach_location_off_hebrew),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(14.dp))
+        Button(onClick = onOpenLocationSettings) {
+            Text(localizedString(R.string.mizrach_turn_on_location, R.string.mizrach_turn_on_location_hebrew))
         }
     }
 }

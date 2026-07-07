@@ -100,7 +100,6 @@ class DataStoreAppSettingsRepositoryTest {
         )
         val zmanimSettings = ZmanimCalculationSettings(
             preset = ZmanimPreset.Custom,
-            inIsrael = false,
             alotHashacharMethod = AlotHashacharMethod.Degrees18,
             misheyakirMethod = MisheyakirMethod.Degrees7Point65,
             sunriseMethod = SunriseMethod.ElevationAdjusted,

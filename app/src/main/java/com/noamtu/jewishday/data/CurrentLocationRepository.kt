@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -152,6 +153,22 @@ class CurrentLocationRepository @Inject constructor(
 fun Context.hasLocationPermission(): Boolean =
     ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+/**
+ * Whether the device's location toggle is on. Permission can be granted while the system location
+ * switch is off, in which case no fix will ever arrive and the caller should prompt the user to
+ * enable location rather than wait forever.
+ */
+fun Context.isLocationServicesEnabled(): Boolean {
+    val locationManager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return false
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        locationManager.isLocationEnabled
+    } else {
+        @Suppress("DEPRECATION")
+        locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+            locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+}
 
 fun Location.toJewishLocation(name: String = "Current location"): JewishLocation = JewishLocation(
     name = name,

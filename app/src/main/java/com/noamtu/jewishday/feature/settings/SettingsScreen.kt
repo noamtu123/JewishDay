@@ -155,15 +155,6 @@ fun SettingsScreen(
             }
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    SettingsSwitchRow(
-                        label = localizedString(R.string.settings_outside_israel, R.string.settings_outside_israel_hebrew),
-                        description = localizedString(R.string.settings_outside_israel_description, R.string.settings_outside_israel_description_hebrew),
-                        // Default is Israel (inIsrael = true). The switch is framed as the
-                        // diaspora opt-out, so its checked state is the inverse of inIsrael.
-                        checked = !uiState.zmanimSettings.inIsrael,
-                        onCheckedChange = { outsideIsrael -> viewModel.setInIsrael(!outsideIsrael) },
-                    )
-                    SettingsDivider()
                     ExpandableSettingsHeader(
                         label = localizedString(R.string.settings_advanced_zmanim, R.string.settings_advanced_zmanim_hebrew),
                         description = localizedString(R.string.settings_advanced_zmanim_description, R.string.settings_advanced_zmanim_description_hebrew),

@@ -90,18 +90,15 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Resets all per-zman calculation methods to defaults, keeping the Outside-Israel choice and
-     * the candle-lighting offset the user chose at first launch.
+     * Resets all per-zman calculation methods to defaults, keeping the candle-lighting offset the
+     * user chose at first launch.
      */
     fun resetZmanimMethods() {
         viewModelScope.launch {
             val current = appSettingsRepository.settings.first()
             val candle = current.candleLightingDefault ?: current.zmanimSettings.candleLightingMethod
             appSettingsRepository.setZmanimSettings(
-                ZmanimCalculationSettings(
-                    inIsrael = current.zmanimSettings.inIsrael,
-                    candleLightingMethod = candle,
-                ),
+                ZmanimCalculationSettings(candleLightingMethod = candle),
             )
         }
     }
@@ -138,10 +135,6 @@ class SettingsViewModel @Inject constructor(
             val current = appSettingsRepository.settings.first().enabledZmanimTimes
             appSettingsRepository.setEnabledZmanimTimes(if (enabled) current + option else current - option)
         }
-    }
-
-    fun setInIsrael(enabled: Boolean) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, inIsrael = enabled) }
     }
 
     fun setUseElevation(enabled: Boolean) {
