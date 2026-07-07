@@ -201,7 +201,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setZmanimSettings(settings: ZmanimCalculationSettings) {
         dataStore.edit { preferences ->
             preferences[ZmanimPresetKey] = settings.preset.storageValue
-            preferences[InIsrael] = settings.inIsrael
             preferences[UseElevation] = settings.useElevation
             preferences[AlotHashacharMethodKey] = settings.alotHashacharMethod.storageValue
             preferences[MisheyakirMethodKey] = settings.misheyakirMethod.storageValue
@@ -244,7 +243,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val defaults = ZmanimCalculationSettings()
         return ZmanimCalculationSettings(
             preset = ZmanimPreset.fromStorageValue(preferences[ZmanimPresetKey]) ?: defaults.preset,
-            inIsrael = preferences[InIsrael] ?: defaults.inIsrael,
             useElevation = preferences[UseElevation] ?: defaults.useElevation,
             alotHashacharMethod = AlotHashacharMethod.fromStorageValue(preferences[AlotHashacharMethodKey])
                 ?: preferences[AlotHashacharOffsetMinutes]?.let { legacyAlotMethod(it) }
@@ -353,7 +351,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val RabbeinuTamMethodKey = stringPreferencesKey("zmanim_rabbeinu_tam_method")
         val ChametzMethodKey = stringPreferencesKey("zmanim_chametz_method")
         val AteretTorahOffsetMinutes = intPreferencesKey("zmanim_ateret_torah_offset_minutes")
-        val InIsrael = booleanPreferencesKey("zmanim_in_israel")
         val UseElevation = booleanPreferencesKey("zmanim_use_elevation")
         val AlotHashacharOffsetMinutes = intPreferencesKey("zmanim_alot_offset_minutes")
         val PlagHaminchaOffsetMinutes = intPreferencesKey("zmanim_plag_offset_minutes")

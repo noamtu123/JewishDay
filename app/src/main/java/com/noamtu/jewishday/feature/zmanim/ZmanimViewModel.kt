@@ -12,6 +12,7 @@ import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.DailyLearningGroupTitle
 import com.noamtu.jewishday.model.DailyLearningType
 import com.noamtu.jewishday.model.JewishLocation
+import com.noamtu.jewishday.model.isInIsrael
 import com.noamtu.jewishday.model.ZmanItem
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.ZmanimDay
@@ -199,7 +200,7 @@ class ZmanimViewModel @Inject constructor(
 
     private val dailyLearningItems = combine(
         zmanimDay.map { day -> day.date }.distinctUntilChanged(),
-        calculationSettings.map { settings -> settings.inIsrael }.distinctUntilChanged(),
+        location.map { it.isInIsrael }.distinctUntilChanged(),
         ::DailyLearningRequest,
     )
         .distinctUntilChanged()
@@ -317,7 +318,9 @@ private fun ZmanimDay.toUiState(
     use24HourTime: Boolean,
     showCandleLightingPrompt: Boolean,
 ): ZmanimUiState {
-    val englishLocale = Locale.getDefault()
+    // Always format the "English" date/time in English regardless of the device locale — otherwise
+    // a Hebrew system locale makes Locale.getDefault() render the English header in Hebrew too.
+    val englishLocale = Locale.ENGLISH
     val hebrewLocale = Locale.forLanguageTag("he")
     val timePattern = if (use24HourTime) "HH:mm" else "h:mm a"
     val englishTimeFormatter = DateTimeFormatter.ofPattern(timePattern, englishLocale).withZone(zoneId)

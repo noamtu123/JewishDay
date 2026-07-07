@@ -2,7 +2,6 @@ package com.noamtu.jewishday.model
 
 data class ZmanimCalculationSettings(
     val preset: ZmanimPreset = ZmanimPreset.Standard,
-    val inIsrael: Boolean = true,
     val useElevation: Boolean = false,
     val alotHashacharMethod: AlotHashacharMethod = AlotHashacharMethod.Degrees16Point1,
     val misheyakirMethod: MisheyakirMethod = MisheyakirMethod.Degrees11,
