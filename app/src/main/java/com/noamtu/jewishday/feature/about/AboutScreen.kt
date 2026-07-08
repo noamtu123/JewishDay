@@ -16,12 +16,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.noamtu.jewishday.ui.LocalUseHebrewInterface
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noamtu.jewishday.BuildConfig
@@ -45,10 +49,18 @@ fun AboutScreen(
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val developerModeUnlocked by viewModel.developerModeUnlocked.collectAsStateWithLifecycle()
+    val aboutInEnglish by viewModel.aboutInEnglish.collectAsStateWithLifecycle()
 
     // Hidden unlock: tap the version number 7x (like Android's Developer Options).
     val tapState = remember { VersionTapState() }
 
+    // Developer override: force this page (and its layout direction) to English even when the rest
+    // of the app is in Hebrew. Off, it renders in the current interface language as usual.
+    val showHebrew = LocalUseHebrewInterface.current && !aboutInEnglish
+    CompositionLocalProvider(
+        LocalUseHebrewInterface provides showHebrew,
+        LocalLayoutDirection provides if (showHebrew) LayoutDirection.Rtl else LayoutDirection.Ltr,
+    ) {
     ScreenSurface(modifier = modifier) {
         LazyColumn(
             modifier = Modifier
@@ -69,23 +81,8 @@ fun AboutScreen(
             }
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    AboutFeature(text = localizedString(R.string.about_feature_dates, R.string.about_feature_dates_hebrew))
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
-                    AboutFeature(text = localizedString(R.string.about_feature_zmanim, R.string.about_feature_zmanim_hebrew))
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
-                    AboutFeature(text = localizedString(R.string.about_feature_tools, R.string.about_feature_tools_hebrew))
-                }
-            }
-            item {
-                InfoCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = localizedString(R.string.about_values_heading, R.string.about_values_heading_hebrew),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    Text(
-                        text = localizedString(R.string.about_values_body, R.string.about_values_body_hebrew),
+                        text = localizedString(R.string.about_body, R.string.about_body_hebrew),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -119,6 +116,7 @@ fun AboutScreen(
             }
         }
     }
+    }
 }
 
 /** Counts rapid taps on the version line; a slow tap resets the run. */
@@ -137,15 +135,6 @@ private class VersionTapState {
     private companion object {
         const val TapWindowMs = 2_000L
     }
-}
-
-@Composable
-private fun AboutFeature(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
 }
 
 @Composable
