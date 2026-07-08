@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package com.noamtu.jewishday.feature.about
 
 import androidx.lifecycle.ViewModel
@@ -17,6 +19,11 @@ class AboutViewModel @Inject constructor(
 ) : ViewModel() {
     val developerModeUnlocked: StateFlow<Boolean> = developerOverridesRepository.state
         .map { it.unlocked }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    /** Developer override: force the About page into English regardless of the app language. */
+    val aboutInEnglish: StateFlow<Boolean> = developerOverridesRepository.state
+        .map { it.aboutInEnglish }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     fun unlockDeveloperMode() {

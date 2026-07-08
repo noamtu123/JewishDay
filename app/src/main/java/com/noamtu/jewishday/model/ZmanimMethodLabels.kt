@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package com.noamtu.jewishday.model
 
 val AlotHashacharMethod.label: String get() = when (this) {
