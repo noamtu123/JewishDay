@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package com.noamtu.jewishday.data
 
 private const val GERESH = '׳' // ׳ — marks a single-letter numeral

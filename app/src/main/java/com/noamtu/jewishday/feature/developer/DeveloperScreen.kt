@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package com.noamtu.jewishday.feature.developer
 
 import androidx.compose.foundation.layout.Arrangement
@@ -145,6 +147,17 @@ fun DeveloperScreen(
                     }
                     // "In Israel" is derived from the effective location (see the readout above);
                     // pick a diaspora location preset to exercise two-day Yom Tov.
+                }
+            }
+
+            item {
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("About page")
+                    SwitchRow(
+                        label = "Show About page in English",
+                        checked = overrides.aboutInEnglish,
+                        onCheckedChange = viewModel::setAboutInEnglish,
+                    )
                 }
             }
 
