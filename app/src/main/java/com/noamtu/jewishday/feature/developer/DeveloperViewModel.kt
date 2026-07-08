@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package com.noamtu.jewishday.feature.developer
 
 import android.content.Context
@@ -113,6 +115,10 @@ class DeveloperViewModel @Inject constructor(
 
     fun setLocationPreset(id: String) = launchOverride {
         developerOverridesRepository.setLocationPreset(id)
+    }
+
+    fun setAboutInEnglish(enabled: Boolean) = launchOverride {
+        developerOverridesRepository.setAboutInEnglish(enabled)
     }
 
     fun resetOverrides() = launchOverride {

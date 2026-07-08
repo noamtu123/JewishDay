@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package com.noamtu.jewishday.data
 
 import com.noamtu.jewishday.model.JewishDayInfo
