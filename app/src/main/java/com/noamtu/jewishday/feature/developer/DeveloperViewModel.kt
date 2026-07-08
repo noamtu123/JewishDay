@@ -117,6 +117,10 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setLocationPreset(id)
     }
 
+    fun setAboutInEnglish(enabled: Boolean) = launchOverride {
+        developerOverridesRepository.setAboutInEnglish(enabled)
+    }
+
     fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()
     }

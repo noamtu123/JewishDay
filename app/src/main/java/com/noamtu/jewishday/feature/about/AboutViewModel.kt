@@ -21,6 +21,11 @@ class AboutViewModel @Inject constructor(
         .map { it.unlocked }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    /** Developer override: force the About page into English regardless of the app language. */
+    val aboutInEnglish: StateFlow<Boolean> = developerOverridesRepository.state
+        .map { it.aboutInEnglish }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
     fun unlockDeveloperMode() {
         viewModelScope.launch { developerOverridesRepository.setUnlocked(true) }
     }

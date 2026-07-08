@@ -66,6 +66,9 @@ data class DeveloperOverrides(
     val timeFrozen: Boolean = true,
     val locationOverrideEnabled: Boolean = false,
     val locationPresetId: String? = null,
+    // Forces the About page to render in English regardless of the app language, so the English
+    // copy can be checked without switching the whole interface.
+    val aboutInEnglish: Boolean = false,
 ) {
     /** The instant the app should treat as "now" given the real [realNow]. */
     fun effectiveInstant(realNow: Instant): Instant {
@@ -147,6 +150,8 @@ class DeveloperOverridesRepository @Inject constructor(
 
     suspend fun setLocationPreset(id: String) = update { it.copy(locationOverrideEnabled = true, locationPresetId = id) }
 
+    suspend fun setAboutInEnglish(enabled: Boolean) = update { it.copy(aboutInEnglish = enabled) }
+
     /** Clears every override but keeps the tools unlocked. */
     suspend fun clearOverrides() = update {
         DeveloperOverrides(unlocked = it.unlocked)
@@ -168,6 +173,7 @@ class DeveloperOverridesRepository @Inject constructor(
         timeFrozen = preferences[TimeFrozenKey] ?: true,
         locationOverrideEnabled = preferences[LocationEnabledKey] ?: false,
         locationPresetId = preferences[LocationPresetKey],
+        aboutInEnglish = preferences[AboutEnglishKey] ?: false,
     )
 
     private fun encode(preferences: androidx.datastore.preferences.core.MutablePreferences, overrides: DeveloperOverrides) {
@@ -178,6 +184,7 @@ class DeveloperOverridesRepository @Inject constructor(
         preferences[TimeFrozenKey] = overrides.timeFrozen
         preferences[LocationEnabledKey] = overrides.locationOverrideEnabled
         overrides.locationPresetId?.let { preferences[LocationPresetKey] = it }
+        preferences[AboutEnglishKey] = overrides.aboutInEnglish
     }
 
     private companion object {
@@ -188,5 +195,6 @@ class DeveloperOverridesRepository @Inject constructor(
         val TimeFrozenKey = booleanPreferencesKey("dev_time_frozen")
         val LocationEnabledKey = booleanPreferencesKey("dev_loc_enabled")
         val LocationPresetKey = stringPreferencesKey("dev_loc_preset")
+        val AboutEnglishKey = booleanPreferencesKey("dev_about_english")
     }
 }

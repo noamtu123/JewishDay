@@ -151,6 +151,17 @@ fun DeveloperScreen(
             }
 
             item {
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("About page")
+                    SwitchRow(
+                        label = "Show About page in English",
+                        checked = overrides.aboutInEnglish,
+                        onCheckedChange = viewModel::setAboutInEnglish,
+                    )
+                }
+            }
+
+            item {
                 Button(
                     onClick = viewModel::resetOverrides,
                     modifier = Modifier.fillMaxWidth(),

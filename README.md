@@ -1,51 +1,40 @@
 # JewishDay
 
-Hebrew dates, zmanim, and daily learning in one quiet, private Android app.
+A modern Jewish companion app — free and open source.
 
-JewishDay shows today's Hebrew date and the day's halachic times, follows your
-daily-learning schedule, and points you toward Jerusalem for prayer — with no ads,
-no tracking, and no accounts. It's meant to be the kind of app I wish every app was.
+JewishDay shows the Hebrew date, the day's zmanim, and your daily learning, and can keep
+today's Hebrew date on your phone at all times. It's built to be the kind of app I wish every
+app was: fully free and open source.
 
 ## Features
 
-- **Hebrew date at a glance** — date, parsha, Yom Tov, fast days, the Omer count, and
-  Rosh Chodesh. The displayed date rolls over at sunset, the way the Jewish day actually works.
-- **Zmanim for where you are** — location-based halachic times with a configurable method
-  for every zman (degrees, fixed minutes, zmaniyot, and special opinions), so the times can
-  follow your minhag rather than a single fixed calculation.
-- **Shabbat & fast times** — candle lighting, Motzei Shabbat, Rabbeinu Tam, and the start and
-  end of the currently active fast.
-- **Daily learning** — Daf Yomi, the daily Rambam, and other study schedules.
-- **Prayer compass** — a magnetic-declination-corrected compass pointing toward the
-  Kodesh HaKodashim in Jerusalem.
-- **Hebrew-date notification** — an optional persistent status-bar icon showing today's
-  Hebrew day.
-- **Bilingual and themeable** — full Hebrew and English interfaces, with several light and
-  dark themes, including a true-black AMOLED theme.
+- Hebrew date, parsha, Yom Tov, fast days, the Omer, and Rosh Chodesh
+- Location-based zmanim, with a configurable calculation method for every time
+- Shabbat and fast times — candle lighting, Motzei Shabbat, and Rabbeinu Tam
+- Daily learning (Daf Yomi, the daily Rambam, and more)
+- A compass that points toward Jerusalem for prayer
+- Full Hebrew and English interfaces, with light and dark themes
 
-## Free, open, and private
+**Always-on Hebrew date.** An optional notification puts today's Hebrew day in your status bar
+and quietly rolls it over each day, so the date is always one glance away — no need to open the app.
 
-This is the part that matters most, so it isn't buried at the bottom:
+## Free and open source
 
-JewishDay is **free and open source**. **No ads. No analytics. No tracking. No accounts.**
-It asks for your location only to compute zmanim and the prayer compass, and nothing about
-your day ever leaves your device. The entire source lives in this repository for anyone to
-read, audit, or build for themselves. That transparency is the point of the project, not a
-footnote to it.
+JewishDay is fully FOSS, released under the GNU GPL v3.0. The complete source is here for anyone
+to read, build, and improve. That openness is the point — it's the app I wish every app was.
 
-## How it's built
+Built collaboratively with an AI coding assistant, then reviewed and shaped by me. Worth saying
+in the same spirit of openness: every release still goes through tests, lint, and on-device use.
 
-- Kotlin, Jetpack Compose, and Material 3
-- Hilt for dependency injection; DataStore for settings
-- [KosherJava](https://github.com/KosherJava/zmanim) for the Hebrew calendar and zmanim math
+## Built with
+
+- Kotlin and Jetpack Compose
+- Material 3
+- Hilt for dependency injection, DataStore for settings
+- [KosherJava](https://github.com/KosherJava/zmanim) for the Hebrew calendar and zmanim
 - The Hebcal API for daily-learning schedules
-- A foreground service that keeps the optional Hebrew-date notification current across the day
-
-And, in the same spirit of transparency: this app is largely **vibe coded** — built
-side by side with an AI coding assistant, then guided, reviewed, and shaped by me. It's worth
-saying plainly, because if the source is open for you to read, how it was written should be
-open too. It's held to the same bar as anything written by hand: unit tests, lint, and
-on-device use before every release.
+- A foreground service that keeps the always-on Hebrew-date notification current
+- Gradle build; single release variant, tested and linted on each build
 
 ## Building
 
@@ -55,12 +44,11 @@ Requires JDK 17 and the Android SDK.
 ./gradlew :app:assembleRelease
 ```
 
-Release builds are signed with a local keystore that is intentionally kept out of the
-repository; debug builds work without it.
+Release builds are signed with a local keystore kept out of the repository; debug builds work
+without it.
 
 ## License
 
 Copyright (C) 2026 noamtu123
 
-This project is licensed under the GNU General Public License v3.0.
-See the [LICENSE](LICENSE) file for details.
+Licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
