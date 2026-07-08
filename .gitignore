@@ -9,7 +9,6 @@ externalNativeBuild/
 .cxx/
 **/build/
 .kotlin/
-legacy-reference/
 
 # Signing — keep secrets and build artifacts out of version control
 release.jks
@@ -24,10 +23,7 @@ session-ses_*.md
 # Local email/avatar export
 gmail-icon.png
 
-# AI handoff log — local communication between AI assistants, never pushed
-AI_HANDOFF.md
-
-# Claude project instructions — local AI context, like AI_HANDOFF.md
+# Claude project instructions — local AI context, never pushed
 CLAUDE.md
 
 # Personal task runner (hardcodes this machine's JAVA_HOME path)

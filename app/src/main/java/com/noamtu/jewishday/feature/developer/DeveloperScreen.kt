@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package com.noamtu.jewishday.feature.developer
 
 import androidx.compose.foundation.layout.Arrangement

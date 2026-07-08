@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package com.noamtu.jewishday.feature.about
 
 import android.widget.Toast
@@ -72,6 +74,21 @@ fun AboutScreen(
                     AboutFeature(text = localizedString(R.string.about_feature_zmanim, R.string.about_feature_zmanim_hebrew))
                     HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
                     AboutFeature(text = localizedString(R.string.about_feature_tools, R.string.about_feature_tools_hebrew))
+                }
+            }
+            item {
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = localizedString(R.string.about_values_heading, R.string.about_values_heading_hebrew),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = localizedString(R.string.about_values_body, R.string.about_values_body_hebrew),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
             item {
