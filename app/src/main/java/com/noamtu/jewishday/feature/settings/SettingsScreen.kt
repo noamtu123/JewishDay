@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package com.noamtu.jewishday.feature.settings
 
 import android.Manifest
@@ -35,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -118,17 +121,7 @@ fun SettingsScreen(
                             )
                         },
                     )
-                    SettingsDivider()
-                    SettingsChoiceRow(
-                        label = localizedString(R.string.settings_language, R.string.settings_language_hebrew),
-                        description = localizedString(
-                            R.string.settings_language_description,
-                            R.string.settings_language_description_hebrew,
-                        ),
-                        value = uiState.language.displayName,
-                        onClick = { showLanguageDialog = true },
-                    )
-                    SettingsDivider()
+                    SectionSettingsDivider()
                     SettingsSwitchRow(
                         label = localizedString(R.string.settings_12_hour_format, R.string.settings_12_hour_format_hebrew),
                         description = localizedString(
@@ -140,7 +133,17 @@ fun SettingsScreen(
                         checked = !uiState.use24HourTime,
                         onCheckedChange = { use12Hour -> viewModel.setUse24HourTime(!use12Hour) },
                     )
-                    SettingsDivider()
+                    SectionSettingsDivider()
+                    SettingsChoiceRow(
+                        label = localizedString(R.string.settings_language, R.string.settings_language_hebrew),
+                        description = localizedString(
+                            R.string.settings_language_description,
+                            R.string.settings_language_description_hebrew,
+                        ),
+                        value = uiState.language.displayName,
+                        onClick = { showLanguageDialog = true },
+                    )
+                    SectionSettingsDivider()
                     SettingsChoiceRow(
                         label = localizedString(R.string.settings_theme, R.string.settings_theme_hebrew),
                         value = uiState.themeOption.localizedLabel(),
@@ -183,11 +186,13 @@ fun SettingsScreen(
                         onReset = { viewModel.resetZmanimTimes() },
                     )
                     if (showZmanimTimes) {
+                        // A single divider under the header, then dividerless toggle rows: the
+                        // switches themselves delineate the items, so a long on/off list stays
+                        // compact and uncluttered.
+                        SettingsDivider()
                         ZmanimTimeOption.entries.forEach { option ->
-                            SettingsDivider()
-                            SettingsSwitchRow(
+                            SettingsToggleRow(
                                 label = if (useHebrew) option.labelHebrew else option.labelEnglish,
-                                description = "",
                                 checked = option in uiState.enabledZmanimTimes,
                                 onCheckedChange = { enabled -> viewModel.setZmanimTimeEnabled(option, enabled) },
                             )
@@ -206,11 +211,10 @@ fun SettingsScreen(
                         onReset = { viewModel.resetDailyLearning() },
                     )
                     if (showDailyLearning) {
+                        SettingsDivider()
                         DailyLearningType.entries.forEach { type ->
-                            SettingsDivider()
-                            SettingsSwitchRow(
+                            SettingsToggleRow(
                                 label = if (useHebrew) type.labelHebrew else type.labelEnglish,
-                                description = "",
                                 checked = type in uiState.enabledDailyLearning,
                                 onCheckedChange = { enabled -> viewModel.setDailyLearningEnabled(type, enabled) },
                             )
@@ -333,6 +337,19 @@ private enum class NotificationPermissionTarget {
 
 @Composable
 private fun SettingsDivider(modifier: Modifier = Modifier) {
+    // Hairline divider with no padding of its own — the rows' vertical padding supplies the
+    // spacing. Keeps the long expandable zmanim sections compact and quick to scroll.
+    HorizontalDivider(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.outlineVariant,
+        thickness = 0.5.dp,
+    )
+}
+
+@Composable
+private fun SectionSettingsDivider(modifier: Modifier = Modifier) {
+    // The original roomier divider, used only in the top settings card (language, theme, …)
+    // where there are few rows and the extra breathing room reads better.
     HorizontalDivider(modifier = modifier.padding(vertical = 12.dp))
 }
 
@@ -366,12 +383,15 @@ private fun SettingsSwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    // dense = the tighter look used inside the expandable zmanim sections. The top card leaves
+    // this false so it keeps its original roomier styling.
+    dense: Boolean = false,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable { onCheckedChange(!checked) }
-            .padding(vertical = 6.dp),
+            .padding(vertical = if (dense) 8.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -381,11 +401,13 @@ private fun SettingsSwitchRow(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             if (description.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
+                if (!dense) Spacer(Modifier.height(4.dp))
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = if (dense) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (dense) 2 else Int.MAX_VALUE,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -401,12 +423,14 @@ private fun SettingsChoiceRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     description: String = "",
+    // dense = the tighter look used by the method rows inside "Detailed Calculation Methods".
+    dense: Boolean = false,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 6.dp),
+            .padding(vertical = if (dense) 8.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -416,11 +440,13 @@ private fun SettingsChoiceRow(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             if (description.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
+                if (!dense) Spacer(Modifier.height(4.dp))
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = if (dense) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (dense) 2 else Int.MAX_VALUE,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -430,6 +456,37 @@ private fun SettingsChoiceRow(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.primary,
         )
+    }
+}
+
+/**
+ * A bare label + switch row for the long on/off lists ("Zmanim to show", "Limud Yomi to show").
+ * No description and no divider between rows — the switches delineate the items — so a big list
+ * stays compact and uncluttered. Padding is minimal since the switch's own touch target sets the
+ * row height.
+ */
+@Composable
+private fun SettingsToggleRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(18.dp))
+        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -497,6 +554,7 @@ private fun AdvancedZmanimChoices(
         description = text("Apply elevation adjustments to GRA-based calculations. Default: sea level.", "תיקון גובה המקום לחישובי גר״א. ברירת מחדל: מישור."),
         checked = settings.useElevation,
         onCheckedChange = { viewModel.setUseElevation(it) },
+        dense = true,
     )
     SettingsDivider()
     MethodChoiceRow(text("Alot Hashachar", "עלות השחר"), text("Dawn start used for Magen Avraham and fast days.", "תחילת היום למג״א ולתעניות."), settings.alotHashacharMethod.localizedLabel(useHebrew)) {
@@ -511,11 +569,11 @@ private fun AdvancedZmanimChoices(
         activePicker = picker(text("Sunrise", "הנץ החמה"), SunriseMethod.entries, settings.sunriseMethod, defaults.sunriseMethod, { it.localizedLabel(useHebrew) }, viewModel::setSunriseMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)"), text("Method for the GRA Shema row.", "השיטה לשורת קריאת שמע של הגר״א."), settings.sofZmanShemaGraMethod.localizedLabel(useHebrew)) {
+    MethodChoiceRow(text("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)"), text("Method for the GRA Shema row.", "השיטה לשורת ק״ש של הגר״א."), settings.sofZmanShemaGraMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)"), SofZmanShemaMethod.entries.filter { it.family == ZmanOpinionFamily.Gra }, settings.sofZmanShemaGraMethod, defaults.sofZmanShemaGraMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanShemaGraMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"), text("Method for the Magen Avraham Shema row.", "השיטה לשורת קריאת שמע של מג״א."), settings.sofZmanShemaMethod.localizedLabel(useHebrew)) {
+    MethodChoiceRow(text("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"), text("Method for the Magen Avraham Shema row.", "השיטה לשורת ק״ש של מג״א."), settings.sofZmanShemaMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"), SofZmanShemaMethod.entries.filter { it.family == ZmanOpinionFamily.MagenAvraham }, settings.sofZmanShemaMethod, defaults.sofZmanShemaMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanShemaMethod)
     }
     SettingsDivider()
@@ -626,6 +684,7 @@ private fun MethodChoiceRow(
         description = description,
         value = value,
         onClick = onClick,
+        dense = true,
     )
 }
 
