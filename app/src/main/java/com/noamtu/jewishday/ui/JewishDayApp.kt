@@ -2,8 +2,19 @@
 
 package com.noamtu.jewishday.ui
 
+import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -32,6 +43,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.noamtu.jewishday.data.hasLocationPermission
+import com.noamtu.jewishday.data.isLocationServicesEnabled
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -56,6 +73,153 @@ fun JewishDayApp(useHebrewInterface: Boolean = false) {
         LocalLayoutDirection provides layoutDirection,
     ) {
         JewishDayNavHost(useHebrewInterface = useHebrewInterface)
+        LocationAvailabilityPrompt()
+    }
+}
+
+private enum class LocationPromptKind { None, Permission, Services }
+
+/**
+ * App-wide location handling, run on every foreground (cold start and each return from recents):
+ *
+ * - Permission + location on → pull a fresh fix immediately (zmanim compute right away).
+ * - No permission → ask the OS directly the first time; if denied (or on later opens) show a dialog
+ *   offering "Grant permission" or "Use Jerusalem".
+ * - Location switch off → show a dialog offering "Turn on location" or "Use Jerusalem". (Android has
+ *   no in-app system prompt to flip that switch without Google Play Services, so this deep-links to
+ *   Settings rather than firing a one-tap request like the permission case.)
+ *
+ * The app never remembers a past location, so the fallback is always Jerusalem.
+ */
+@Composable
+private fun LocationAvailabilityPrompt(viewModel: LocationPromptViewModel = hiltViewModel()) {
+    val context = LocalContext.current
+    var kind by remember { mutableStateOf(LocationPromptKind.None) }
+    // Fire the system permission request at most once per foreground; after that (or a denial) use
+    // our own dialog instead of re-spamming the OS prompt.
+    var systemAsked by remember { mutableStateOf(false) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+    ) { grants ->
+        val granted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        kind = when {
+            !granted -> { viewModel.useJerusalemFallback(); LocationPromptKind.Permission }
+            !context.isLocationServicesEnabled() -> { viewModel.useJerusalemFallback(); LocationPromptKind.Services }
+            else -> { viewModel.refreshCurrentLocation(); LocationPromptKind.None }
+        }
+    }
+
+    fun evaluate() {
+        val hasPermission = context.hasLocationPermission()
+        val servicesEnabled = context.isLocationServicesEnabled()
+        when {
+            hasPermission && servicesEnabled -> {
+                viewModel.refreshCurrentLocation()
+                kind = LocationPromptKind.None
+            }
+            !hasPermission -> {
+                viewModel.useJerusalemFallback()
+                if (!systemAsked) {
+                    // First open this foreground: ask the OS directly.
+                    systemAsked = true
+                    permissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ),
+                    )
+                } else {
+                    kind = LocationPromptKind.Permission
+                }
+            }
+            else -> {
+                // Permission granted, but the location switch is off.
+                viewModel.useJerusalemFallback()
+                kind = LocationPromptKind.Services
+            }
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> evaluate()
+                Lifecycle.Event.ON_STOP -> systemAsked = false // ask again on the next fresh open
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    if (kind == LocationPromptKind.None) return
+    val isPermission = kind == LocationPromptKind.Permission
+    AlertDialog(
+        onDismissRequest = { kind = LocationPromptKind.None },
+        title = {
+            Text(
+                if (isPermission) {
+                    localizedString(R.string.location_prompt_permission_title, R.string.location_prompt_permission_title_hebrew)
+                } else {
+                    localizedString(R.string.location_prompt_services_title, R.string.location_prompt_services_title_hebrew)
+                },
+            )
+        },
+        text = {
+            Text(
+                if (isPermission) {
+                    localizedString(R.string.location_prompt_permission_body, R.string.location_prompt_permission_body_hebrew)
+                } else {
+                    localizedString(R.string.location_prompt_services_body, R.string.location_prompt_services_body_hebrew)
+                },
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    kind = LocationPromptKind.None
+                    if (isPermission) context.openAppSettings() else context.openLocationSettings()
+                },
+            ) {
+                Text(
+                    if (isPermission) {
+                        localizedString(R.string.location_prompt_grant, R.string.location_prompt_grant_hebrew)
+                    } else {
+                        localizedString(R.string.location_prompt_turn_on, R.string.location_prompt_turn_on_hebrew)
+                    },
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { kind = LocationPromptKind.None }) {
+                Text(localizedString(R.string.location_prompt_use_jerusalem, R.string.location_prompt_use_jerusalem_hebrew))
+            }
+        },
+    )
+}
+
+private fun android.content.Context.openLocationSettings() {
+    try {
+        startActivity(
+            Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    } catch (_: ActivityNotFoundException) {
+        startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
+}
+
+private fun android.content.Context.openAppSettings() {
+    try {
+        startActivity(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    } catch (_: ActivityNotFoundException) {
+        startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 }
 
