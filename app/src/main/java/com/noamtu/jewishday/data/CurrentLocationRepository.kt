@@ -61,12 +61,23 @@ class CurrentLocationRepository @Inject constructor(
             initialValue = developerOverrides.overrideLocation ?: _currentLocation.value,
         )
 
+    /**
+     * Pull a location now. Called only when we have permission and location services are on, so the
+     * OS's cached fix is published immediately (zmanim compute without waiting — a coarse, slightly
+     * old position is fine for zmanim) and a fresh fix is then requested to refine it. Both are your
+     * current location, so there's no visible label flip.
+     */
     fun refreshCurrentLocation() {
-        val latest = getLastKnownJewishLocation()
-        if (latest != null) {
-            _currentLocation.value = latest
-        }
+        bestLastKnownLocation()?.let { _currentLocation.value = it.toJewishLocation() }
         requestSingleUpdate()
+    }
+
+    /**
+     * Drop any device fix so the app falls back to Jerusalem. Called when we can't get a location
+     * (permission denied, or the location switch is off) — the app never remembers a past location.
+     */
+    fun useJerusalemFallback() {
+        _currentLocation.value = null
     }
 
     fun currentLocationOrDefault(): JewishLocation =
@@ -91,14 +102,17 @@ class CurrentLocationRepository @Inject constructor(
             ?: currentLocationOrDefault()
     }
 
+    /** The OS's best cached fix, for background callers that need a location before a refresh. */
+    fun getLastKnownJewishLocation(): JewishLocation? =
+        bestLastKnownLocation()?.toJewishLocation()
+
     @SuppressLint("MissingPermission")
-    fun getLastKnownJewishLocation(): JewishLocation? {
+    private fun bestLastKnownLocation(): Location? {
         if (!context.hasLocationPermission()) return null
 
         return enabledProviders()
             .mapNotNull(locationManager::getLastKnownLocation)
             .maxByOrNull(Location::getTime)
-            ?.toJewishLocation()
     }
 
     @SuppressLint("MissingPermission")
@@ -172,7 +186,23 @@ fun Context.isLocationServicesEnabled(): Boolean {
     }
 }
 
-fun Location.toJewishLocation(name: String = "Current location"): JewishLocation = JewishLocation(
+/**
+ * Sentinel display name for a device-derived fix. The UI recognizes it to show a *localized*
+ * "current location" label instead of this raw English string.
+ */
+const val CurrentLocationName = "Current location"
+
+/** Where the location the app is using came from, so the UI can label it honestly. */
+enum class LocationSource { CurrentFix, Jerusalem, Named }
+
+/** Classifies a [JewishLocation] name into its [LocationSource] using the sentinel above. */
+fun locationSourceForName(name: String): LocationSource = when (name) {
+    CurrentLocationName -> LocationSource.CurrentFix
+    defaultJerusalemLocation.name -> LocationSource.Jerusalem
+    else -> LocationSource.Named
+}
+
+fun Location.toJewishLocation(name: String = CurrentLocationName): JewishLocation = JewishLocation(
     name = name,
     latitude = latitude,
     longitude = longitude,

@@ -3,13 +3,17 @@
 package com.noamtu.jewishday.feature.mizrach
 
 import android.Manifest
+import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.IntentFilter
 import android.location.LocationManager
+import android.net.Uri
 import android.provider.Settings
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -67,6 +71,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.data.LocationSource
+import com.noamtu.jewishday.data.locationSourceForName
 import com.noamtu.jewishday.data.hasLocationPermission
 import com.noamtu.jewishday.data.isLocationServicesEnabled
 import com.noamtu.jewishday.model.MizrachInfo
@@ -117,7 +123,13 @@ fun MizrachScreen(
     ) { grants ->
         hasLocationPermission = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (hasLocationPermission) viewModel.refreshCurrentLocation()
+        if (hasLocationPermission) {
+            viewModel.refreshCurrentLocation()
+        } else if (!context.canAskLocationPermission()) {
+            // Permission is permanently denied ("Don't allow" chosen before), so the system dialog
+            // won't appear again — the only way to grant it is from the app's settings page.
+            context.openAppSettings()
+        }
     }
 
     // Try for a fix whenever we have both permission and the system location toggle on; without
@@ -188,6 +200,36 @@ fun MizrachScreen(
         },
         modifier = modifier,
     )
+}
+
+private fun Context.findActivity(): Activity? {
+    var context: Context? = this
+    while (context is ContextWrapper) {
+        if (context is Activity) return context
+        context = context.baseContext
+    }
+    return null
+}
+
+/**
+ * Whether the system permission dialog can still be shown. False means the user permanently denied
+ * location (chose "Don't allow"), so a launch() no-ops and we must route to app settings instead.
+ */
+private fun Context.canAskLocationPermission(): Boolean {
+    val activity = findActivity() ?: return true
+    return ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.ACCESS_FINE_LOCATION) ||
+        ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.ACCESS_COARSE_LOCATION)
+}
+
+private fun Context.openAppSettings() {
+    try {
+        startActivity(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    } catch (_: ActivityNotFoundException) {
+        startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    }
 }
 
 @Composable
@@ -282,11 +324,23 @@ private fun EnableLocationServicesCard(
 
 @Composable
 private fun MizrachHeader(mizrach: MizrachInfo, modifier: Modifier = Modifier) {
+    // Label the source honestly: a fresh device fix, Jerusalem (the fallback), or a named place
+    // (dev preset). The Jerusalem fallback is coloured red so it's obvious it isn't where you are.
+    val source = locationSourceForName(mizrach.fromLocationName)
+    val fromText = when (source) {
+        LocationSource.CurrentFix -> localizedString(R.string.mizrach_from_current, R.string.mizrach_from_current_hebrew)
+        LocationSource.Jerusalem -> localizedString(R.string.mizrach_from_jerusalem, R.string.mizrach_from_jerusalem_hebrew)
+        LocationSource.Named -> localizedString(R.string.mizrach_from, R.string.mizrach_from_hebrew, mizrach.fromLocationName)
+    }
     Column(modifier = modifier.fillMaxWidth().padding(top = 4.dp)) {
         Text(
-            text = localizedString(R.string.mizrach_from, R.string.mizrach_from_hebrew, mizrach.fromLocationName),
+            text = fromText,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (source == LocationSource.Jerusalem) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
         )
     }
 }
