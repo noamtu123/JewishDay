@@ -55,4 +55,5 @@ fun ZmanimDay.withDailyLearningItems(items: List<ZmanItem>): ZmanimDay = copy(
 )
 
 internal const val ZmanimGroupTitle = "Zmanim"
+internal const val ShabbatGroupTitle = "Shabbat"
 internal const val DailyLearningGroupTitle = "Daily Learning"

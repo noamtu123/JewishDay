@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.data.LocationSource
+import com.noamtu.jewishday.data.locationSourceForName
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.ui.LocalUseHebrewInterface
 import com.noamtu.jewishday.ui.components.InfoCard
@@ -91,6 +93,29 @@ private fun ZmanimContent(
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
             )
+            // When the times aren't from a fresh device fix, note it in tiny print. The Jerusalem
+            // fallback is coloured red so it's obvious the times aren't for where you are; a named
+            // place (dev preset) is muted. Kept to a single small line so it barely takes space.
+            val locationSource = locationSourceForName(header.locationName)
+            val locationNote = when (locationSource) {
+                LocationSource.CurrentFix -> null
+                LocationSource.Jerusalem -> localizedString(R.string.zmanim_location_jerusalem, R.string.zmanim_location_jerusalem_hebrew)
+                LocationSource.Named -> localizedString(R.string.zmanim_location_named, R.string.zmanim_location_named_hebrew, header.locationName)
+            }
+            if (locationNote != null) {
+                Text(
+                    text = locationNote,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (locationSource == LocationSource.Jerusalem) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp),
+                )
+            }
             val fastStart = if (useHebrew) header.fastStartHebrew else header.fastStart
             val fastEnd = if (useHebrew) header.fastEndHebrew else header.fastEnd
             if (fastStart != null && fastEnd != null) {

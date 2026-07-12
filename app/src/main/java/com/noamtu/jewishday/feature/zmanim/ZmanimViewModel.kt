@@ -12,6 +12,7 @@ import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.data.JewishDayRepository
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.DailyLearningGroupTitle
+import com.noamtu.jewishday.model.ShabbatGroupTitle
 import com.noamtu.jewishday.model.DailyLearningType
 import com.noamtu.jewishday.model.JewishLocation
 import com.noamtu.jewishday.model.isInIsrael
@@ -61,6 +62,9 @@ data class ZmanimHeaderUi(
     val jewishDateHebrew: String,
     val gregorianDate: String,
     val gregorianDateHebrew: String,
+    // The name of the location the times were computed for; the UI turns this into a small caption
+    // when it isn't a fresh current-location fix (last-known, Jerusalem, or a named place).
+    val locationName: String = "",
     val fastName: String? = null,
     val fastNameHebrew: String? = null,
     val fastStart: String? = null,
@@ -278,7 +282,7 @@ private fun ZmanimDay.filterForDisplay(
     val learningIds = enabledDailyLearning.mapTo(mutableSetOf()) { it.storageValue }
     val filtered = groups.mapNotNull { group ->
         val items = when (group.title) {
-            ZmanimGroupTitle -> group.items.filter { it.id == null || it.id in zmanimIds }
+            ZmanimGroupTitle, ShabbatGroupTitle -> group.items.filter { it.id == null || it.id in zmanimIds }
             DailyLearningGroupTitle -> group.items.filter { it.id == null || it.id in learningIds }
             else -> group.items
         }
@@ -351,6 +355,7 @@ private fun ZmanimDay.toUiState(
             jewishDateHebrew = hebrewDateHebrew,
             gregorianDate = date.format(englishDateFormatter),
             gregorianDateHebrew = date.format(hebrewDateFormatter),
+            locationName = locationName,
             fastName = fastDayInfo?.name,
             fastNameHebrew = fastDayInfo?.nameHebrew,
             fastStart = fastDayInfo?.startTime.formatTime(englishTimeFormatter).takeIf { fastDayInfo != null },
