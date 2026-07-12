@@ -26,6 +26,11 @@ enum class ZmanimTimeOption(
     Sunset("sunset", "Sunset", "שקיעה"),
     Tzeit("tzeit", "Tzeit", "צאת הכוכבים"),
     ChatzotHaLaila("chatzot_halaila", "Chatzot HaLaila", "חצות הלילה"),
+    // Shabbat-section rows, shown/hidden by the same "Zmanim to show" list.
+    ShabbatCandleLighting("shabbat_candles", "Candle Lighting (Shabbat)", "הדלקת נרות (שבת)"),
+    ShabbatSunset("shabbat_sunset", "Sunset (Shabbat)", "שקיעה (שבת)"),
+    MotzeiShabbat("motzei_shabbat", "Motzei Shabbat", "צאת שבת"),
+    RabbeinuTam("rabbeinu_tam", "Rabbeinu Tam", "רבינו תם"),
     ;
 
     companion object {
