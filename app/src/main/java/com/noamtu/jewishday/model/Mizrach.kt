@@ -77,9 +77,13 @@ private fun haversineDistanceKm(
     val fromLatitudeRadians = toRadians(fromLatitude)
     val toLatitudeRadians = toRadians(toLatitude)
 
-    val a = sin(latitudeDelta / 2) * sin(latitudeDelta / 2) +
-        cos(fromLatitudeRadians) * cos(toLatitudeRadians) *
-        sin(longitudeDelta / 2) * sin(longitudeDelta / 2)
+    // Clamped: floating-point error near antipodal points can push the sum just past 1,
+    // which would make sqrt(1 - a) NaN.
+    val a = (
+        sin(latitudeDelta / 2) * sin(latitudeDelta / 2) +
+            cos(fromLatitudeRadians) * cos(toLatitudeRadians) *
+            sin(longitudeDelta / 2) * sin(longitudeDelta / 2)
+        ).coerceIn(0.0, 1.0)
     val c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return EARTH_RADIUS_KM * c
 }

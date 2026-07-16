@@ -35,8 +35,10 @@
     <string name="mizrach_location_off_hebrew">המיקום כבוי. יש להפעיל אותו כדי שהמצפן יוכל למצוא את המקום הנוכחי.</string>
     <string name="mizrach_turn_on_location">Turn on location</string>
     <string name="mizrach_turn_on_location_hebrew">הפעל מיקום</string>
-    <string name="mizrach_heading_unavailable">Move your phone in a figure-eight if the compass does not update.</string>
-    <string name="mizrach_heading_unavailable_hebrew">אם המצפן לא מתעדכן, הזז את הטלפון בצורת שמונה.</string>
+    <string name="mizrach_heading_unavailable">Waiting for the compass sensor…</string>
+    <string name="mizrach_heading_unavailable_hebrew">ממתין לחיישן המצפן…</string>
+    <string name="mizrach_no_compass_sensor">This device has no compass sensor, so the needle shows the bearing as if the phone were facing north.</string>
+    <string name="mizrach_no_compass_sensor_hebrew">במכשיר זה אין חיישן מצפן, ולכן המחט מציגה את הכיוון כאילו הטלפון פונה צפונה.</string>
     <string name="mizrach_toward_jerusalem">toward Kodesh HaKodashim</string>
     <string name="mizrach_toward_jerusalem_hebrew">לכיוון קודש הקודשים</string>
     <string name="mizrach_distance_km">%1$d km away</string>
@@ -45,6 +47,8 @@
     <string name="mizrach_compass_caption_hebrew">החזק את הטלפון במאוזן או במאונך. המחט מצביעה לכיוון קודש הקודשים.</string>
     <string name="mizrach_compass_accuracy_low">Compass accuracy is low. Move the phone in a figure-eight and keep it away from magnets.</string>
     <string name="mizrach_compass_accuracy_low_hebrew">דיוק המצפן נמוך. הזז את הטלפון בצורת שמונה והרחק אותו ממגנטים.</string>
+    <string name="mizrach_compass_low_confidence">Compass reading is approximate right now.</string>
+    <string name="mizrach_compass_low_confidence_hebrew">קריאת המצפן משוערת כרגע.</string>
     <string name="mizrach_aligned">Facing Kodesh HaKodashim</string>
     <string name="mizrach_aligned_hebrew">מכוון לקודש הקודשים</string>
     <string name="mizrach_turn_left">Turn left</string>

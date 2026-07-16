@@ -45,4 +45,9 @@ class MizrachViewModel @Inject constructor(
     fun refreshCurrentLocation() {
         currentLocationRepository.refreshCurrentLocation()
     }
+
+    /** Drops the device fix (app policy: a location we can no longer obtain is not remembered). */
+    fun useJerusalemFallback() {
+        currentLocationRepository.useJerusalemFallback()
+    }
 }
