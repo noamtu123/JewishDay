@@ -41,6 +41,7 @@ class CurrentLocationRepository @Inject constructor(
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val mainHandler = Handler(Looper.getMainLooper())
     private val _currentLocation = MutableStateFlow<JewishLocation?>(null)
+    private var bestPublishedDeviceLocation: Location? = null
     private var activeLocationListener: LocationListener? = null
     private var activeTimeout: Runnable? = null
 
@@ -68,7 +69,7 @@ class CurrentLocationRepository @Inject constructor(
      * current location, so there's no visible label flip.
      */
     fun refreshCurrentLocation() {
-        bestLastKnownLocation()?.let { _currentLocation.value = it.toJewishLocation() }
+        bestLastKnownLocation()?.let(::publishDeviceLocationIfBetter)
         requestSingleUpdate()
     }
 
@@ -76,7 +77,11 @@ class CurrentLocationRepository @Inject constructor(
      * Drop any device fix so the app falls back to Jerusalem. Called when we can't get a location
      * (permission denied, or the location switch is off) — the app never remembers a past location.
      */
+    @Synchronized
     fun useJerusalemFallback() {
+        activeLocationListener?.let(::finishLocationRequest)
+        bestPublishedDeviceLocation = null
+        lastSuccessfulFreshLocationElapsed = 0L
         _currentLocation.value = null
     }
 
@@ -112,7 +117,13 @@ class CurrentLocationRepository @Inject constructor(
 
         return enabledProviders()
             .mapNotNull(locationManager::getLastKnownLocation)
-            .maxByOrNull(Location::getTime)
+            .reduceOrNull { best, candidate ->
+                if (isBetterLocationFix(candidate, best)) {
+                    candidate
+                } else {
+                    best
+                }
+            }
     }
 
     @SuppressLint("MissingPermission")
@@ -132,9 +143,7 @@ class CurrentLocationRepository @Inject constructor(
 
         val listener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
-                _currentLocation.value = location.toJewishLocation()
-                lastSuccessfulFreshLocationElapsed = SystemClock.elapsedRealtime()
-                finishLocationRequest(this)
+                acceptLocationUpdate(this, location)
             }
         }
         val timeout = Runnable { finishLocationRequest(listener) }
@@ -144,6 +153,30 @@ class CurrentLocationRepository @Inject constructor(
             locationManager.requestLocationUpdates(provider, 0L, 0f, listener, Looper.getMainLooper())
         }
         mainHandler.postDelayed(timeout, SingleUpdateTimeoutMillis)
+    }
+
+    @Synchronized
+    private fun publishDeviceLocationIfBetter(candidate: Location): Boolean {
+        val current = bestPublishedDeviceLocation
+        if (current != null && !isBetterLocationFix(candidate, current)) return false
+
+        bestPublishedDeviceLocation = Location(candidate)
+        _currentLocation.value = candidate.toJewishLocation()
+        return true
+    }
+
+    @Synchronized
+    private fun acceptLocationUpdate(listener: LocationListener, location: Location) {
+        // removeUpdates() cannot retract a callback that is already queued. Check identity while
+        // holding the same monitor as cancellation so an obsolete request cannot restore a fix.
+        if (activeLocationListener !== listener || !publishDeviceLocationIfBetter(location)) return
+        if (location.hasAccuracy() &&
+            location.accuracy.isFinite() &&
+            location.accuracy in 0f..AcceptableLocationAccuracyMeters
+        ) {
+            lastSuccessfulFreshLocationElapsed = SystemClock.elapsedRealtime()
+            finishLocationRequest(listener)
+        }
     }
 
     @Synchronized
@@ -163,8 +196,51 @@ class CurrentLocationRepository @Inject constructor(
         const val SingleUpdateTimeoutMillis = 30_000L
         const val FreshLocationRequestThrottleMillis = 5 * 60 * 1_000L
         const val AwaitLocationTimeoutMillis = 10_000L
+        const val AcceptableLocationAccuracyMeters = 5_000f
     }
 }
+
+private fun isBetterLocationFix(candidate: Location, current: Location): Boolean {
+    // Location.time follows the user-adjustable wall clock. Prefer the elapsed-realtime stamps so
+    // a clock correction cannot make every new live fix appear older than a cached one.
+    val candidateElapsedNanos = candidate.elapsedRealtimeNanos
+    val currentElapsedNanos = current.elapsedRealtimeNanos
+    val useElapsedTime = candidateElapsedNanos > 0L && currentElapsedNanos > 0L
+    return isBetterLocationFix(
+        candidateTimeMillis = if (useElapsedTime) candidateElapsedNanos / 1_000_000L else candidate.time,
+        candidateAccuracyMeters = candidate.accuracy.takeIf { candidate.hasAccuracy() },
+        currentTimeMillis = if (useElapsedTime) currentElapsedNanos / 1_000_000L else current.time,
+        currentAccuracyMeters = current.accuracy.takeIf { current.hasAccuracy() },
+    )
+}
+
+/**
+ * Accuracy-aware one-shot fix comparison adapted from Android's location guidance. A fix more than
+ * two minutes newer wins; one more than two minutes older loses. Within that window, prefer better
+ * accuracy, or a newer fix that is not dramatically less accurate.
+ */
+fun isBetterLocationFix(
+    candidateTimeMillis: Long,
+    candidateAccuracyMeters: Float?,
+    currentTimeMillis: Long,
+    currentAccuracyMeters: Float?,
+): Boolean {
+    val timeDelta = candidateTimeMillis - currentTimeMillis
+    if (timeDelta > SignificantLocationTimeDeltaMillis) return true
+    if (timeDelta < -SignificantLocationTimeDeltaMillis) return false
+
+    val candidateAccuracy = candidateAccuracyMeters
+        ?.takeIf { it.isFinite() && it >= 0f }
+        ?: Float.POSITIVE_INFINITY
+    val currentAccuracy = currentAccuracyMeters
+        ?.takeIf { it.isFinite() && it >= 0f }
+        ?: Float.POSITIVE_INFINITY
+    if (candidateAccuracy < currentAccuracy) return true
+    return timeDelta > 0L && candidateAccuracy <= currentAccuracy + MaximumAccuracyRegressionMeters
+}
+
+private const val SignificantLocationTimeDeltaMillis = 2 * 60 * 1_000L
+private const val MaximumAccuracyRegressionMeters = 200f
 
 fun Context.hasLocationPermission(): Boolean =
     ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
