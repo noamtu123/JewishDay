@@ -10,15 +10,15 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.IntentFilter
+import android.hardware.GeomagneticField
 import android.location.LocationManager
 import android.net.Uri
-import android.provider.Settings
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import android.hardware.GeomagneticField
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.provider.Settings
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -417,7 +417,7 @@ private fun CompassFace(
             // would point incorrectly and then jump. A device with no compass sensor keeps the
             // explicitly documented static-bearing fallback.
             val showNeedle = heading != null || !sensorState.sensorsAvailable
-            val live = heading != null && !sensorState.unreliable
+            val live = heading != null && !sensorState.hasLowAccuracy
             val relativeDirectionDegrees = heading?.let { targetDirectionOnScreen(bearingDegreesExact, it) }
                 ?: bearingDegreesExact
             val needleColor = when {
@@ -533,17 +533,14 @@ private data class CompassAlignment(
 
 /**
  * The accuracy message to show under the compass, as an English/Hebrew string-resource pair, or
- * null when the reading is healthy. One message at a time, straight from the platform's own
- * signals: the figure-eight hint exactly while Android reports low/unreliable accuracy, and a
- * soft "approximate" note while the fused source's own error estimate is high. No app-side
- * magnetic guessing.
+ * null when the reading is healthy. One message at a time: the figure-eight hint when Android
+ * reports degraded accuracy and a soft "approximate" note when the fused source's own error
+ * estimate is high.
  */
 private fun CompassSensorState.accuracyHint(): Pair<Int, Int>? = when {
     !sensorsAvailable ->
         R.string.mizrach_no_compass_sensor to R.string.mizrach_no_compass_sensor_hebrew
-    // Accuracy outranks "waiting": a long unreliable stretch invalidates the heading, and the
-    // actionable message then is the accuracy one, not "waiting for the compass sensor".
-    needsCalibration || unreliableStatus ->
+    needsCalibration ->
         R.string.mizrach_compass_accuracy_low to R.string.mizrach_compass_accuracy_low_hebrew
     headingDegrees == null ->
         R.string.mizrach_heading_unavailable to R.string.mizrach_heading_unavailable_hebrew
@@ -572,10 +569,10 @@ private fun rememberAlignmentState(
         derivedStateOf {
             val state = compassSensorState.value
             gate.update(
-                // Unreliable data (magnet nearby / OS says untrusted) gives no guidance at all:
-                // even a coarse turn direction can be wrong then.
+                // Android-reported degraded data gives no guidance at all: even a coarse turn
+                // direction can be wrong when a quality signal is degraded.
                 relativeDirectionDegrees = state.headingDegrees
-                    ?.takeUnless { state.unreliable }
+                    ?.takeUnless { state.hasLowAccuracy }
                     ?.let { heading -> targetDirectionOnScreen(bearingDegrees, heading) },
                 degraded = state.hasLowAccuracy,
             )
@@ -594,8 +591,8 @@ private fun rememberAlignmentState(
 @Composable
 private fun VibrateWhenAligned(aligned: Boolean) {
     val context = LocalContext.current
-    // Buzz on every genuine alignment entry; the gate's angular hysteresis (enter 5°, leave 8°)
-    // is what stops needle noise from re-firing this.
+    // Buzz on every genuine alignment entry. Angular hysteresis prevents sensor noise from
+    // repeatedly crossing the boundary.
     LaunchedEffect(aligned) {
         if (aligned) {
             val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {

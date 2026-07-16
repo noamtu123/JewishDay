@@ -38,6 +38,7 @@ class CompassHealthTest {
     fun noContactCountsAsUnreliable() {
         val quality = compassQuality(primaryStatus = -1, magnetometerStatus = null, headingErrorDegrees = Float.NaN)
         assertTrue(quality.unreliableStatus)
+        assertTrue(quality.needsCalibration)
     }
 
     @Test
@@ -59,10 +60,25 @@ class CompassHealthTest {
 
     @Test
     fun highHeadingErrorIsLowConfidenceNotACalibrationClaim() {
-        val quality = compassQuality(primaryStatus = 3, magnetometerStatus = 3, headingErrorDegrees = 60f)
+        val quality = compassQuality(primaryStatus = 3, magnetometerStatus = 3, headingErrorDegrees = 15f)
         assertTrue(quality.lowConfidence)
         assertFalse(quality.needsCalibration)
+        val boundary = compassQuality(
+            primaryStatus = 3,
+            magnetometerStatus = 3,
+            headingErrorDegrees = LowConfidenceHeadingErrorDegrees,
+        )
+        assertFalse(boundary.lowConfidence)
         val unknownError = compassQuality(primaryStatus = 3, magnetometerStatus = 3, headingErrorDegrees = Float.NaN)
         assertFalse(unknownError.lowConfidence)
+    }
+
+    @Test
+    fun rawFallbackRequiresBothVectorsToBeFresh() {
+        val now = 2_000_000_000L
+        assertTrue(sensorPairIsFresh(now, 1_500_000_000L, 1_900_000_000L, 1_000_000_000L))
+        assertFalse(sensorPairIsFresh(now, 0L, 1_900_000_000L, 1_000_000_000L))
+        assertFalse(sensorPairIsFresh(now, 500_000_000L, 1_900_000_000L, 1_000_000_000L))
+        assertFalse(sensorPairIsFresh(now, 2_100_000_000L, 1_900_000_000L, 1_000_000_000L))
     }
 }

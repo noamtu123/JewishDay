@@ -152,6 +152,8 @@ class CompassMathTest {
     @Test
     fun finiteVectorGuardCatchesEveryComponent() {
         assertTrue(isFiniteVector(floatArrayOf(0f, -9.8f, 3.2f)))
+        assertTrue(!isFiniteVector(floatArrayOf(1f, 2f)))
+        assertTrue(!isFiniteVector(floatArrayOf(1f), count = -1))
         for (index in 0..2) {
             for (bad in floatArrayOf(Float.NaN, Float.POSITIVE_INFINITY, Float.NEGATIVE_INFINITY)) {
                 val values = floatArrayOf(1f, 2f, 3f)
@@ -347,8 +349,16 @@ class CompassMathTest {
     fun gateNeverClaimsAlignmentWhileDegraded() {
         val gate = AlignmentGate()
         assertNull(gate.update(0f, degraded = true)) // pointing at it, but not trustworthy
-        assertEquals(AlignmentDirection.TurnRight, gate.update(90f, degraded = true)) // coarse hints stay
+        assertNull(gate.update(90f, degraded = true)) // no directional claim while degraded
         assertEquals(AlignmentDirection.Aligned, gate.update(0f, degraded = false)) // recovery
+    }
+
+    @Test
+    fun degradedInputIsIdempotentInsideTheHysteresisBand() {
+        val gate = AlignmentGate(enterDegrees = 5f, exitDegrees = 8f)
+        assertEquals(AlignmentDirection.Aligned, gate.update(4f, degraded = false))
+        assertNull(gate.update(6.5f, degraded = true))
+        assertNull(gate.update(6.5f, degraded = true))
     }
 
     @Test
