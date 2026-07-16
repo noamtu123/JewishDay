@@ -5,14 +5,9 @@ package com.noamtu.jewishday.model
 /**
  * Pure, testable quality reduction for the prayer compass.
  *
- * Only *objective platform signals* are used — the sensor accuracy status Android reports and
- * the fused source's own heading-error estimate. There is deliberately no app-side magnetic
- * field heuristic: a magnet's effect on the calibrated magnetometer is indistinguishable from
- * ordinary environment distortion and from the OS re-learning its calibration (a magnet placed
- * directly on the phone gets absorbed into the calibration and then "reappears" after removal),
- * so any magnitude-based detector either cries wolf or gets stuck. When something magnetic
- * genuinely degrades the compass, the platform reports low accuracy and the figure-eight hint
- * covers it.
+ * Only objective platform signals are used: Android's sensor accuracy status and the fused
+ * source's own heading-error estimate. Magnetic conditions are left to Android's calibration and
+ * accuracy reporting rather than inferred from raw field magnitude.
  */
 
 // SensorManager.SENSOR_STATUS_* values (stable public API constants), mirrored here so this
@@ -20,11 +15,11 @@ package com.noamtu.jewishday.model
 const val SensorStatusUnreliable = 0
 const val SensorStatusAccuracyLow = 1
 
-/** Fused heading error (values[4]) above this suppresses confident alignment claims. */
-const val LowConfidenceHeadingErrorDegrees = 45f
+/** Fused heading error (values[4]) above this suppresses directional guidance and alignment. */
+const val LowConfidenceHeadingErrorDegrees = 10f
 
 data class CompassQuality(
-    /** The platform reports the sensor wants recalibration (the figure-eight hint is honest). */
+    /** Android reports degraded accuracy, so show the figure-eight calibration hint. */
     val needsCalibration: Boolean,
     /** The platform says the data cannot be trusted at all — no directional claims. */
     val unreliableStatus: Boolean,
@@ -56,3 +51,14 @@ fun compassQuality(
             headingErrorDegrees > LowConfidenceHeadingErrorDegrees,
     )
 }
+
+/** Both vectors used by the raw fallback must be present and recent in one elapsed-time domain. */
+fun sensorPairIsFresh(
+    nowNanos: Long,
+    firstSampleNanos: Long,
+    secondSampleNanos: Long,
+    maxAgeNanos: Long,
+): Boolean = firstSampleNanos > 0L && secondSampleNanos > 0L &&
+    nowNanos >= firstSampleNanos && nowNanos >= secondSampleNanos &&
+    nowNanos - firstSampleNanos <= maxAgeNanos &&
+    nowNanos - secondSampleNanos <= maxAgeNanos

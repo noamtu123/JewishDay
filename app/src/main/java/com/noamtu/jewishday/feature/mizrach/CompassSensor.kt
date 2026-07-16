@@ -36,12 +36,12 @@ import com.noamtu.jewishday.model.angularDistanceDegrees
 import com.noamtu.jewishday.model.compassQuality
 import com.noamtu.jewishday.model.isFiniteVector
 import com.noamtu.jewishday.model.screenRelativeHeadingDegrees
+import com.noamtu.jewishday.model.sensorPairIsFresh
 import com.noamtu.jewishday.model.trueHeadingDegrees
 
 /**
  * Screen-relative *true* heading (declination-corrected, display-rotation-corrected, filtered),
- * plus honest signals about why the reading might not be trustworthy right now. All quality
- * flags come straight from the platform — no app-side magnetic heuristics.
+ * plus Android's quality signals about why the reading might not be trustworthy right now.
  */
 data class CompassSensorState(
     val headingDegrees: Float? = null,
@@ -67,7 +67,7 @@ data class CompassSensorState(
  * Source preference: the fused TYPE_ROTATION_VECTOR (gyro+accel+mag — tilt-compensated, gyro
  * stabilized, hardware calibrated), then TYPE_GEOMAGNETIC_ROTATION_VECTOR, then a manual
  * accelerometer+magnetometer fusion as the last resort. The magnetometer is additionally sampled
- * at a slow rate purely for its OS accuracy status, which drives the calibration hint.
+ * at a slow rate for its Android accuracy status.
  *
  * Declination is read through [rememberUpdatedState], so a location refinement mid-session
  * adjusts the heading smoothly instead of tearing the sensors down and re-seeding the filter.
@@ -132,6 +132,9 @@ fun rememberCompassSensorState(
             if (!enabled) stateHolder.value = CompassSensorState()
             onDispose { }
         } else {
+            // A new lifecycle/display generation has no current heading yet. Never expose the
+            // previous controller's orientation as live while waiting for its first event.
+            stateHolder.value = CompassSensorState()
             val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
             val controller = CompassSensorController(
                 sensorManager = sensorManager,
@@ -171,13 +174,30 @@ private class CompassSensorController(
     private var hasGravity = false
     private var hasGeomagnetic = false
     private var usingRotationVector = false
+    private var rawFallbackActive = false
     private var hasMagnetometer = false
 
     private val filter = HeadingFilter()
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val staleTimeout = Runnable { invalidateHeading() }
+    private val staleTimeout = Runnable { invalidateHeading(clearQuality = true) }
+    private val sourceFailoverTimeout = Runnable { failoverToNextSource() }
+    private val sourceRetryTimeout = Runnable { retrySources() }
+    private val initialQualityTimeout = Runnable {
+        waitingForInitialMagnetometerStatus = false
+        publish()
+    }
     private var requiredStrength = CompassMinimumHorizontalStrength
     private var lastUsableHeadingNanos = 0L
+    private var gravitySampleNanos = 0L
+    private var geomagneticSampleNanos = 0L
+    private var fusedCandidates: List<Sensor> = emptyList()
+    private var nextFusedCandidateIndex = 0
+    private var accelerometerSensor: Sensor? = null
+    private var magnetometerSensor: Sensor? = null
+    private var activeFusedSensor: Sensor? = null
+    private var rawFallbackAttempted = false
+    private var waitingForInitialMagnetometerStatus = false
+    private var stopped = false
 
     // null = the platform has made no claim yet. Read from every event, not only
     // onAccuracyChanged: the framework fires that callback only on *changes* against a cache
@@ -194,45 +214,127 @@ private class CompassSensorController(
     fun start(): Boolean {
         // registerListener can fail even when the sensor object exists; try each fused source,
         // then the accel+mag pair, rather than waiting forever for events that never come.
-        val fusedCandidates = listOfNotNull(
+        fusedCandidates = listOfNotNull(
             sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
             sensorManager.getDefaultSensor(Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR),
         )
-        val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        val magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
-
-        usingRotationVector = fusedCandidates.any {
-            sensorManager.registerListener(this, it, HeadingSamplingPeriodMicros)
-        }
-        if (!usingRotationVector) {
-            val fallbackRegistered = accelerometer != null && magnetometer != null &&
-                sensorManager.registerListener(this, accelerometer, HeadingSamplingPeriodMicros) &&
-                sensorManager.registerListener(this, magnetometer, HeadingSamplingPeriodMicros)
-            if (!fallbackRegistered) {
-                stop()
-                return false
-            }
-            hasMagnetometer = true
-        } else {
-            // Calibration-status monitor only; optional if it fails.
-            hasMagnetometer = magnetometer != null &&
-                sensorManager.registerListener(this, magnetometer, MonitorSamplingPeriodMicros)
-        }
-        // If no event ever arrives (or the stream dies), don't leave a stale needle on screen.
-        mainHandler.postDelayed(staleTimeout, StaleHeadingTimeoutMillis)
-        return true
+        accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        magnetometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+        stopped = false
+        return startNextSource()
     }
 
     fun stop() {
+        stopped = true
         mainHandler.removeCallbacks(staleTimeout)
+        mainHandler.removeCallbacks(sourceFailoverTimeout)
+        mainHandler.removeCallbacks(sourceRetryTimeout)
+        mainHandler.removeCallbacks(initialQualityTimeout)
         sensorManager.unregisterListener(this)
     }
 
+    private fun startNextSource(): Boolean {
+        mainHandler.removeCallbacks(staleTimeout)
+        mainHandler.removeCallbacks(sourceFailoverTimeout)
+        mainHandler.removeCallbacks(sourceRetryTimeout)
+        mainHandler.removeCallbacks(initialQualityTimeout)
+        sensorManager.unregisterListener(this)
+        resetSourceState()
+
+        while (nextFusedCandidateIndex < fusedCandidates.size) {
+            val candidate = fusedCandidates[nextFusedCandidateIndex++]
+            if (sensorManager.registerListener(this, candidate, HeadingSamplingPeriodMicros)) {
+                usingRotationVector = true
+                activeFusedSensor = candidate
+                hasMagnetometer = magnetometerSensor?.let {
+                    sensorManager.registerListener(this, it, MonitorSamplingPeriodMicros)
+                } == true
+                if (hasMagnetometer) {
+                    waitingForInitialMagnetometerStatus = true
+                    mainHandler.postDelayed(initialQualityTimeout, InitialQualityWaitMillis)
+                }
+                armSourceTimeouts()
+                return true
+            }
+        }
+
+        if (rawFallbackAttempted) return false
+        rawFallbackAttempted = true
+        val accelerometer = accelerometerSensor ?: return false
+        val magnetometer = magnetometerSensor ?: return false
+        val accelerometerRegistered =
+            sensorManager.registerListener(this, accelerometer, HeadingSamplingPeriodMicros)
+        val magnetometerRegistered = accelerometerRegistered &&
+            sensorManager.registerListener(this, magnetometer, HeadingSamplingPeriodMicros)
+        if (!magnetometerRegistered) {
+            sensorManager.unregisterListener(this)
+            return false
+        }
+        usingRotationVector = false
+        rawFallbackActive = true
+        hasMagnetometer = true
+        armSourceTimeouts()
+        return true
+    }
+
+    private fun resetSourceState() {
+        usingRotationVector = false
+        rawFallbackActive = false
+        hasMagnetometer = false
+        activeFusedSensor = null
+        hasGravity = false
+        hasGeomagnetic = false
+        gravitySampleNanos = 0L
+        geomagneticSampleNanos = 0L
+        fusedStatus = null
+        magnetometerStatus = null
+        magnetometerStatusNanos = 0L
+        headingAccuracyDegrees = Float.NaN
+        requiredStrength = CompassMinimumHorizontalStrength
+        lastUsableHeadingNanos = 0L
+        waitingForInitialMagnetometerStatus = false
+        filter.reset()
+        published = CompassSensorState()
+        onState(published)
+    }
+
+    private fun armSourceTimeouts() {
+        mainHandler.postDelayed(staleTimeout, StaleHeadingTimeoutMillis)
+        mainHandler.postDelayed(sourceFailoverTimeout, SourceFailoverTimeoutMillis)
+    }
+
+    private fun noteHeadingSourceEvent() {
+        mainHandler.removeCallbacks(sourceFailoverTimeout)
+        mainHandler.postDelayed(sourceFailoverTimeout, SourceFailoverTimeoutMillis)
+    }
+
+    private fun failoverToNextSource() {
+        if (stopped) return
+        if (!startNextSource()) {
+            // At least one source registered earlier in this cycle, so this is a runtime failure,
+            // not proof that the device lacks compass hardware. Stay unavailable and retry.
+            mainHandler.postDelayed(sourceRetryTimeout, SourceRetryTimeoutMillis)
+        }
+    }
+
+    private fun retrySources() {
+        if (stopped) return
+        nextFusedCandidateIndex = 0
+        rawFallbackAttempted = false
+        if (!startNextSource()) {
+            mainHandler.postDelayed(sourceRetryTimeout, SourceRetryTimeoutMillis)
+        }
+    }
+
     override fun onSensorChanged(event: SensorEvent) {
+        if (stopped) return
         when (event.sensor.type) {
             Sensor.TYPE_ROTATION_VECTOR,
             Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR,
             -> {
+                if (event.sensor !== activeFusedSensor) return
+                val vectorLength = minOf(event.values.size, 4)
+                if (vectorLength < 3 || !isFiniteVector(event.values, vectorLength)) return
                 // Some devices deliver 5 values; getRotationMatrixFromVector accepts only 3 or 4.
                 if (event.values.size >= 4) {
                     event.values.copyInto(rotationVector4, endIndex = 4)
@@ -242,56 +344,72 @@ private class CompassSensorController(
                 }
                 // values[4] is the OS's own estimated heading error in radians (-1 = unknown).
                 headingAccuracyDegrees = event.values.getOrNull(4)
-                    ?.takeIf { it >= 0f }
+                    ?.takeIf { it.isFinite() && it >= 0f }
                     ?.let { Math.toDegrees(it.toDouble()).toFloat() }
                     ?: Float.NaN
                 fusedStatus = event.accuracy
                 updateHeading(event.timestamp)
             }
             Sensor.TYPE_ACCELEROMETER -> {
-                if (usingRotationVector || !isFiniteVector(event.values)) return
+                if (!rawFallbackActive || !isFiniteVector(event.values)) return
                 lowPassInto(event.values, gravity, seeded = hasGravity)
                 hasGravity = true
-                if (hasGeomagnetic &&
+                gravitySampleNanos = SystemClock.elapsedRealtimeNanos()
+                if (hasGeomagnetic && fallbackVectorsFresh(gravitySampleNanos) &&
                     SensorManager.getRotationMatrix(rotationMatrix, null, gravity, geomagnetic)
                 ) {
                     updateHeading(event.timestamp)
                 }
             }
             Sensor.TYPE_MAGNETIC_FIELD -> {
+                if (!hasMagnetometer) return
                 magnetometerStatus = event.accuracy
-                magnetometerStatusNanos = SystemClock.elapsedRealtimeNanos()
+                val nowNanos = SystemClock.elapsedRealtimeNanos()
+                magnetometerStatusNanos = nowNanos
+                noteInitialMagnetometerStatus()
                 if (!usingRotationVector) {
-                    if (!isFiniteVector(event.values)) return
+                    if (!isFiniteVector(event.values)) {
+                        publishQualityOnly()
+                        return
+                    }
                     lowPassInto(event.values, geomagnetic, seeded = hasGeomagnetic)
                     hasGeomagnetic = true
-                    if (hasGravity &&
+                    geomagneticSampleNanos = nowNanos
+                    if (hasGravity && fallbackVectorsFresh(nowNanos) &&
                         SensorManager.getRotationMatrix(rotationMatrix, null, gravity, geomagnetic)
                     ) {
                         updateHeading(event.timestamp)
+                    } else {
+                        publishQualityOnly()
                     }
                 } else {
-                    publish()
+                    publishQualityOnly()
                 }
             }
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+        if (stopped) return
         when (sensor?.type) {
             Sensor.TYPE_MAGNETIC_FIELD -> {
                 magnetometerStatus = accuracy
                 magnetometerStatusNanos = SystemClock.elapsedRealtimeNanos()
+                noteInitialMagnetometerStatus()
             }
             Sensor.TYPE_ROTATION_VECTOR,
             Sensor.TYPE_GEOMAGNETIC_ROTATION_VECTOR,
-            -> fusedStatus = accuracy
+            -> {
+                if (sensor !== activeFusedSensor) return
+                fusedStatus = accuracy
+            }
             else -> return
         }
-        publish()
+        publishQualityOnly()
     }
 
     private fun updateHeading(timestampNanos: Long) {
+        noteHeadingSourceEvent()
         // Heading events are flowing again; push the no-data deadline out.
         mainHandler.removeCallbacks(staleTimeout)
         mainHandler.postDelayed(staleTimeout, StaleHeadingTimeoutMillis)
@@ -303,10 +421,9 @@ private class CompassSensorController(
         requiredStrength =
             if (magnetic != null) CompassMinimumHorizontalStrength else CompassRecoverHorizontalStrength
 
-        // The needle always tracks the sensor — even while the platform flags the data as
-        // unreliable (a frozen needle reads as broken). Quality drives only the message, the
-        // dimming, and alignment/haptic eligibility; when a disturbance ends, the fused sensor
-        // recovers by itself and the filter follows.
+        val quality = currentQuality()
+        // Keep tracking degraded Android readings so the user still has a faded directional
+        // reference. Quality suppresses alignment and turn claims; it does not hide the needle.
         if (magnetic != null && declination.isFinite()) {
             lastUsableHeadingNanos = timestampNanos
             filter.filter(trueHeadingDegrees(magnetic, declination), timestampNanos)
@@ -316,31 +433,47 @@ private class CompassSensorController(
             if (lastUsableHeadingNanos != 0L &&
                 timestampNanos - lastUsableHeadingNanos > DegenerateHoldNanos
             ) {
-                invalidateHeading()
+                invalidateHeading(clearQuality = false)
                 return
             }
         }
-        publish()
+        publish(quality = quality)
     }
 
-    /** Drops the heading (keeping health flags) so the next valid sample re-seeds instantly. */
-    private fun invalidateHeading() {
+    /** Drops the heading so the next valid sample re-seeds instantly. */
+    private fun invalidateHeading(clearQuality: Boolean) {
         filter.reset()
-        published = published.copy(headingDegrees = null)
-        onState(published)
+        if (clearQuality) {
+            fusedStatus = null
+            if (!usingRotationVector) magnetometerStatus = null
+        }
+        val quality = if (clearQuality) {
+            compassQuality(null, null, Float.NaN)
+        } else {
+            currentQuality()
+        }
+        publish(quality = quality, forceHeadingNull = true)
     }
 
-    private fun publish() {
+    private fun publishQualityOnly() {
+        val quality = currentQuality()
+        publish(quality = quality)
+    }
+
+    private fun publish(
+        quality: CompassQuality = currentQuality(),
+        forceHeadingNull: Boolean = false,
+    ) {
         val filtered = filter.current
         val previousHeading = published.headingDegrees
         // Skip sub-visible needle movement so a resting compass doesn't redraw at sensor rate.
         val heading = when {
+            forceHeadingNull || waitingForInitialMagnetometerStatus -> null
             filtered == null -> previousHeading
             previousHeading == null -> filtered
             angularDistanceDegrees(filtered, previousHeading) < PublishThresholdDegrees -> previousHeading
             else -> filtered
         }
-        val quality = currentQuality()
         val state = CompassSensorState(
             headingDegrees = heading,
             sensorsAvailable = true,
@@ -360,9 +493,10 @@ private class CompassSensorController(
      * calibration warning while healthy fused events keep flowing (unknown makes no claim).
      */
     private fun currentQuality(): CompassQuality {
+        val nowNanos = SystemClock.elapsedRealtimeNanos()
         val freshMagnetometerStatus = magnetometerStatus.takeIf {
             hasMagnetometer &&
-                SystemClock.elapsedRealtimeNanos() - magnetometerStatusNanos <= MagnetometerStatusFreshnessNanos
+                nowNanos - magnetometerStatusNanos <= MagnetometerStatusFreshnessNanos
         }
         return compassQuality(
             primaryStatus = if (usingRotationVector) fusedStatus else freshMagnetometerStatus,
@@ -370,6 +504,20 @@ private class CompassSensorController(
             headingErrorDegrees = headingAccuracyDegrees,
         )
     }
+
+    private fun noteInitialMagnetometerStatus() {
+        if (!waitingForInitialMagnetometerStatus) return
+        waitingForInitialMagnetometerStatus = false
+        mainHandler.removeCallbacks(initialQualityTimeout)
+    }
+
+    private fun fallbackVectorsFresh(nowNanos: Long): Boolean =
+        sensorPairIsFresh(
+            nowNanos = nowNanos,
+            firstSampleNanos = gravitySampleNanos,
+            secondSampleNanos = geomagneticSampleNanos,
+            maxAgeNanos = FallbackVectorFreshnessNanos,
+        )
 
     private fun lowPassInto(values: FloatArray, output: FloatArray, seeded: Boolean) {
         // Re-seed on the first sample — or if the stored vector somehow went non-finite, since
@@ -399,10 +547,14 @@ private class CompassSensorController(
          * needle must not keep claiming a direction.
          */
         const val StaleHeadingTimeoutMillis = 1_000L
+        const val SourceFailoverTimeoutMillis = 2_000L
+        const val SourceRetryTimeoutMillis = 5_000L
+        const val InitialQualityWaitMillis = 500L
         const val DegenerateHoldNanos = 1_000_000_000L
 
         /** ~15 monitor periods at 5 Hz; a status older than this is treated as unknown. */
         const val MagnetometerStatusFreshnessNanos = 3_000_000_000L
+        const val FallbackVectorFreshnessNanos = 1_000_000_000L
 
         /** Mild pre-smoothing for the raw accel/mag fallback; HeadingFilter does the real work. */
         const val FallbackVectorAlpha = 0.5f

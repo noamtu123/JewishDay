@@ -34,6 +34,7 @@ fun trueHeadingDegrees(magneticHeadingDegrees: Float, declinationDegrees: Float)
  * (`x + (NaN - x) * a` is NaN, and every later sample keeps it NaN).
  */
 fun isFiniteVector(values: FloatArray, count: Int = 3): Boolean {
+    if (count < 0 || values.size < count) return false
     for (index in 0 until count) {
         if (!values[index].isFinite()) return false
     }
@@ -239,8 +240,8 @@ enum class AlignmentDirection { Aligned, TurnRight, TurnLeft }
  * Turns the on-screen target direction into user guidance, with hysteresis: alignment engages
  * within [enterDegrees] but persists to [exitDegrees], so filtered noise at the boundary cannot
  * toggle the aligned state (and re-fire its haptic). Returns null — no directional claim at all —
- * when there is no usable heading, or when the reading is degraded while pointing at the target
- * (a degraded compass must not confidently announce alignment).
+ * when there is no usable heading or the reading is degraded (a degraded compass must not make
+ * even a coarse directional claim).
  */
 class AlignmentGate(
     private val enterDegrees: Float = 5f,
@@ -249,15 +250,15 @@ class AlignmentGate(
     private var aligned = false
 
     fun update(relativeDirectionDegrees: Float?, degraded: Boolean): AlignmentDirection? {
-        if (relativeDirectionDegrees == null) {
+        if (relativeDirectionDegrees == null || degraded) {
             aligned = false
             return null
         }
         val difference = angularDistanceDegrees(relativeDirectionDegrees, 0f)
         val threshold = if (aligned) exitDegrees else enterDegrees
         if (difference <= threshold) {
-            aligned = !degraded
-            return if (degraded) null else AlignmentDirection.Aligned
+            aligned = true
+            return AlignmentDirection.Aligned
         }
         aligned = false
         return if (normalizeDegrees(relativeDirectionDegrees) <= 180f) {
