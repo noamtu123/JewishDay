@@ -25,12 +25,34 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withTimeoutOrNull
+
+data class CurrentLocationFix(
+    val location: JewishLocation,
+    val horizontalAccuracyMeters: Float?,
+    val elapsedRealtimeNanos: Long,
+    val wallTimeMillis: Long,
+    val hasPrecisePermission: Boolean,
+) {
+    fun ageMillis(nowElapsedRealtimeNanos: Long, nowWallTimeMillis: Long): Long =
+        if (elapsedRealtimeNanos > 0L && nowElapsedRealtimeNanos >= elapsedRealtimeNanos) {
+            (nowElapsedRealtimeNanos - elapsedRealtimeNanos) / 1_000_000L
+        } else {
+            (nowWallTimeMillis - wallTimeMillis).coerceAtLeast(0L)
+        }
+}
+
+data class CurrentLocationState(
+    val location: JewishLocation? = null,
+    /** Null for fallbacks and developer overrides, which cannot authorize live alignment. */
+    val compassFix: CurrentLocationFix? = null,
+    val isDeveloperOverride: Boolean = false,
+)
 
 @Singleton
 class CurrentLocationRepository @Inject constructor(
@@ -40,7 +62,7 @@ class CurrentLocationRepository @Inject constructor(
 ) {
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val _currentLocation = MutableStateFlow<JewishLocation?>(null)
+    private val _currentLocationFix = MutableStateFlow<CurrentLocationFix?>(null)
     private var bestPublishedDeviceLocation: Location? = null
     private var activeLocationListener: LocationListener? = null
     private var activeTimeout: Runnable? = null
@@ -53,13 +75,27 @@ class CurrentLocationRepository @Inject constructor(
     // The location seen by the rest of the app: the developer-pinned location when one is set,
     // otherwise the real device location. Centralizing it here means both ViewModels and the
     // status-icon service honor the override without changes.
-    val currentLocation: StateFlow<JewishLocation?> =
-        combine(developerOverrides.state, _currentLocation) { overrides, deviceLocation ->
-            overrides.overrideLocation ?: deviceLocation
+    val currentLocationState: StateFlow<CurrentLocationState> =
+        combine(developerOverrides.state, _currentLocationFix) { overrides, deviceFix ->
+            val override = overrides.overrideLocation
+            if (override != null) {
+                CurrentLocationState(location = override, isDeveloperOverride = true)
+            } else {
+                CurrentLocationState(location = deviceFix?.location, compassFix = deviceFix)
+            }
         }.stateIn(
             scope = appScope,
             started = SharingStarted.Eagerly,
-            initialValue = developerOverrides.overrideLocation ?: _currentLocation.value,
+            initialValue = developerOverrides.overrideLocation?.let { CurrentLocationState(location = it) }
+                ?: CurrentLocationState(),
+        )
+
+    val currentLocation: StateFlow<JewishLocation?> = currentLocationState
+        .map { it.location }
+        .stateIn(
+            scope = appScope,
+            started = SharingStarted.Eagerly,
+            initialValue = currentLocationState.value.location,
         )
 
     /**
@@ -68,9 +104,9 @@ class CurrentLocationRepository @Inject constructor(
      * old position is fine for zmanim) and a fresh fix is then requested to refine it. Both are your
      * current location, so there's no visible label flip.
      */
-    fun refreshCurrentLocation() {
+    fun refreshCurrentLocation(force: Boolean = false) {
         bestLastKnownLocation()?.let(::publishDeviceLocationIfBetter)
-        requestSingleUpdate()
+        requestSingleUpdate(force)
     }
 
     /**
@@ -82,7 +118,7 @@ class CurrentLocationRepository @Inject constructor(
         activeLocationListener?.let(::finishLocationRequest)
         bestPublishedDeviceLocation = null
         lastSuccessfulFreshLocationElapsed = 0L
-        _currentLocation.value = null
+        _currentLocationFix.value = null
     }
 
     fun currentLocationOrDefault(): JewishLocation =
@@ -128,12 +164,12 @@ class CurrentLocationRepository @Inject constructor(
 
     @SuppressLint("MissingPermission")
     @Synchronized
-    private fun requestSingleUpdate() {
+    private fun requestSingleUpdate(force: Boolean) {
         if (!context.hasLocationPermission()) return
         val now = SystemClock.elapsedRealtime()
         if (activeLocationListener != null) return
-        if (
-            _currentLocation.value != null &&
+        if (!force &&
+            _currentLocationFix.value != null &&
             lastSuccessfulFreshLocationElapsed > 0L &&
             now - lastSuccessfulFreshLocationElapsed < FreshLocationRequestThrottleMillis
         ) return
@@ -161,7 +197,7 @@ class CurrentLocationRepository @Inject constructor(
         if (current != null && !isBetterLocationFix(candidate, current)) return false
 
         bestPublishedDeviceLocation = Location(candidate)
-        _currentLocation.value = candidate.toJewishLocation()
+        _currentLocationFix.value = candidate.toCurrentLocationFix(context.hasFineLocationPermission())
         return true
     }
 
@@ -170,9 +206,14 @@ class CurrentLocationRepository @Inject constructor(
         // removeUpdates() cannot retract a callback that is already queued. Check identity while
         // holding the same monitor as cancellation so an obsolete request cannot restore a fix.
         if (activeLocationListener !== listener || !publishDeviceLocationIfBetter(location)) return
+        val completionAccuracyMeters = if (context.hasFineLocationPermission()) {
+            AcceptablePreciseLocationAccuracyMeters
+        } else {
+            AcceptableCoarseLocationAccuracyMeters
+        }
         if (location.hasAccuracy() &&
             location.accuracy.isFinite() &&
-            location.accuracy in 0f..AcceptableLocationAccuracyMeters
+            location.accuracy in 0f..completionAccuracyMeters
         ) {
             lastSuccessfulFreshLocationElapsed = SystemClock.elapsedRealtime()
             finishLocationRequest(listener)
@@ -196,7 +237,8 @@ class CurrentLocationRepository @Inject constructor(
         const val SingleUpdateTimeoutMillis = 30_000L
         const val FreshLocationRequestThrottleMillis = 5 * 60 * 1_000L
         const val AwaitLocationTimeoutMillis = 10_000L
-        const val AcceptableLocationAccuracyMeters = 5_000f
+        const val AcceptablePreciseLocationAccuracyMeters = 100f
+        const val AcceptableCoarseLocationAccuracyMeters = 5_000f
     }
 }
 
@@ -246,6 +288,9 @@ fun Context.hasLocationPermission(): Boolean =
     ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
+fun Context.hasFineLocationPermission(): Boolean =
+    ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
 /**
  * Whether the device's location toggle is on. Permission can be granted while the system location
  * switch is off, in which case no fix will ever arrive and the caller should prompt the user to
@@ -284,4 +329,12 @@ fun Location.toJewishLocation(name: String = CurrentLocationName): JewishLocatio
     longitude = longitude,
     elevationMeters = if (hasAltitude()) altitude else 0.0,
     zoneId = ZoneId.systemDefault(),
+)
+
+private fun Location.toCurrentLocationFix(hasPrecisePermission: Boolean): CurrentLocationFix = CurrentLocationFix(
+    location = toJewishLocation(),
+    horizontalAccuracyMeters = accuracy.takeIf { hasAccuracy() && it.isFinite() && it >= 0f },
+    elapsedRealtimeNanos = elapsedRealtimeNanos,
+    wallTimeMillis = time,
+    hasPrecisePermission = hasPrecisePermission,
 )
