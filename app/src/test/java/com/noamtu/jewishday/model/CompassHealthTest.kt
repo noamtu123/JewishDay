@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.model
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -80,5 +81,35 @@ class CompassHealthTest {
         assertFalse(sensorPairIsFresh(now, 0L, 1_900_000_000L, 1_000_000_000L))
         assertFalse(sensorPairIsFresh(now, 500_000_000L, 1_900_000_000L, 1_000_000_000L))
         assertFalse(sensorPairIsFresh(now, 2_100_000_000L, 1_900_000_000L, 1_000_000_000L))
+        assertFalse(
+            sensorPairIsFresh(
+                nowNanos = now,
+                firstSampleNanos = 1_500_000_000L,
+                secondSampleNanos = 1_900_000_000L,
+                maxAgeNanos = 1_000_000_000L,
+                maxSkewNanos = 200_000_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun sensorEventsMustBelongToTheCurrentGenerationAndArriveFresh() {
+        val now = 2_000_000_000L
+        assertTrue(sensorEventIsCurrent(now, 1_900_000_000L, 1_000_000_000L, 1_800_000_000L, 500_000_000L))
+        assertFalse(sensorEventIsCurrent(now, 900_000_000L, 1_000_000_000L, 0L, 2_000_000_000L))
+        assertFalse(sensorEventIsCurrent(now, 1_800_000_000L, 1_000_000_000L, 1_800_000_000L, 500_000_000L))
+        assertFalse(sensorEventIsCurrent(now, 1_000_000_000L, 500_000_000L, 0L, 500_000_000L))
+        assertFalse(sensorEventIsCurrent(now, 2_100_000_000L, 1_000_000_000L, 0L, 500_000_000L))
+    }
+
+    @Test
+    fun sensorStatusLabelsCoverEveryPlatformValue() {
+        assertEquals("—", sensorStatusLabel(null))
+        assertEquals("No contact (-1)", sensorStatusLabel(SensorStatusNoContact))
+        assertEquals("Unreliable (0)", sensorStatusLabel(SensorStatusUnreliable))
+        assertEquals("Low (1)", sensorStatusLabel(SensorStatusAccuracyLow))
+        assertEquals("Medium (2)", sensorStatusLabel(SensorStatusAccuracyMedium))
+        assertEquals("High (3)", sensorStatusLabel(SensorStatusAccuracyHigh))
+        assertEquals("Unknown (7)", sensorStatusLabel(7))
     }
 }

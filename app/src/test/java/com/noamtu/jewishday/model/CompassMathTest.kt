@@ -274,6 +274,18 @@ class CompassMathTest {
     }
 
     @Test
+    fun disagreeingOutliersDoNotReseedTheFilter() {
+        val filter = HeadingFilter()
+        var timestamp = 0L
+        filter.filter(100f, timestamp)
+        for (measurement in floatArrayOf(260f, 180f, 260f, 180f)) {
+            timestamp += StepNanos
+            filter.filter(measurement, timestamp)
+        }
+        assertEquals(100f, filter.current!!, 1e-3f)
+    }
+
+    @Test
     fun filterTracksFastRotationWithSmallLag() {
         val filter = HeadingFilter()
         var t = 0L

@@ -31,6 +31,16 @@
     <string name="mizrach_allow_location_hebrew">אפשר מיקום</string>
     <string name="mizrach_waiting_location">Waiting for current location…</string>
     <string name="mizrach_waiting_location_hebrew">ממתין למיקום הנוכחי…</string>
+    <string name="mizrach_location_accuracy_low">Location accuracy is too low for confident alignment. Try again for a better fix.</string>
+    <string name="mizrach_location_accuracy_low_hebrew">דיוק המיקום נמוך מדי לכיוון ודאי. נסה שוב לקבלת מיקום מדויק יותר.</string>
+    <string name="mizrach_precise_location_required">Precise location is required for confident alignment.</string>
+    <string name="mizrach_precise_location_required_hebrew">נדרש מיקום מדויק לכיוון ודאי.</string>
+    <string name="mizrach_allow_precise_location">Allow precise location</string>
+    <string name="mizrach_allow_precise_location_hebrew">אפשר מיקום מדויק</string>
+    <string name="mizrach_developer_location_compass">Live alignment is disabled while using a developer location override.</string>
+    <string name="mizrach_developer_location_compass_hebrew">הכיוון החי מושבת בעת שימוש במיקום מפתחים חלופי.</string>
+    <string name="mizrach_retry_location">Try location again</string>
+    <string name="mizrach_retry_location_hebrew">נסה שוב את המיקום</string>
     <string name="mizrach_location_off">Location is turned off. Turn it on so Prayer Compass can find where you are now.</string>
     <string name="mizrach_location_off_hebrew">המיקום כבוי. יש להפעיל אותו כדי שהמצפן יוכל למצוא את המקום הנוכחי.</string>
     <string name="mizrach_turn_on_location">Turn on location</string>
@@ -47,6 +57,8 @@
     <string name="mizrach_compass_caption_hebrew">החזק את הטלפון במאוזן או במאונך. המחט מצביעה לכיוון קודש הקודשים.</string>
     <string name="mizrach_compass_accuracy_low">Compass accuracy is low. Move the phone in a figure-eight and keep it away from magnets.</string>
     <string name="mizrach_compass_accuracy_low_hebrew">דיוק המצפן נמוך. הזז את הטלפון בצורת שמונה והרחק אותו ממגנטים.</string>
+    <string name="mizrach_compass_unreliable">Compass is unreliable right now — a magnet is likely interfering. Move the phone in a figure-eight and keep it away from magnets.</string>
+    <string name="mizrach_compass_unreliable_hebrew">המצפן אינו אמין כרגע — כנראה שמגנט מפריע. הזז את הטלפון בצורת שמונה והרחק אותו ממגנטים.</string>
     <string name="mizrach_compass_low_confidence">Compass reading is approximate right now.</string>
     <string name="mizrach_compass_low_confidence_hebrew">קריאת המצפן משוערת כרגע.</string>
     <string name="mizrach_aligned">Facing Kodesh HaKodashim</string>
