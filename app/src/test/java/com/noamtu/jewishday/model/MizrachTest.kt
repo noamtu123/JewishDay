@@ -9,6 +9,12 @@ import org.junit.Test
 
 class MizrachTest {
     @Test
+    fun targetCoordinatesStayPinned() {
+        assertEquals(31.778000, kodeshHakodashimLocation.latitude, 0.0)
+        assertEquals(35.235400, kodeshHakodashimLocation.longitude, 0.0)
+    }
+
+    @Test
     fun kodeshHakodashimToKodeshHakodashimIsZeroDistance() {
         val info = mizrachInfo(kodeshHakodashimLocation)
 

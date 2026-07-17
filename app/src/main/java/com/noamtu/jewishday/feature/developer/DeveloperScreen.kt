@@ -152,6 +152,23 @@ fun DeveloperScreen(
 
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("Prayer compass")
+                    SwitchRow(
+                        label = "Monitor compass sensors",
+                        checked = overrides.compassMonitoringEnabled,
+                        onCheckedChange = viewModel::setCompassMonitoringEnabled,
+                    )
+                    Text(
+                        text = "Overlays live sensor status, delivery rates, heading error, and the " +
+                            "quality verdict on the Prayer Compass screen.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            item {
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
                     SectionTitle("About page")
                     SwitchRow(
                         label = "Show About page in English",
