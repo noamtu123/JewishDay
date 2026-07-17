@@ -121,6 +121,10 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setAboutInEnglish(enabled)
     }
 
+    fun setCompassMonitoringEnabled(enabled: Boolean) = launchOverride {
+        developerOverridesRepository.setCompassMonitoringEnabled(enabled)
+    }
+
     fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()
     }

@@ -69,6 +69,8 @@ data class DeveloperOverrides(
     // Forces the About page to render in English regardless of the app language, so the English
     // copy can be checked without switching the whole interface.
     val aboutInEnglish: Boolean = false,
+    // Shows a live sensor/quality diagnostics panel on the Prayer Compass screen.
+    val compassMonitoringEnabled: Boolean = false,
 ) {
     /** The instant the app should treat as "now" given the real [realNow]. */
     fun effectiveInstant(realNow: Instant): Instant {
@@ -152,6 +154,8 @@ class DeveloperOverridesRepository @Inject constructor(
 
     suspend fun setAboutInEnglish(enabled: Boolean) = update { it.copy(aboutInEnglish = enabled) }
 
+    suspend fun setCompassMonitoringEnabled(enabled: Boolean) = update { it.copy(compassMonitoringEnabled = enabled) }
+
     /** Clears every override but keeps the tools unlocked. */
     suspend fun clearOverrides() = update {
         DeveloperOverrides(unlocked = it.unlocked)
@@ -174,6 +178,7 @@ class DeveloperOverridesRepository @Inject constructor(
         locationOverrideEnabled = preferences[LocationEnabledKey] ?: false,
         locationPresetId = preferences[LocationPresetKey],
         aboutInEnglish = preferences[AboutEnglishKey] ?: false,
+        compassMonitoringEnabled = preferences[CompassMonitoringKey] ?: false,
     )
 
     private fun encode(preferences: androidx.datastore.preferences.core.MutablePreferences, overrides: DeveloperOverrides) {
@@ -185,6 +190,7 @@ class DeveloperOverridesRepository @Inject constructor(
         preferences[LocationEnabledKey] = overrides.locationOverrideEnabled
         overrides.locationPresetId?.let { preferences[LocationPresetKey] = it }
         preferences[AboutEnglishKey] = overrides.aboutInEnglish
+        preferences[CompassMonitoringKey] = overrides.compassMonitoringEnabled
     }
 
     private companion object {
@@ -196,5 +202,6 @@ class DeveloperOverridesRepository @Inject constructor(
         val LocationEnabledKey = booleanPreferencesKey("dev_loc_enabled")
         val LocationPresetKey = stringPreferencesKey("dev_loc_preset")
         val AboutEnglishKey = booleanPreferencesKey("dev_about_english")
+        val CompassMonitoringKey = booleanPreferencesKey("dev_compass_monitoring")
     }
 }
