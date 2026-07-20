@@ -6,6 +6,7 @@ import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,6 +14,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Row
@@ -73,7 +76,38 @@ fun JewishDayApp(useHebrewInterface: Boolean = false) {
         LocalLayoutDirection provides layoutDirection,
     ) {
         JewishDayNavHost(useHebrewInterface = useHebrewInterface)
-        LocationAvailabilityPrompt()
+        // The two flows share the system permission dialog, which can only show one at a time.
+        // Ask for location first; only once that's settled do we ask for notifications.
+        var locationSettled by remember { mutableStateOf(false) }
+        LocationAvailabilityPrompt(onSettled = { locationSettled = true })
+        NotificationPermissionSetup(canPrompt = locationSettled)
+    }
+}
+
+/**
+ * First-launch only: request the POST_NOTIFICATIONS permission (Android 13+) so the Hebrew date
+ * icon — on by default — can actually appear. Runs only after the location prompt has settled, so
+ * the two system dialogs don't collide. On grant the setting is turned on and its service starts
+ * immediately; on rejection the setting is turned off. On older versions the permission is implicit,
+ * so we just start it. Shown once, then never again.
+ */
+@Composable
+private fun NotificationPermissionSetup(
+    canPrompt: Boolean,
+    viewModel: NotificationSetupViewModel = hiltViewModel(),
+) {
+    val needsPrompt by viewModel.needsFirstLaunchPrompt.collectAsStateWithLifecycle()
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted -> viewModel.onPermissionResult(granted) }
+
+    LaunchedEffect(canPrompt, needsPrompt) {
+        if (!canPrompt || !needsPrompt) return@LaunchedEffect
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            viewModel.onPermissionResult(granted = true)
+        }
     }
 }
 
@@ -92,7 +126,10 @@ private enum class LocationPromptKind { None, Permission, Services }
  * The app never remembers a past location, so the fallback is always Jerusalem.
  */
 @Composable
-private fun LocationAvailabilityPrompt(viewModel: LocationPromptViewModel = hiltViewModel()) {
+private fun LocationAvailabilityPrompt(
+    onSettled: () -> Unit,
+    viewModel: LocationPromptViewModel = hiltViewModel(),
+) {
     val context = LocalContext.current
     var kind by remember { mutableStateOf(LocationPromptKind.None) }
     // Fire the system permission request at most once per foreground; after that (or a denial) use
@@ -109,6 +146,8 @@ private fun LocationAvailabilityPrompt(viewModel: LocationPromptViewModel = hilt
             !context.isLocationServicesEnabled() -> { viewModel.useJerusalemFallback(); LocationPromptKind.Services }
             else -> { viewModel.refreshCurrentLocation(); LocationPromptKind.None }
         }
+        // The location system dialog has now closed, so the notification prompt can safely open.
+        onSettled()
     }
 
     fun evaluate() {
@@ -118,11 +157,13 @@ private fun LocationAvailabilityPrompt(viewModel: LocationPromptViewModel = hilt
             hasPermission && servicesEnabled -> {
                 viewModel.refreshCurrentLocation()
                 kind = LocationPromptKind.None
+                onSettled()
             }
             !hasPermission -> {
                 viewModel.useJerusalemFallback()
                 if (!systemAsked) {
-                    // First open this foreground: ask the OS directly.
+                    // First open this foreground: ask the OS directly. onSettled() waits for the
+                    // dialog's result callback so the notification dialog doesn't overlap it.
                     systemAsked = true
                     permissionLauncher.launch(
                         arrayOf(
@@ -132,12 +173,14 @@ private fun LocationAvailabilityPrompt(viewModel: LocationPromptViewModel = hilt
                     )
                 } else {
                     kind = LocationPromptKind.Permission
+                    onSettled()
                 }
             }
             else -> {
                 // Permission granted, but the location switch is off.
                 viewModel.useJerusalemFallback()
                 kind = LocationPromptKind.Services
+                onSettled()
             }
         }
     }

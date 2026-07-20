@@ -132,7 +132,7 @@
     <string name="about_tagline">A modern Jewish companion app.</string>
     <string name="about_tagline_hebrew">אפליקציית עזר יהודית מודרנית.</string>
     <string name="about_body">I made JewishDay for myself first — the Jewish companion I always wanted but couldn\'t find: modern and uncluttered, with the Hebrew date, zmanim, daily learning, and a compass to Jerusalem all in one place. My favorite touch is the notification that keeps today\'s Hebrew date in your status bar, always a glance away.\n\nAnd it\'s my small statement about how apps should be made: fully open source, transparent, and free for anyone to use, study, and build on (GPL-3.0). This is the app I wish every app was.</string>
-    <string name="about_body_hebrew">בניתי את האפליקציה קודם כול בשביל עצמי — האפליקציה היהודית שתמיד רציתי ולא מצאתי: מודרנית ומינימליסטית, עם תאריך עברי, זמנים, לימוד יומי, ומצפן לירושלים — הכול במקום אחד. מה שאני הכי אוהב בה הוא ההתראה שמציגה את התאריך העברי של היום בראש המסך, תמיד במרחק הצצה.\n\nוזו גם אמירה קטנה שלי על איך אפליקציות צריכות להיות: קוד פתוח לחלוטין, שקופות, וחופשיות לכל אחד לשימוש, ללמידה ולבנייה עליהן (GPL-3.0). זו האפליקציה שהלוואי שכל אפליקציה הייתה כמוה.</string>
+    <string name="about_body_hebrew">בניתי את האפליקציה קודם כל בשביל עצמי — האפליקציה היהודית שתמיד רציתי ולא מצאתי: מודרנית ומינימליסטית, עם תאריך עברי, זמנים, לימוד יומי, ומצפן לירושלים — הכול במקום אחד. מה שאני הכי אוהב בה הוא ההתראה שמציגה את התאריך העברי של היום בראש המסך, תמיד במרחק הצצה.\n\nוזו גם אמירה קטנה שלי על איך אפליקציות צריכות להיות: קוד פתוח לחלוטין, שקופות, וחופשיות לכל אחד לשימוש, ללמידה ולבנייה עליהן (GPL-3.0). זו האפליקציה שהלוואי שכל אפליקציה הייתה כמוה.</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_version_hebrew">גרסה %1$s</string>
     <string name="about_github">View source on GitHub</string>
@@ -142,4 +142,5 @@
     <string name="notification_channel_date_status_icon">Date status icons</string>
     <string name="notification_channel_date_status_icon_description">Persistent Hebrew date icon</string>
     <string name="notification_status_hebrew_title">Hebrew date</string>
+    <string name="notification_status_hebrew_title_hebrew">תאריך עברי</string>
 </resources>
