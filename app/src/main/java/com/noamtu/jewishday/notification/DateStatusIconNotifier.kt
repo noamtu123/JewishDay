@@ -60,11 +60,16 @@ class DateStatusIconNotifier @Inject constructor(
      * Builds the icon spec for the current day and caches it so the foreground service can
      * re-post the right glyph instantly after a cold start, before recomputation finishes.
      */
-    fun render(dayInfo: JewishDayInfo): DateIconSpec {
+    fun render(dayInfo: JewishDayInfo, useHebrew: Boolean): DateIconSpec {
+        val titleRes = if (useHebrew) {
+            R.string.notification_status_hebrew_title_hebrew
+        } else {
+            R.string.notification_status_hebrew_title
+        }
         val rendered = DateIconSpec(
             id = ForegroundId,
             iconText = dayInfo.hebrewDayOfMonthHebrew,
-            title = context.getString(R.string.notification_status_hebrew_title),
+            title = context.getString(titleRes),
             content = dayInfo.hebrewDateHebrew,
         )
         persist(rendered)

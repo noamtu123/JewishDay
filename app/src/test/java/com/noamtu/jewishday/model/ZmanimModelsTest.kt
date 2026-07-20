@@ -76,9 +76,17 @@ class ZmanimModelsTest {
             .groups
             .first { it.title == "Shabbat" }
             .items
+        val zone = defaultJerusalemLocation.zoneId
+        fun itemDate(title: String): LocalDate =
+            shabbatItems.first { it.title == title }.time!!.atZone(zone).toLocalDate()
 
-        assertTrue(shabbatItems.first { it.title == "Candle Lighting & Shabbat Entry" }.description.contains("2026-06-12"))
-        assertTrue(shabbatItems.first { it.title == "Motzei Shabbat" }.description.contains("2026-06-13"))
+        // Asserted on the computed times themselves: the descriptions carry only the day name
+        // and method, never a raw date.
+        assertEquals(LocalDate.of(2026, 6, 12), itemDate("Candle Lighting & Shabbat Entry"))
+        assertEquals(LocalDate.of(2026, 6, 13), itemDate("Motzei Shabbat"))
+        assertFalse(
+            shabbatItems.any { it.description.contains(Regex("\\d{4}-\\d{2}-\\d{2}")) },
+        )
     }
 
     @Test

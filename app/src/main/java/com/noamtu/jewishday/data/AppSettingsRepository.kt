@@ -57,7 +57,10 @@ enum class AppThemeOption(val storageValue: String) {
 }
 
 data class AppSettings(
-    val hebrewDateStatusIconEnabled: Boolean = false,
+    val hebrewDateStatusIconEnabled: Boolean = true,
+    // True once we've shown the one-time notification-permission request on first launch, so we
+    // don't re-prompt on every open. Independent of whether the permission was actually granted.
+    val notificationPermissionRequested: Boolean = false,
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
@@ -92,6 +95,7 @@ interface AppSettingsRepository {
     suspend fun seedLanguageDefault()
 
     suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean)
+    suspend fun setNotificationPermissionRequested(requested: Boolean)
     suspend fun setAppLanguage(language: AppLanguage)
     suspend fun setUse24HourTime(enabled: Boolean)
     suspend fun setEnabledDailyLearning(types: Set<DailyLearningType>)
@@ -133,7 +137,8 @@ class DataStoreAppSettingsRepository @Inject constructor(
         .map { preferences ->
             val rootUiSettings = decodeRootUiSettings(preferences)
             AppSettings(
-                hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: false,
+                hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: true,
+                notificationPermissionRequested = preferences[NotificationPermissionRequested] ?: false,
                 language = rootUiSettings.language,
                 use24HourTime = preferences[Use24HourTime] ?: true,
                 enabledDailyLearning = preferences[EnabledDailyLearningKey]
@@ -163,6 +168,12 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[HebrewDateStatusIconEnabled] = enabled
+        }
+    }
+
+    override suspend fun setNotificationPermissionRequested(requested: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[NotificationPermissionRequested] = requested
         }
     }
 
@@ -322,6 +333,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
 
     private companion object {
         val HebrewDateStatusIconEnabled = booleanPreferencesKey("hebrew_date_status_icon_enabled")
+        val NotificationPermissionRequested = booleanPreferencesKey("notification_permission_requested")
         val AppLanguageKey = stringPreferencesKey("app_language")
         // Retained read-only to migrate installs that predate the language picker.
         val UseHebrewInterface = booleanPreferencesKey("use_hebrew_interface")

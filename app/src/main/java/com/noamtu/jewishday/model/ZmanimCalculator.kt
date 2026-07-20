@@ -129,10 +129,10 @@ fun zmanimForDate(
                 // id so the same "Zmanim to show" list can hide them.
                 items = listOfNotNull(
                     parshaItem,
-                    ZmanItem("Candle Lighting & Shabbat Entry", "הדלקת נרות וכניסת שבת", shabbatStartCalendar.candleLighting?.toInstant(), "Friday ${shabbatDates.startDate}; ${settings.candleLightingMethod.label}", "יום שישי ${shabbatDates.startDate}; ${settings.candleLightingMethod.labelHebrew}", id = ZmanimTimeOption.ShabbatCandleLighting.storageValue),
-                    ZmanItem("Sunset", "שקיעה", shabbatStartCalendar.sunset(settings.sunsetMethod)?.toInstant(), "Friday ${shabbatDates.startDate}; ${settings.sunsetMethod.label}", "יום שישי ${shabbatDates.startDate}; ${settings.sunsetMethod.labelHebrew}", id = ZmanimTimeOption.ShabbatSunset.storageValue),
-                    ZmanItem("Motzei Shabbat", "צאת שבת", shabbatEndCalendar.motzeiShabbat(settings)?.toInstant(), "Saturday ${shabbatDates.endDate}; ${settings.motzeiShabbatMethod.label}", "מוצאי שבת ${shabbatDates.endDate}; ${settings.motzeiShabbatMethod.labelHebrew}", id = ZmanimTimeOption.MotzeiShabbat.storageValue),
-                    ZmanItem("Rabbeinu Tam", "רבינו תם", shabbatEndCalendar.rabbeinuTam(settings.rabbeinuTamMethod)?.toInstant(), "Saturday ${shabbatDates.endDate}; ${settings.rabbeinuTamMethod.label}", "מוצאי שבת ${shabbatDates.endDate}; ${settings.rabbeinuTamMethod.labelHebrew}", id = ZmanimTimeOption.RabbeinuTam.storageValue),
+                    ZmanItem("Candle Lighting & Shabbat Entry", "הדלקת נרות וכניסת שבת", shabbatStartCalendar.candleLighting?.toInstant(), "Friday; ${settings.candleLightingMethod.label}", "יום שישי; ${settings.candleLightingMethod.labelHebrew}", id = ZmanimTimeOption.ShabbatCandleLighting.storageValue),
+                    ZmanItem("Sunset", "שקיעה", shabbatStartCalendar.sunset(settings.sunsetMethod)?.toInstant(), "Friday; ${settings.sunsetMethod.label}", "יום שישי; ${settings.sunsetMethod.labelHebrew}", id = ZmanimTimeOption.ShabbatSunset.storageValue),
+                    ZmanItem("Motzei Shabbat", "צאת שבת", shabbatEndCalendar.motzeiShabbat(settings)?.toInstant(), "Saturday; ${settings.motzeiShabbatMethod.label}", "מוצאי שבת; ${settings.motzeiShabbatMethod.labelHebrew}", id = ZmanimTimeOption.MotzeiShabbat.storageValue),
+                    ZmanItem("Rabbeinu Tam", "רבינו תם", shabbatEndCalendar.rabbeinuTam(settings.rabbeinuTamMethod)?.toInstant(), "Saturday; ${settings.rabbeinuTamMethod.label}", "מוצאי שבת; ${settings.rabbeinuTamMethod.labelHebrew}", id = ZmanimTimeOption.RabbeinuTam.storageValue),
                 ),
             ),
             ZmanimGroup(

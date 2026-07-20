@@ -83,6 +83,8 @@ private fun HebcalLearningEntry.toShemiratHaLashonRow(): ZmanItem = ZmanItem(
 
 /** The Hebrew text to display for an entry, applying per-track gematria formatting. */
 private fun HebcalLearningEntry.formattedHebrew(): String = when (category) {
+    // Bavli comes punctuated, Yerushalmi comes bare; one formatter keeps both consistent.
+    "dafyomi", "yerushalmi" -> formatDaf(displayHebrew())
     // Source Hebrew has the right name but Arabic numerals (e.g. "כלים 11:7-8").
     "mishnayomi" -> formatMishnahYomi(displayHebrew()) ?: displayHebrew().arabicDigitsToGematria()
     // Both Rambam tracks share one format so the 1- and 3-chapter rows look identical.
@@ -96,16 +98,44 @@ private fun HebcalLearningEntry.formattedHebrew(): String = when (category) {
     else -> displayHebrew()
 }
 
+private const val RambamChapterToken = "(?:\\d+|[\\u05D0-\\u05EA׳״]+)"
+private val RambamChapterReference =
+    Regex("(?:פרקים|פרק)\\s+($RambamChapterToken(?:\\s*-\\s*$RambamChapterToken)?)")
+
 /**
- * Rambam arrives as "הלכות <name> פרק כח" (1 chapter, already Hebrew letters) or
- * "הלכות <name> פרק 2-4" (3 chapters, Arabic digits + a singular פרק). Convert digit runs to
- * plain gematria letters (no geresh, matching the 1-chapter style) and pluralize פרק -> פרקים
- * for a chapter range, so both tracks render in the same style.
+ * Rambam arrives as "הלכות <name> פרק כח" (already Hebrew letters) or "הלכות <name> פרק 2-4"
+ * (Arabic digits), and a single day can carry several books — each with its own chapter reference
+ * ("… פרק ח, … פרק 1-2").
+ *
+ * Every reference is normalized independently: digits become letters, the number is punctuated
+ * ("פרק ה׳", "פרקים ג׳-ה׳"), and פרק/פרקים is chosen from *that* reference being a range or not.
+ * Deciding per reference is what fixes multi-book days, where a document-wide range check would
+ * pluralize the first book's single chapter and leave the real range singular
+ * ("פרקים ח, … פרק א-ב"). A token that isn't a canonical numeral is left untouched.
  */
-private fun formatRambam(sourceHebrew: String): String {
-    val isRange = Regex("\\d+\\s*-\\s*\\d+").containsMatchIn(sourceHebrew)
-    val withLetters = Regex("\\d+").replace(sourceHebrew) { gematriaLetters(it.value.toInt()) }
-    return if (isRange) withLetters.replaceFirst("פרק ", "פרקים ") else withLetters
+private fun formatRambam(sourceHebrew: String): String =
+    RambamChapterReference.replace(sourceHebrew) { match ->
+        val chapters = match.groupValues[1].split('-').map { punctuatedNumeralOrNull(it.trim()) }
+        if (chapters.any { it == null }) {
+            match.value
+        } else {
+            val word = if (chapters.size > 1) "פרקים" else "פרק"
+            "$word ${chapters.joinToString("-")}"
+        }
+    }
+
+/**
+ * Bavli's Hebrew daf already carries gershayim ("סנהדרין ע״ח") but Yerushalmi's does not
+ * ("ברכות לב"), so the trailing daf number is normalized to the same convention for both tracks.
+ * Already-punctuated input is returned unchanged, and a value with no numeral (or a name-only
+ * string) is left alone.
+ */
+private fun formatDaf(sourceHebrew: String): String {
+    val trimmed = sourceHebrew.trim()
+    val separatorIndex = trimmed.lastIndexOf(' ')
+    if (separatorIndex < 0) return trimmed
+    val daf = punctuatedNumeralOrNull(trimmed.substring(separatorIndex + 1)) ?: return trimmed
+    return "${trimmed.substring(0, separatorIndex)} $daf"
 }
 
 private fun formatMishnahYomi(sourceHebrew: String): String? {
