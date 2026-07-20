@@ -97,7 +97,7 @@ class DateStatusIconService : Service() {
         try {
             val location = currentLocationRepository.currentLocationOrDefault()
             val dayInfo = jewishDayRepository.getToday(location = location, settings = settings.zmanimSettings)
-            val rendered = notifier.render(dayInfo)
+            val rendered = notifier.render(dayInfo, useHebrew = settings.useHebrewInterface)
             startForegroundCompat(notifier.buildNotification(rendered))
             notifier.cancel(DateStatusIconNotifier.SecondaryId)
             val now = clock.instant()

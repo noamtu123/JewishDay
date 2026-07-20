@@ -22,6 +22,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.noamtu.jewishday.data.AppThemeOption
 
+// Every scheme sets its own error family. Material's baseline red (#B3261E / #F2B8B5) is tuned to
+// the default purple palette and reads as a foreign, over-saturated red against these hand-picked
+// palettes — it shows up in the fast-day row, the "From Jerusalem" fallback label, and the
+// compass's unreliable warning, so each theme gets a red matched to its own warmth.
+
 private val LightColors = lightColorScheme(
     primary = Color(0xFF315B46),
     onPrimary = Color.White,
@@ -43,6 +48,11 @@ private val LightColors = lightColorScheme(
     onSurfaceVariant = Color(0xFF5B6158),
     outline = Color(0xFF767D72),
     outlineVariant = Color(0xFFD7DAD0),
+    // Warm brick, so the red sits with the sage/cream palette instead of shouting over it.
+    error = Color(0xFFA63B2F),
+    onError = Color.White,
+    errorContainer = Color(0xFFFFDBD3),
+    onErrorContainer = Color(0xFF3B0A04),
 )
 
 private val DarkColors = darkColorScheme(
@@ -66,6 +76,11 @@ private val DarkColors = darkColorScheme(
     onSurfaceVariant = Color(0xFFC5CBC0),
     outline = Color(0xFF8F978B),
     outlineVariant = Color(0xFF3E453C),
+    // Soft warm rose: legible on the near-black green ground without glaring.
+    error = Color(0xFFF0B2A6),
+    onError = Color(0xFF5C1508),
+    errorContainer = Color(0xFF7B291A),
+    onErrorContainer = Color(0xFFFFDBD3),
 )
 
 private val AmoledColors = darkColorScheme(
@@ -89,10 +104,18 @@ private val AmoledColors = darkColorScheme(
     onSurfaceVariant = Color(0xFFC7CBC4),
     outline = Color(0xFF8F978B),
     outlineVariant = Color(0xFF242A23),
+    // Same rose as Classic dark, with a deeper container to suit the pure-black ground.
+    error = Color(0xFFF0B2A6),
+    onError = Color(0xFF521206),
+    errorContainer = Color(0xFF6C2013),
+    onErrorContainer = Color(0xFFFFDBD3),
 )
 
 private val BlueWhiteColors = lightColorScheme(
-    primary = Color(0xFF2196F3),
+    // Deep vivid blue rather than Material Blue 500: #2196F3 fails contrast as a text/button
+    // color on this theme's white surfaces (white-on-#2196F3 is 3.1:1), while #1668C4 keeps the
+    // saturated blue identity at ≥4.6:1 against every surface in the scheme.
+    primary = Color(0xFF1668C4),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFD8ECFF),
     onPrimaryContainer = Color(0xFF001D36),
@@ -106,13 +129,19 @@ private val BlueWhiteColors = lightColorScheme(
     onTertiaryContainer = Color(0xFF001C38),
     background = Color(0xFFFFFFFF),
     onBackground = Color(0xFF151C24),
-    // Faint blue tint so InfoCards (surface) lift off the pure-white background.
+    // Faint blue tint so surface-coloured elements (the compass face, value pills) lift off the
+    // pure-white background; cards use surfaceVariant.
     surface = Color(0xFFF1F6FE),
     onSurface = Color(0xFF151C24),
     surfaceVariant = Color(0xFFE2EDFB),
     onSurfaceVariant = Color(0xFF4F5F70),
     outline = Color(0xFF6F7F90),
     outlineVariant = Color(0xFFC9D8E8),
+    // Crisp, slightly cool red to match the clean blue-on-white palette.
+    error = Color(0xFFB72B22),
+    onError = Color.White,
+    errorContainer = Color(0xFFFFDAD5),
+    onErrorContainer = Color(0xFF410002),
 )
 
 private val MidnightColors = darkColorScheme(
@@ -136,6 +165,11 @@ private val MidnightColors = darkColorScheme(
     onSurfaceVariant = Color(0xFFC2C9D9),
     outline = Color(0xFF8B93A6),
     outlineVariant = Color(0xFF2A313E),
+    // A cooler rose than the warm themes use, so it reads as part of the navy palette.
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF8C2F2A),
+    onErrorContainer = Color(0xFFFFDAD6),
 )
 
 private val SandColors = lightColorScheme(
@@ -159,6 +193,12 @@ private val SandColors = lightColorScheme(
     onSurfaceVariant = Color(0xFF524435),
     outline = Color(0xFF85735E),
     outlineVariant = Color(0xFFD7C3AE),
+    // Rust red — redder and more saturated than the brown primary, so a warning still reads as a
+    // warning and not as another shade of the palette.
+    error = Color(0xFFB23122),
+    onError = Color.White,
+    errorContainer = Color(0xFFFFDBD1),
+    onErrorContainer = Color(0xFF3F0B02),
 )
 
 private val SlateColors = darkColorScheme(
@@ -182,6 +222,11 @@ private val SlateColors = darkColorScheme(
     onSurfaceVariant = Color(0xFFC3C8CE),
     outline = Color(0xFF8D9298),
     outlineVariant = Color(0xFF2C3136),
+    // Muted rose to match the desaturated, cool grey palette.
+    error = Color(0xFFEFB4AC),
+    onError = Color(0xFF59180F),
+    errorContainer = Color(0xFF762D22),
+    onErrorContainer = Color(0xFFFFDAD4),
 )
 
 private val JerusalemStoneColors = lightColorScheme(
@@ -205,6 +250,11 @@ private val JerusalemStoneColors = lightColorScheme(
     onSurfaceVariant = Color(0xFF625B4B),
     outline = Color(0xFF817867),
     outlineVariant = Color(0xFFE0D5BE),
+    // Slightly warm red that holds its own against the gold secondary without fighting the blue.
+    error = Color(0xFFB32B20),
+    onError = Color.White,
+    errorContainer = Color(0xFFFFDAD4),
+    onErrorContainer = Color(0xFF410001),
 )
 
 private val BaseTypography = Typography()

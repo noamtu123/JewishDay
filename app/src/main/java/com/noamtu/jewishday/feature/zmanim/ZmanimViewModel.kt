@@ -332,7 +332,10 @@ private fun ZmanimDay.toUiState(
     val englishTimeFormatter = DateTimeFormatter.ofPattern(timePattern, englishLocale).withZone(zoneId)
     val hebrewTimeFormatter = DateTimeFormatter.ofPattern(timePattern, hebrewLocale).withZone(zoneId)
     val englishDateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d", englishLocale)
-    val hebrewDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", hebrewLocale)
+    // Hebrew writes the month with a "ב" prefix ("17 ביולי"). CLDR keeps that prefix as a literal
+    // in the locale's own date pattern rather than in the month name, so a custom pattern has to
+    // carry it explicitly — MMMM alone yields the bare "יולי".
+    val hebrewDateFormatter = DateTimeFormatter.ofPattern("EEEE, d 'ב'MMMM", hebrewLocale)
 
     val uiGroups = groups.mapIndexed { groupIndex, group ->
         ZmanimGroupUi(
