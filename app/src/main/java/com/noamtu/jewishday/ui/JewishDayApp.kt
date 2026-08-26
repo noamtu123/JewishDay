@@ -51,6 +51,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.noamtu.jewishday.data.hasLocationPermission
+import com.noamtu.jewishday.data.hasNotificationPermission
 import com.noamtu.jewishday.data.isLocationServicesEnabled
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -108,6 +109,23 @@ private fun NotificationPermissionSetup(
         } else {
             viewModel.onPermissionResult(granted = true)
         }
+    }
+
+    // On every later foreground, keep the setting honest: without the permission it is forced off
+    // (so the switch can never promise an icon the OS will not let us post), and with it the
+    // service is restarted, since it does not survive an upgrade, a force-stop, or being reclaimed.
+    // One-directional — granting the permission from system settings never turns a switch the user
+    // left off back on. Skipped while the first-launch prompt above still owns the setting.
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, needsPrompt) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START && !needsPrompt) {
+                viewModel.reconcile(hasPermission = context.hasNotificationPermission())
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 }
 
