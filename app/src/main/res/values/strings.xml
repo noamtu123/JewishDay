@@ -141,6 +141,4 @@
     <string name="about_email_hebrew">צרו קשר באימייל</string>
     <string name="notification_channel_date_status_icon">Date status icons</string>
     <string name="notification_channel_date_status_icon_description">Persistent Hebrew date icon</string>
-    <string name="notification_status_hebrew_title">Hebrew date</string>
-    <string name="notification_status_hebrew_title_hebrew">תאריך עברי</string>
 </resources>

@@ -222,6 +222,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
             preferences[MotzeiShabbatMethodKey] = settings.motzeiShabbatMethod.storageValue
             preferences[RabbeinuTamMethodKey] = settings.rabbeinuTamMethod.storageValue
             preferences[ChametzMethodKey] = settings.chametzMethod.storageValue
+            preferences[HolyDayTosefetMinutes] = settings.holyDayTosefetMinutes
             preferences[AteretTorahOffsetMinutes] = settings.ateretTorahSunsetOffsetMinutes
         }
     }
@@ -274,6 +275,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
             motzeiShabbatMethod = MotzeiShabbatMethod.fromStorageValue(preferences[MotzeiShabbatMethodKey]) ?: defaults.motzeiShabbatMethod,
             rabbeinuTamMethod = RabbeinuTamMethod.fromStorageValue(preferences[RabbeinuTamMethodKey]) ?: defaults.rabbeinuTamMethod,
             chametzMethod = ChametzMethod.fromStorageValue(preferences[ChametzMethodKey]) ?: defaults.chametzMethod,
+            holyDayTosefetMinutes = preferences[HolyDayTosefetMinutes] ?: defaults.holyDayTosefetMinutes,
             ateretTorahSunsetOffsetMinutes = preferences[AteretTorahOffsetMinutes] ?: defaults.ateretTorahSunsetOffsetMinutes,
         )
     }
@@ -352,6 +354,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val MotzeiShabbatMethodKey = stringPreferencesKey("zmanim_motzei_method")
         val RabbeinuTamMethodKey = stringPreferencesKey("zmanim_rabbeinu_tam_method")
         val ChametzMethodKey = stringPreferencesKey("zmanim_chametz_method")
+        val HolyDayTosefetMinutes = intPreferencesKey("holy_day_tosefet_minutes")
         val AteretTorahOffsetMinutes = intPreferencesKey("zmanim_ateret_torah_offset_minutes")
         val UseElevation = booleanPreferencesKey("zmanim_use_elevation")
         val AlotHashacharOffsetMinutes = intPreferencesKey("zmanim_alot_offset_minutes")

@@ -67,10 +67,21 @@ data class ZmanimHeaderUi(
     val locationName: String = "",
     val fastName: String? = null,
     val fastNameHebrew: String? = null,
+    // Fully written lines: "כניסת הצום 04:10", "יציאת הצום מחר 20:17".
     val fastStart: String? = null,
     val fastStartHebrew: String? = null,
     val fastEnd: String? = null,
     val fastEndHebrew: String? = null,
+    val holyDayName: String? = null,
+    val holyDayNameHebrew: String? = null,
+    val holyDayStart: String? = null,
+    val holyDayStartHebrew: String? = null,
+    val holyDayEnd: String? = null,
+    val holyDayEndHebrew: String? = null,
+    // Set when another holy day begins the moment this one ends.
+    val holyDaySequel: String? = null,
+    val holyDaySequelHebrew: String? = null,
+    val fastLeadsHeader: Boolean = false,
 )
 
 @Immutable
@@ -359,12 +370,30 @@ private fun ZmanimDay.toUiState(
             gregorianDate = date.format(englishDateFormatter),
             gregorianDateHebrew = date.format(hebrewDateFormatter),
             locationName = locationName,
-            fastName = fastDayInfo?.name,
-            fastNameHebrew = fastDayInfo?.nameHebrew,
-            fastStart = fastDayInfo?.startTime.formatTime(englishTimeFormatter).takeIf { fastDayInfo != null },
-            fastStartHebrew = fastDayInfo?.startTime.formatTime(hebrewTimeFormatter).takeIf { fastDayInfo != null },
-            fastEnd = fastDayInfo?.endTime.formatTime(englishTimeFormatter).takeIf { fastDayInfo != null },
-            fastEndHebrew = fastDayInfo?.endTime.formatTime(hebrewTimeFormatter).takeIf { fastDayInfo != null },
+            // The name belongs to the observance while it is on; the times show a day ahead.
+            fastName = fastDayInfo?.takeIf { it.isUnderWay }?.name,
+            fastNameHebrew = fastDayInfo?.takeIf { it.isUnderWay }?.nameHebrew,
+            fastStart = fastDayInfo?.startTime?.let { observanceLine("Fast starts", it, englishTimeFormatter) },
+            fastStartHebrew = fastDayInfo?.startTime?.let { observanceLine("כניסת הצום", it, hebrewTimeFormatter) },
+            fastEnd = fastDayInfo?.endTime?.let { observanceLine("Fast ends", it, englishTimeFormatter) },
+            fastEndHebrew = fastDayInfo?.endTime?.let { observanceLine("צאת הצום", it, hebrewTimeFormatter) },
+            holyDayName = holyDayInfo?.takeIf { it.isUnderWay }?.name,
+            holyDayNameHebrew = holyDayInfo?.takeIf { it.isUnderWay }?.nameHebrew,
+            holyDayStart = holyDayInfo?.startTime?.let {
+                observanceLine("${holyDayInfo.term} starts", it, englishTimeFormatter)
+            },
+            holyDayStartHebrew = holyDayInfo?.startTime?.let {
+                observanceLine("כניסת ${holyDayInfo.termHebrew}", it, hebrewTimeFormatter)
+            },
+            holyDayEnd = holyDayInfo?.endTime?.let {
+                observanceLine("${holyDayInfo.term} ends", it, englishTimeFormatter)
+            },
+            holyDayEndHebrew = holyDayInfo?.endTime?.let {
+                observanceLine("צאת ${holyDayInfo.termHebrew}", it, hebrewTimeFormatter)
+            },
+            holyDaySequel = holyDayInfo?.sequel,
+            holyDaySequelHebrew = holyDayInfo?.sequelHebrew,
+            fastLeadsHeader = fastLeadsHeader,
         ),
         groups = uiGroups,
         showCandleLightingPrompt = showCandleLightingPrompt,
@@ -440,3 +469,7 @@ private fun abbreviateRambamReference(reference: String, chapterWords: List<Stri
 }
 
 private fun Instant?.formatTime(formatter: DateTimeFormatter): String = this?.let(formatter::format) ?: "--"
+
+/** One line of an observance card: what the time is, then the time — "צאת חג שני 19:20". */
+private fun observanceLine(label: String, time: Instant, formatter: DateTimeFormatter): String =
+    "$label ${formatter.format(time)}"

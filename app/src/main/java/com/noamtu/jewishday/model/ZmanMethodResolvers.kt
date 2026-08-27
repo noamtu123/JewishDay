@@ -253,6 +253,15 @@ internal fun ComplexZmanimCalendar.tzeit(method: TzeitHakochavimMethod): Date? =
     TzeitHakochavimMethod.BaalHatanya -> tzaisBaalHatanya ?: tzais72
 }
 
+/**
+ * When a holy day — Shabbat, Yom Tov, Yom Kippur — goes out: the motzei method plus the user's
+ * tosefet. Ordinary fasts do not get the tosefet; they simply end at tzeit.
+ */
+internal fun ComplexZmanimCalendar.holyDayExit(settings: ZmanimCalculationSettings): Date? =
+    motzeiShabbat(settings)?.let {
+        AstronomicalCalendar.getTimeOffset(it, settings.holyDayTosefetMinutes.toLong() * 60_000)
+    }
+
 internal fun ComplexZmanimCalendar.motzeiShabbat(settings: ZmanimCalculationSettings): Date? = when (settings.motzeiShabbatMethod) {
     MotzeiShabbatMethod.Degrees6Point2 -> getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 6.2) ?: tzais50
     MotzeiShabbatMethod.Geonim3Point7 -> tzaisGeonim3Point7Degrees ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 18L * 60_000)

@@ -12,6 +12,9 @@ data class JewishDayInfo(
     val hebrewDayOfMonthHebrew: String,
     val hebrewDateEnglish: String,
     val hebrewDateHebrew: String,
+    // Weekday of the *Jewish* day, so it rolls at sunset along with the date itself.
+    val dayOfWeekEnglish: String,
+    val dayOfWeekHebrew: String,
 )
 
 fun jewishDayInfo(date: LocalDate): JewishDayInfo {
@@ -45,6 +48,8 @@ private fun jewishDayInfo(
         hebrewDayOfMonthHebrew = hebrewDayOfMonthText(jewishCalendar.jewishDayOfMonth),
         hebrewDateEnglish = englishFormatter.format(jewishCalendar),
         hebrewDateHebrew = hebrewFormatter.format(jewishCalendar),
+        dayOfWeekEnglish = englishDayNames.getValue(jewishCalendar.dayOfWeek),
+        dayOfWeekHebrew = hebrewDayNames.getValue(jewishCalendar.dayOfWeek),
     )
 }
 
@@ -62,6 +67,27 @@ fun hebrewDayOfMonthText(dayOfMonth: Int): String {
         }
     }
 }
+
+// KosherJava numbers the week 1 = Sunday … 7 = Saturday.
+private val englishDayNames = mapOf(
+    1 to "Sunday",
+    2 to "Monday",
+    3 to "Tuesday",
+    4 to "Wednesday",
+    5 to "Thursday",
+    6 to "Friday",
+    7 to "Saturday",
+)
+
+private val hebrewDayNames = mapOf(
+    1 to "יום ראשון",
+    2 to "יום שני",
+    3 to "יום שלישי",
+    4 to "יום רביעי",
+    5 to "יום חמישי",
+    6 to "יום שישי",
+    7 to "שבת",
+)
 
 private val hebrewUnits = mapOf(
     1 to "א",
