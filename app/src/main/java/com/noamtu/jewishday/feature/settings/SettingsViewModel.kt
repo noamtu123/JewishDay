@@ -208,6 +208,12 @@ class SettingsViewModel @Inject constructor(
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, motzeiShabbatMethod = method) }
     }
 
+    /** Tosefet added when leaving Shabbat or a Yom Tov, in minutes. Clamped to something sane. */
+    fun setHolyDayTosefetMinutes(minutes: Int) {
+        val clamped = minutes.coerceIn(0, 120)
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, holyDayTosefetMinutes = clamped) }
+    }
+
     fun setRabbeinuTamMethod(method: RabbeinuTamMethod) {
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, rabbeinuTamMethod = method) }
     }

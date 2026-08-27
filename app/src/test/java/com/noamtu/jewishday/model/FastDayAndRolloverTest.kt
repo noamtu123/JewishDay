@@ -11,9 +11,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Covers the halachic day boundary: the displayed Hebrew date rolls at sunset, and the
- * fast chip/card follows the *active* fast — including the Erev Tisha B'Av / Erev Yom
- * Kippur evenings, when the fast begins at sunset before its civil calendar date.
+ * Covers the halachic day boundary: the displayed Hebrew date rolls at sunset, and the fast
+ * chip/card follows the fast — announced one Jewish day before it begins and cleared the moment it
+ * ends — including the Erev Tisha B'Av / Erev Yom Kippur evenings, when the fast begins at sunset
+ * before its civil calendar date.
  *
  * Fixed dates (Jerusalem): 2026-07-02 = 17 Tammuz 5786 (minor fast),
  * 2026-07-23 = 9 Av 5786, so 2026-07-22 is Erev Tisha B'Av.
@@ -53,16 +54,46 @@ class FastDayAndRolloverTest {
     }
 
     @Test
-    fun fastCardAppearsOnErevTishaBeAvOnceTheFastBeginsAtSunset() {
+    fun fastCardIsAlreadyShowingOnErevTishaBeAvBeforeTheFastBegins() {
         val erevSunset = requireNotNull(sunsetForDate(date = erevTishaBeAv))
 
+        // Announced a Jewish day ahead, so it is up throughout the eve, before the fast starts.
         val beforeSunset = zmanimForDate(date = erevTishaBeAv, now = erevSunset.minus(Duration.ofHours(2)))
-        assertNull(beforeSunset.fastDayInfo)
+        assertEquals("תשעה באב", requireNotNull(beforeSunset.fastDayInfo).nameHebrew)
 
         val afterSunset = zmanimForDate(date = erevTishaBeAv, now = erevSunset.plus(Duration.ofMinutes(30)))
         val fast = requireNotNull(afterSunset.fastDayInfo)
         assertEquals("תשעה באב", fast.nameHebrew)
         assertEquals(erevSunset, fast.startTime)
+    }
+
+    @Test
+    fun eveningFastIsAnnouncedFromTheSunsetBeforeItsEve() {
+        val dayBeforeErev = erevTishaBeAv.minusDays(1)
+        val announceSunset = requireNotNull(sunsetForDate(date = dayBeforeErev))
+
+        val tooEarly = zmanimForDate(date = dayBeforeErev, now = announceSunset.minus(Duration.ofHours(2)))
+        assertNull(tooEarly.fastDayInfo)
+
+        val announced = zmanimForDate(date = dayBeforeErev, now = announceSunset.plus(Duration.ofMinutes(30)))
+        assertEquals("תשעה באב", requireNotNull(announced.fastDayInfo).nameHebrew)
+    }
+
+    @Test
+    fun dawnFastIsAnnouncedFromAlotOfThePreviousMorning() {
+        val dayBefore = seventeenTammuz.minusDays(1)
+        val previousAlot = requireNotNull(
+            zmanimForDate(date = dayBefore).groups
+                .flatMap { it.items }
+                .first { it.title == "Alot Hashachar" }
+                .time,
+        )
+
+        val beforeDawn = zmanimForDate(date = dayBefore, now = previousAlot.minus(Duration.ofHours(1)))
+        assertNull(beforeDawn.fastDayInfo)
+
+        val afterDawn = zmanimForDate(date = dayBefore, now = previousAlot.plus(Duration.ofMinutes(30)))
+        assertEquals("י״ז בתמוז", requireNotNull(afterDawn.fastDayInfo).nameHebrew)
     }
 
     @Test
