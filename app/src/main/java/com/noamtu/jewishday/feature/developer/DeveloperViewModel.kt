@@ -131,6 +131,10 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setAboutInEnglish(enabled)
     }
 
+    fun setUpdateNotesInEnglish(enabled: Boolean) = launchOverride {
+        developerOverridesRepository.setUpdateNotesInEnglish(enabled)
+    }
+
     fun setSpoofedVersionName(versionName: String) = launchOverride {
         developerOverridesRepository.setSpoofedVersionName(versionName)
         // A stale verdict next to a version that just changed reads as the new one's answer.

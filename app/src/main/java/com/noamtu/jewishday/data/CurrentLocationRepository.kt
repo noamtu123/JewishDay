@@ -4,7 +4,10 @@ package com.noamtu.jewishday.data
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
@@ -71,6 +74,46 @@ class CurrentLocationRepository @Inject constructor(
     // requestSingleUpdate monitor; @Volatile guarantees cross-thread visibility.
     @Volatile
     private var lastSuccessfulFreshLocationElapsed = 0L
+
+    /**
+     * A fix carries the zone it was taken in ([toJewishLocation] stamps `ZoneId.systemDefault()`),
+     * and every zman is computed and displayed in that zone. Changing the device's time zone or
+     * clock therefore has to invalidate the stamp — otherwise a screen left open, or a stationary
+     * phone whose next fix is not "better" than the published one, keeps calculating in the old
+     * zone indefinitely.
+     */
+    private val timeSettingsReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            // The framework clears its own TimeZone.getDefault() cache from this same broadcast and
+            // the order against app receivers is not defined, so re-stamp on the next main-looper
+            // pass — by then the new default is in place.
+            mainHandler.post(::republishWithCurrentZone)
+            refreshCurrentLocation(force = true)
+        }
+    }
+
+    init {
+        ContextCompat.registerReceiver(
+            context,
+            timeSettingsReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_TIMEZONE_CHANGED)
+                addAction(Intent.ACTION_TIME_CHANGED)
+            },
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+    }
+
+    /**
+     * Re-publishes the current fix so it picks up the device's zone as it is now. Unconditional on
+     * purpose: [publishDeviceLocationIfBetter] would reject the same coordinates as "not better",
+     * which is exactly the case this exists to handle.
+     */
+    @Synchronized
+    private fun republishWithCurrentZone() {
+        val published = bestPublishedDeviceLocation ?: return
+        _currentLocationFix.value = published.toCurrentLocationFix(context.hasFineLocationPermission())
+    }
 
     // The location seen by the rest of the app: the developer-pinned location when one is set,
     // otherwise the real device location. Centralizing it here means both ViewModels and the

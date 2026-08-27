@@ -167,19 +167,49 @@ class CompassMathTest {
 
     @Test
     fun displayRotationRemapsTheScreenUpAxis() {
-        // One physical attitude (flat, device top pointing east): the on-screen heading must
-        // follow the *screen's* up edge in every orientation of the UI.
+        // One physical attitude (flat, device top pointing east, so the device +X right edge
+        // points south): the on-screen heading must follow the *screen's* up edge in every
+        // orientation of the UI.
+        //
+        // Which device axis is "up the screen" is fixed by the platform, not by us. It is the axis
+        // that SensorManager.remapCoordinateSystem maps onto the new Y axis for that rotation, and
+        // getOrientation() reads its azimuth from atan2(R[1], R[4]):
+        //
+        //   ROTATION_0   -> no remap                        -> device +Y
+        //   ROTATION_90  -> remap(AXIS_Y, AXIS_MINUS_X)     -> device +X
+        //   ROTATION_180 -> remap(AXIS_MINUS_X, AXIS_MINUS_Y) -> device -Y
+        //   ROTATION_270 -> remap(AXIS_MINUS_Y, AXIS_X)     -> device -X
+        //
+        // (Cross-check: AOSP's ApiDemos AccelerometerPlayActivity maps sensor values into screen
+        // space the same way -- ROTATION_90 takes screen-up from values[0], the device +X axis.)
         assertEquals(90f, screenRelativeHeadingDegrees(flatTopEast, 0)!!, 0.01f)
-        assertEquals(0f, screenRelativeHeadingDegrees(flatTopEast, 90)!!, 0.01f)
+        assertEquals(180f, screenRelativeHeadingDegrees(flatTopEast, 90)!!, 0.01f)
         assertEquals(270f, screenRelativeHeadingDegrees(flatTopEast, 180)!!, 0.01f)
-        assertEquals(180f, screenRelativeHeadingDegrees(flatTopEast, 270)!!, 0.01f)
+        assertEquals(0f, screenRelativeHeadingDegrees(flatTopEast, 270)!!, 0.01f)
+    }
+
+    @Test
+    fun flatLandscapeFollowsTheScreenTopNotItsOpposite() {
+        // The regression this pins: with 90 and 270 swapped, a flat device in landscape read
+        // exactly backwards. Reverse-landscape must be 180 deg from landscape for the same
+        // attitude, and each must name the axis actually pointing up the screen.
+        for (matrix in listOf(flatTopNorth, flatTopEast)) {
+            val landscape = screenRelativeHeadingDegrees(matrix, 90)!!
+            val reverseLandscape = screenRelativeHeadingDegrees(matrix, 270)!!
+            assertEquals(180f, angularDistanceDegrees(landscape, reverseLandscape), 0.01f)
+        }
+        // Flat, top north => device +X points east. ROTATION_90 shows +X up, ROTATION_270 shows -X.
+        assertEquals(90f, screenRelativeHeadingDegrees(flatTopNorth, 90)!!, 0.01f)
+        assertEquals(270f, screenRelativeHeadingDegrees(flatTopNorth, 270)!!, 0.01f)
     }
 
     @Test
     fun uprightLandscapeHeadingFollowsBackCamera() {
         // Held landscape and upright, camera facing east. In ROTATION_90 the screen-up axis is
-        // the device −X axis (pointing at the sky, no horizontal component), so the camera is
-        // the reference; in ROTATION_270 it is +X. Both must give the camera's azimuth.
+        // the device +X axis (pointing at the sky, no horizontal component), so the camera is
+        // the reference; in ROTATION_270 it is −X, equally vertical. Both must give the camera's
+        // azimuth, which is why this case cannot tell the two rotations apart -- see
+        // flatLandscapeFollowsTheScreenTopNotItsOpposite for the one that can.
         val landscape90UprightEast = floatArrayOf(0f, 0f, -1f, 0f, -1f, 0f, -1f, 0f, 0f)
         val landscape270UprightEast = floatArrayOf(0f, 0f, -1f, 0f, 1f, 0f, 1f, 0f, 0f)
         assertEquals(90f, screenRelativeHeadingDegrees(landscape90UprightEast, 90)!!, 0.01f)
