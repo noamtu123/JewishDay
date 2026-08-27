@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.AppThemeOption
 import com.noamtu.jewishday.data.CurrentLocationRepository
+import com.noamtu.jewishday.data.RestoredSettingsReconciler
 import com.noamtu.jewishday.data.StartupSettingsCache
 import com.noamtu.jewishday.data.hasLocationPermission
 import com.noamtu.jewishday.ui.JewishDayApp
@@ -41,10 +42,18 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var startupSettingsCache: StartupSettingsCache
 
+    @Inject
+    lateinit var restoredSettingsReconciler: RestoredSettingsReconciler
+
     private var startupWindowBackgroundColor: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Judge anything a backup restored before a single setting is read: on the first launch
+        // after a reinstall the restored settings are cleared, while settings carried from another
+        // phone are kept. Blocking is deliberate — the alternative is the UI reading settings that
+        // are about to be wiped.
+        runBlocking(Dispatchers.IO) { restoredSettingsReconciler.reconcile() }
         // Persist the system-language default before any settings are read, so that a later
         // system-language change cannot silently flip the in-app language on next launch.
         runBlocking(Dispatchers.IO) { appSettingsRepository.seedLanguageDefault() }
