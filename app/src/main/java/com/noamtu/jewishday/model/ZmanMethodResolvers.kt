@@ -253,6 +253,15 @@ internal fun ComplexZmanimCalendar.tzeit(method: TzeitHakochavimMethod): Date? =
     TzeitHakochavimMethod.BaalHatanya -> tzaisBaalHatanya ?: tzais72
 }
 
+/**
+ * When a holy day — Shabbat, Yom Tov, Yom Kippur — goes out: the motzei method plus the user's
+ * tosefet. Ordinary fasts do not get the tosefet; they simply end at tzeit.
+ */
+internal fun ComplexZmanimCalendar.holyDayExit(settings: ZmanimCalculationSettings): Date? =
+    motzeiShabbat(settings)?.let {
+        AstronomicalCalendar.getTimeOffset(it, settings.holyDayTosefetMinutes.toLong() * 60_000)
+    }
+
 internal fun ComplexZmanimCalendar.motzeiShabbat(settings: ZmanimCalculationSettings): Date? = when (settings.motzeiShabbatMethod) {
     MotzeiShabbatMethod.Degrees6Point2 -> getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 6.2) ?: tzais50
     MotzeiShabbatMethod.Geonim3Point7 -> tzaisGeonim3Point7Degrees ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 18L * 60_000)
@@ -306,9 +315,16 @@ internal fun ComplexZmanimCalendar.chametzTimes(method: ChametzMethod): Pair<Dat
     ChametzMethod.Mga72Zmanis -> {
         val alos = alos72Zmanis
         val shaahZmanis = shaahZmanis72MinutesZmanis
-        val achilah = alos?.let { AstronomicalCalendar.getTimeOffset(it, shaahZmanis * 4) }
-        val biur = alos?.let { AstronomicalCalendar.getTimeOffset(it, shaahZmanis * 5) }
-        achilah to biur
+        // KosherJava signals "no such time at this latitude" with Long.MIN_VALUE, and getTimeOffset
+        // only rejects that sentinel unmultiplied: shaahZmanis * 4 overflows to exactly 0, which
+        // would render the eating deadline as alot itself — a plausible-looking wrong time rather
+        // than an honest blank. Check before doing any arithmetic on it.
+        if (alos == null || shaahZmanis == Long.MIN_VALUE) {
+            null to null
+        } else {
+            AstronomicalCalendar.getTimeOffset(alos, shaahZmanis * 4) to
+                AstronomicalCalendar.getTimeOffset(alos, shaahZmanis * 5)
+        }
     }
     ChametzMethod.Mga16Point1 -> sofZmanAchilasChametzMGA16Point1Degrees to sofZmanBiurChametzMGA16Point1Degrees
     ChametzMethod.BaalHatanya -> sofZmanAchilasChametzBaalHatanya to sofZmanBiurChametzBaalHatanya

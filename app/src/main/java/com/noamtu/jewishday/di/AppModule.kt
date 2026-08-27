@@ -5,6 +5,12 @@ package com.noamtu.jewishday.di
 import com.noamtu.jewishday.data.DefaultJewishDayRepository
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.DataStoreAppSettingsRepository
+import com.noamtu.jewishday.data.AndroidDeviceIdentity
+import com.noamtu.jewishday.data.DeviceIdentity
+import com.noamtu.jewishday.data.InstallMarker
+import com.noamtu.jewishday.data.NotificationPromptState
+import com.noamtu.jewishday.data.SharedPreferencesInstallMarker
+import com.noamtu.jewishday.data.SharedPreferencesNotificationPromptState
 import com.noamtu.jewishday.data.DailyLearningCache
 import com.noamtu.jewishday.data.DailyLearningRepository
 import com.noamtu.jewishday.data.HebcalDailyLearningRepository
@@ -28,6 +34,20 @@ abstract class AppModule {
     @Binds
     @Singleton
     abstract fun bindAppSettingsRepository(repository: DataStoreAppSettingsRepository): AppSettingsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNotificationPromptState(
+        state: SharedPreferencesNotificationPromptState,
+    ): NotificationPromptState
+
+    @Binds
+    @Singleton
+    abstract fun bindDeviceIdentity(identity: AndroidDeviceIdentity): DeviceIdentity
+
+    @Binds
+    @Singleton
+    abstract fun bindInstallMarker(marker: SharedPreferencesInstallMarker): InstallMarker
 
     @Binds
     @Singleton

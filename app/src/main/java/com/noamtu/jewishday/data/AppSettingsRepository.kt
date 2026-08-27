@@ -37,9 +37,17 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 
+/**
+ * Every theme is a fixed palette. None of them follows the system light/dark setting — a theme is a
+ * look the user picked, not a mode, so the phone's setting must not quietly repaint it. That used
+ * to be true of all but one: "Classic calm" swapped between two palettes with the system, and its
+ * light half now stands alone as Olive grove.
+ *
+ * Ordered light first, then dark, which is the order the picker shows.
+ */
 enum class AppThemeOption(val storageValue: String) {
     BlueWhite("blue_white"),
-    Classic("classic"),
+    OliveGrove("olive_grove"),
     JerusalemStone("jerusalem_stone"),
     Sand("sand"),
     Midnight("midnight"),
@@ -57,7 +65,7 @@ enum class AppThemeOption(val storageValue: String) {
 }
 
 data class AppSettings(
-    val hebrewDateStatusIconEnabled: Boolean = false,
+    val hebrewDateStatusIconEnabled: Boolean = true,
     val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
@@ -68,6 +76,16 @@ data class AppSettings(
     // The candle-lighting offset the user picked at first launch; used as the "default" marker
     // in the picker and as the value the Reset button restores to. Null until first launch answered.
     val candleLightingDefault: CandleLightingMethod? = null,
+    /**
+     * The user answered the location prompt with "always use Jerusalem", so it is never shown
+     * again. Granting location clears it: that is a clearer statement of intent than the setting.
+     */
+    val alwaysUseJerusalem: Boolean = false,
+    /**
+     * Offer pre-releases as updates too. Off by default: a stable install must never be pulled onto
+     * a test build by accident, and a pre-release cannot be uninstalled back down from in place.
+     */
+    val includePreReleases: Boolean = false,
 ) {
     val useHebrewInterface: Boolean get() = language.useHebrewInterface
 }
@@ -100,6 +118,8 @@ interface AppSettingsRepository {
     suspend fun setZmanimSettings(settings: ZmanimCalculationSettings)
     suspend fun setCandleLightingPromptHandled(handled: Boolean)
     suspend fun setCandleLightingDefault(method: CandleLightingMethod)
+    suspend fun setAlwaysUseJerusalem(enabled: Boolean)
+    suspend fun setIncludePreReleases(enabled: Boolean)
 }
 
 class DataStoreAppSettingsRepository @Inject constructor(
@@ -133,7 +153,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
         .map { preferences ->
             val rootUiSettings = decodeRootUiSettings(preferences)
             AppSettings(
-                hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: false,
+                hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: true,
                 language = rootUiSettings.language,
                 use24HourTime = preferences[Use24HourTime] ?: true,
                 enabledDailyLearning = preferences[EnabledDailyLearningKey]
@@ -146,6 +166,8 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 zmanimSettings = decodeZmanimSettings(preferences),
                 candleLightingPromptHandled = preferences[CandleLightingPromptHandled] ?: false,
                 candleLightingDefault = CandleLightingMethod.fromStorageValue(preferences[CandleLightingDefaultKey]),
+                alwaysUseJerusalem = preferences[AlwaysUseJerusalem] ?: false,
+                includePreReleases = preferences[IncludePreReleases] ?: false,
             )
         }
 
@@ -222,6 +244,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
             preferences[MotzeiShabbatMethodKey] = settings.motzeiShabbatMethod.storageValue
             preferences[RabbeinuTamMethodKey] = settings.rabbeinuTamMethod.storageValue
             preferences[ChametzMethodKey] = settings.chametzMethod.storageValue
+            preferences[HolyDayTosefetMinutes] = settings.holyDayTosefetMinutes
             preferences[AteretTorahOffsetMinutes] = settings.ateretTorahSunsetOffsetMinutes
         }
     }
@@ -235,6 +258,18 @@ class DataStoreAppSettingsRepository @Inject constructor(
     override suspend fun setCandleLightingDefault(method: CandleLightingMethod) {
         dataStore.edit { preferences ->
             preferences[CandleLightingDefaultKey] = method.storageValue
+        }
+    }
+
+    override suspend fun setAlwaysUseJerusalem(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[AlwaysUseJerusalem] = enabled
+        }
+    }
+
+    override suspend fun setIncludePreReleases(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[IncludePreReleases] = enabled
         }
     }
 
@@ -274,6 +309,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
             motzeiShabbatMethod = MotzeiShabbatMethod.fromStorageValue(preferences[MotzeiShabbatMethodKey]) ?: defaults.motzeiShabbatMethod,
             rabbeinuTamMethod = RabbeinuTamMethod.fromStorageValue(preferences[RabbeinuTamMethodKey]) ?: defaults.rabbeinuTamMethod,
             chametzMethod = ChametzMethod.fromStorageValue(preferences[ChametzMethodKey]) ?: defaults.chametzMethod,
+            holyDayTosefetMinutes = preferences[HolyDayTosefetMinutes] ?: defaults.holyDayTosefetMinutes,
             ateretTorahSunsetOffsetMinutes = preferences[AteretTorahOffsetMinutes] ?: defaults.ateretTorahSunsetOffsetMinutes,
         )
     }
@@ -290,13 +326,17 @@ class DataStoreAppSettingsRepository @Inject constructor(
             // First launch: follow the device language.
             ?: AppLanguage.systemDefault()
 
-    private fun decodeThemeOption(preferences: Preferences): AppThemeOption =
-        AppThemeOption.fromStorageValue(preferences[ThemeOption])
+    private fun decodeThemeOption(preferences: Preferences): AppThemeOption {
+        // "Classic calm" was one theme that followed the system light/dark setting; what survives
+        // of it is Olive grove, so that is where a stored "classic" lands.
+        if (preferences[ThemeOption] == LegacyClassicTheme) return AppThemeOption.OliveGrove
+        return AppThemeOption.fromStorageValue(preferences[ThemeOption])
             ?: when {
                 preferences[AmoledBlackTheme] == true -> AppThemeOption.AmoledBlack
                 preferences[BlueWhiteTheme] == true -> AppThemeOption.BlueWhite
                 else -> AppThemeOption.Default
             }
+    }
 
     private fun legacyAlotMethod(minutes: Int): AlotHashacharMethod = when (minutes) {
         90 -> AlotHashacharMethod.Minutes90
@@ -330,8 +370,14 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val EnabledZmanimTimesKey = stringSetPreferencesKey("enabled_zmanim_times")
         val CandleLightingPromptHandled = booleanPreferencesKey("candle_lighting_prompt_handled")
         val CandleLightingDefaultKey = stringPreferencesKey("candle_lighting_default")
+        val AlwaysUseJerusalem = booleanPreferencesKey("always_use_jerusalem")
+        val IncludePreReleases = booleanPreferencesKey("include_pre_releases")
         val ThemeOption = stringPreferencesKey("theme_option")
         val BlueWhiteTheme = booleanPreferencesKey("blue_white_theme")
+
+        /** Retained read-only: the storage value of the theme that used to follow the system. */
+        const val LegacyClassicTheme: String = "classic"
+
         val AmoledBlackTheme = booleanPreferencesKey("amoled_black_theme")
         val ZmanimPresetKey = stringPreferencesKey("zmanim_preset")
         val AlotHashacharMethodKey = stringPreferencesKey("zmanim_alot_method")
@@ -352,6 +398,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val MotzeiShabbatMethodKey = stringPreferencesKey("zmanim_motzei_method")
         val RabbeinuTamMethodKey = stringPreferencesKey("zmanim_rabbeinu_tam_method")
         val ChametzMethodKey = stringPreferencesKey("zmanim_chametz_method")
+        val HolyDayTosefetMinutes = intPreferencesKey("holy_day_tosefet_minutes")
         val AteretTorahOffsetMinutes = intPreferencesKey("zmanim_ateret_torah_offset_minutes")
         val UseElevation = booleanPreferencesKey("zmanim_use_elevation")
         val AlotHashacharOffsetMinutes = intPreferencesKey("zmanim_alot_offset_minutes")

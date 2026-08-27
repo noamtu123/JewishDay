@@ -18,7 +18,10 @@ internal fun complexZmanimCalendar(
         location.name,
         location.latitude,
         location.longitude,
-        location.elevationMeters,
+        // KosherJava rejects a negative elevation outright, and GPS reports plenty of them: the
+        // Dead Sea sits 430m below sea level, and a fix near the coast dips below zero on noise
+        // alone. Treated as sea level, which is what the elevation-free zmanim use anyway.
+        location.elevationMeters.coerceAtLeast(0.0),
         timeZone,
     )
     val calculationDate = GregorianCalendar(timeZone).apply {

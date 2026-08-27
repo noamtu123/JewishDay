@@ -53,6 +53,12 @@ data class ZmanimUiState(
     val header: ZmanimHeaderUi? = null,
     val groups: List<ZmanimGroupUi> = emptyList(),
     val showCandleLightingPrompt: Boolean = false,
+    /**
+     * The hidden developer clock override is pinning "now", so every time on this screen — and the
+     * status-bar icon — is simulated. It survives process death and travels in the settings backup,
+     * so it must be visible on the screen it falsifies, not only in the developer tools.
+     */
+    val developerTimeOverrideActive: Boolean = false,
 )
 
 /** Date header pinned at the top of the tab: the Jewish date with the Gregorian date beneath. */
@@ -67,10 +73,21 @@ data class ZmanimHeaderUi(
     val locationName: String = "",
     val fastName: String? = null,
     val fastNameHebrew: String? = null,
+    // Fully written lines: "כניסת הצום 04:10", "יציאת הצום מחר 20:17".
     val fastStart: String? = null,
     val fastStartHebrew: String? = null,
     val fastEnd: String? = null,
     val fastEndHebrew: String? = null,
+    val holyDayName: String? = null,
+    val holyDayNameHebrew: String? = null,
+    val holyDayStart: String? = null,
+    val holyDayStartHebrew: String? = null,
+    val holyDayEnd: String? = null,
+    val holyDayEndHebrew: String? = null,
+    // Set when another holy day begins the moment this one ends.
+    val holyDaySequel: String? = null,
+    val holyDaySequelHebrew: String? = null,
+    val fastLeadsHeader: Boolean = false,
 )
 
 @Immutable
@@ -116,6 +133,7 @@ private data class ZmanimDisplayInput(
     val enabledZmanimTimes: Set<ZmanimTimeOption>,
     val enabledDailyLearning: Set<DailyLearningType>,
     val showCandleLightingPrompt: Boolean,
+    val developerTimeOverrideActive: Boolean,
 )
 
 private data class DailyLearningRequest(
@@ -223,7 +241,8 @@ class ZmanimViewModel @Inject constructor(
         zmanimDay,
         dailyLearningItems,
         settings,
-    ) { day, learning, settings ->
+        developerOverrides,
+    ) { day, learning, settings, overrides ->
         ZmanimDisplayInput(
             zmanimDay = day,
             dailyLearningItems = learning,
@@ -231,6 +250,7 @@ class ZmanimViewModel @Inject constructor(
             enabledZmanimTimes = settings.enabledZmanimTimes,
             enabledDailyLearning = settings.enabledDailyLearning,
             showCandleLightingPrompt = !settings.candleLightingPromptHandled,
+            developerTimeOverrideActive = overrides.timeOverrideEnabled,
         )
     }
         .distinctUntilChanged()
@@ -243,6 +263,7 @@ class ZmanimViewModel @Inject constructor(
                 .toUiState(
                     use24HourTime = input.use24HourTime,
                     showCandleLightingPrompt = input.showCandleLightingPrompt,
+                    developerTimeOverrideActive = input.developerTimeOverrideActive,
                 )
         }
         .distinctUntilChanged()
@@ -323,6 +344,7 @@ private fun ZmanimDay.mergeRambamRows(): ZmanimDay {
 private fun ZmanimDay.toUiState(
     use24HourTime: Boolean,
     showCandleLightingPrompt: Boolean,
+    developerTimeOverrideActive: Boolean,
 ): ZmanimUiState {
     // Always format the "English" date/time in English regardless of the device locale — otherwise
     // a Hebrew system locale makes Locale.getDefault() render the English header in Hebrew too.
@@ -332,7 +354,10 @@ private fun ZmanimDay.toUiState(
     val englishTimeFormatter = DateTimeFormatter.ofPattern(timePattern, englishLocale).withZone(zoneId)
     val hebrewTimeFormatter = DateTimeFormatter.ofPattern(timePattern, hebrewLocale).withZone(zoneId)
     val englishDateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d", englishLocale)
-    val hebrewDateFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM", hebrewLocale)
+    // Hebrew writes the month with a "ב" prefix ("17 ביולי"). CLDR keeps that prefix as a literal
+    // in the locale's own date pattern rather than in the month name, so a custom pattern has to
+    // carry it explicitly — MMMM alone yields the bare "יולי".
+    val hebrewDateFormatter = DateTimeFormatter.ofPattern("EEEE, d 'ב'MMMM", hebrewLocale)
 
     val uiGroups = groups.mapIndexed { groupIndex, group ->
         ZmanimGroupUi(
@@ -356,15 +381,34 @@ private fun ZmanimDay.toUiState(
             gregorianDate = date.format(englishDateFormatter),
             gregorianDateHebrew = date.format(hebrewDateFormatter),
             locationName = locationName,
-            fastName = fastDayInfo?.name,
-            fastNameHebrew = fastDayInfo?.nameHebrew,
-            fastStart = fastDayInfo?.startTime.formatTime(englishTimeFormatter).takeIf { fastDayInfo != null },
-            fastStartHebrew = fastDayInfo?.startTime.formatTime(hebrewTimeFormatter).takeIf { fastDayInfo != null },
-            fastEnd = fastDayInfo?.endTime.formatTime(englishTimeFormatter).takeIf { fastDayInfo != null },
-            fastEndHebrew = fastDayInfo?.endTime.formatTime(hebrewTimeFormatter).takeIf { fastDayInfo != null },
+            // The name belongs to the observance while it is on; the times show a day ahead.
+            fastName = fastDayInfo?.takeIf { it.isUnderWay }?.name,
+            fastNameHebrew = fastDayInfo?.takeIf { it.isUnderWay }?.nameHebrew,
+            fastStart = fastDayInfo?.startTime?.let { observanceLine("Fast starts", it, englishTimeFormatter) },
+            fastStartHebrew = fastDayInfo?.startTime?.let { observanceLine("כניסת הצום", it, hebrewTimeFormatter) },
+            fastEnd = fastDayInfo?.endTime?.let { observanceLine("Fast ends", it, englishTimeFormatter) },
+            fastEndHebrew = fastDayInfo?.endTime?.let { observanceLine("צאת הצום", it, hebrewTimeFormatter) },
+            holyDayName = holyDayInfo?.takeIf { it.isUnderWay }?.name,
+            holyDayNameHebrew = holyDayInfo?.takeIf { it.isUnderWay }?.nameHebrew,
+            holyDayStart = holyDayInfo?.startTime?.let {
+                observanceLine("${holyDayInfo.term} starts", it, englishTimeFormatter)
+            },
+            holyDayStartHebrew = holyDayInfo?.startTime?.let {
+                observanceLine("כניסת ${holyDayInfo.termHebrew}", it, hebrewTimeFormatter)
+            },
+            holyDayEnd = holyDayInfo?.endTime?.let {
+                observanceLine("${holyDayInfo.term} ends", it, englishTimeFormatter)
+            },
+            holyDayEndHebrew = holyDayInfo?.endTime?.let {
+                observanceLine("צאת ${holyDayInfo.termHebrew}", it, hebrewTimeFormatter)
+            },
+            holyDaySequel = holyDayInfo?.sequel,
+            holyDaySequelHebrew = holyDayInfo?.sequelHebrew,
+            fastLeadsHeader = fastLeadsHeader,
         ),
         groups = uiGroups,
         showCandleLightingPrompt = showCandleLightingPrompt,
+        developerTimeOverrideActive = developerTimeOverrideActive,
     )
 }
 
@@ -437,3 +481,7 @@ private fun abbreviateRambamReference(reference: String, chapterWords: List<Stri
 }
 
 private fun Instant?.formatTime(formatter: DateTimeFormatter): String = this?.let(formatter::format) ?: "--"
+
+/** One line of an observance card: what the time is, then the time — "צאת חג שני 19:20". */
+private fun observanceLine(label: String, time: Instant, formatter: DateTimeFormatter): String =
+    "$label ${formatter.format(time)}"

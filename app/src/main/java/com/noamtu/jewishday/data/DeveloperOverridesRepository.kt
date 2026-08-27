@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -69,8 +71,15 @@ data class DeveloperOverrides(
     // Forces the About page to render in English regardless of the app language, so the English
     // copy can be checked without switching the whole interface.
     val aboutInEnglish: Boolean = false,
+    // The same, for the "What's new" section of the update dialog: a release body carries both
+    // languages, and this shows the English one while the rest of the app stays in Hebrew.
+    val updateNotesInEnglish: Boolean = false,
     // Shows a live sensor/quality diagnostics panel on the Prayer Compass screen.
     val compassMonitoringEnabled: Boolean = false,
+    // Makes the update check believe this is the installed version, so any release newer than it
+    // looks like an update and the whole flow — check, download, install — runs against GitHub for
+    // real. Blank means "use the real version".
+    val spoofedVersionName: String = "",
 ) {
     /** The instant the app should treat as "now" given the real [realNow]. */
     fun effectiveInstant(realNow: Instant): Instant {
@@ -154,7 +163,23 @@ class DeveloperOverridesRepository @Inject constructor(
 
     suspend fun setAboutInEnglish(enabled: Boolean) = update { it.copy(aboutInEnglish = enabled) }
 
+    suspend fun setUpdateNotesInEnglish(enabled: Boolean) = update { it.copy(updateNotesInEnglish = enabled) }
+
     suspend fun setCompassMonitoringEnabled(enabled: Boolean) = update { it.copy(compassMonitoringEnabled = enabled) }
+
+    suspend fun setSpoofedVersionName(versionName: String) =
+        update { it.copy(spoofedVersionName = versionName.trim()) }
+
+    /**
+     * The stored overrides, waiting for the first read rather than using [snapshot].
+     *
+     * [snapshot] starts life at the defaults and is filled in once DataStore emits, so anything
+     * running at launch — the update check does — would otherwise read "off" for every override.
+     */
+    suspend fun current(): DeveloperOverrides = dataStore.data
+        .catch { exception -> if (exception is IOException) emit(emptyPreferences()) else throw exception }
+        .map(::decode)
+        .first()
 
     /** Clears every override but keeps the tools unlocked. */
     suspend fun clearOverrides() = update {
@@ -178,7 +203,9 @@ class DeveloperOverridesRepository @Inject constructor(
         locationOverrideEnabled = preferences[LocationEnabledKey] ?: false,
         locationPresetId = preferences[LocationPresetKey],
         aboutInEnglish = preferences[AboutEnglishKey] ?: false,
+        updateNotesInEnglish = preferences[UpdateNotesEnglishKey] ?: false,
         compassMonitoringEnabled = preferences[CompassMonitoringKey] ?: false,
+        spoofedVersionName = preferences[SpoofedVersionKey].orEmpty(),
     )
 
     private fun encode(preferences: androidx.datastore.preferences.core.MutablePreferences, overrides: DeveloperOverrides) {
@@ -190,7 +217,9 @@ class DeveloperOverridesRepository @Inject constructor(
         preferences[LocationEnabledKey] = overrides.locationOverrideEnabled
         overrides.locationPresetId?.let { preferences[LocationPresetKey] = it }
         preferences[AboutEnglishKey] = overrides.aboutInEnglish
+        preferences[UpdateNotesEnglishKey] = overrides.updateNotesInEnglish
         preferences[CompassMonitoringKey] = overrides.compassMonitoringEnabled
+        preferences[SpoofedVersionKey] = overrides.spoofedVersionName
     }
 
     private companion object {
@@ -202,6 +231,8 @@ class DeveloperOverridesRepository @Inject constructor(
         val LocationEnabledKey = booleanPreferencesKey("dev_loc_enabled")
         val LocationPresetKey = stringPreferencesKey("dev_loc_preset")
         val AboutEnglishKey = booleanPreferencesKey("dev_about_english")
+        val UpdateNotesEnglishKey = booleanPreferencesKey("dev_update_notes_english")
         val CompassMonitoringKey = booleanPreferencesKey("dev_compass_monitoring")
+        val SpoofedVersionKey = stringPreferencesKey("dev_spoofed_version")
     }
 }

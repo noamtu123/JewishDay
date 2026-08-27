@@ -27,6 +27,8 @@ import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.ZmanimPreset
 import com.noamtu.jewishday.model.ZmanimTimeOption
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
+import com.noamtu.jewishday.BuildConfig
+import com.noamtu.jewishday.update.AppVersion
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -45,6 +47,9 @@ data class SettingsUiState(
     val themeOption: AppThemeOption = AppThemeOption.Default,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
     val candleLightingDefault: CandleLightingMethod? = null,
+    val includePreReleases: Boolean = false,
+    /** This build is itself a pre-release, which changes what turning the switch off can do. */
+    val installedPreReleaseName: String? = null,
 )
 
 @HiltViewModel
@@ -63,6 +68,8 @@ class SettingsViewModel @Inject constructor(
                 themeOption = settings.themeOption,
                 zmanimSettings = settings.zmanimSettings,
                 candleLightingDefault = settings.candleLightingDefault,
+                includePreReleases = settings.includePreReleases,
+                installedPreReleaseName = InstalledPreReleaseName,
             )
         }
         .stateIn(
@@ -88,6 +95,22 @@ class SettingsViewModel @Inject constructor(
     fun setUse24HourTime(enabled: Boolean) {
         viewModelScope.launch {
             appSettingsRepository.setUse24HourTime(enabled)
+        }
+    }
+
+    private companion object {
+        /**
+         * The running build's version name when it is a pre-release, else null. Read from
+         * BuildConfig rather than from GitHub: the answer is about this APK, so it needs no network
+         * and is right even offline.
+         */
+        val InstalledPreReleaseName: String? =
+            BuildConfig.VERSION_NAME.takeIf { AppVersion.parse(it)?.isPreRelease == true }
+    }
+
+    fun setIncludePreReleases(enabled: Boolean) {
+        viewModelScope.launch {
+            appSettingsRepository.setIncludePreReleases(enabled)
         }
     }
 
@@ -206,6 +229,12 @@ class SettingsViewModel @Inject constructor(
 
     fun setMotzeiShabbatMethod(method: MotzeiShabbatMethod) {
         updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, motzeiShabbatMethod = method) }
+    }
+
+    /** Tosefet added when leaving Shabbat or a Yom Tov, in minutes. Clamped to something sane. */
+    fun setHolyDayTosefetMinutes(minutes: Int) {
+        val clamped = minutes.coerceIn(0, 120)
+        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, holyDayTosefetMinutes = clamped) }
     }
 
     fun setRabbeinuTamMethod(method: RabbeinuTamMethod) {
