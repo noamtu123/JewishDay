@@ -97,6 +97,8 @@ dependencies {
     ksp(libs.androidx.hilt.compiler)
 
     testImplementation(libs.junit)
+    // android.jar's org.json is a stub in unit tests; the real one lets release parsing be tested.
+    testImplementation(libs.json)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
