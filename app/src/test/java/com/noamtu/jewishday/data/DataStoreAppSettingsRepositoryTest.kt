@@ -37,7 +37,7 @@ class DataStoreAppSettingsRepositoryTest {
     val temporaryFolder = TemporaryFolder()
 
     @Test
-    fun settingsDefaultToDisabledAndPersistUpdates() = runBlocking {
+    fun settingsExposeDefaultsAndPersistUpdates() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
         val startupSettingsCache = FakeStartupSettingsCache()
         val repository = DataStoreAppSettingsRepository(

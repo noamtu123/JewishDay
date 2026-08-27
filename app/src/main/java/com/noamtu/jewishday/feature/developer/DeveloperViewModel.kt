@@ -12,6 +12,8 @@ import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.model.isInIsrael
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
+import com.noamtu.jewishday.update.AppUpdateRepository
+import com.noamtu.jewishday.update.UpdateCheckReport
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Clock
@@ -23,6 +25,8 @@ import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -62,6 +66,7 @@ class DeveloperViewModel @Inject constructor(
     private val currentLocationRepository: CurrentLocationRepository,
     @ApplicationContext private val context: Context,
     private val clock: Clock,
+    private val appUpdateRepository: AppUpdateRepository,
 ) : ViewModel() {
 
     // Israel/diaspora now follows the effective location, so re-render whenever it changes.
@@ -71,6 +76,11 @@ class DeveloperViewModel @Inject constructor(
     ) { overrides, _ ->
         buildUiState(overrides)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeveloperUiState())
+
+    private val _updateCheckResult = MutableStateFlow<String?>(null)
+
+    /** What the last manual update check said, or null when none has been run. */
+    val updateCheckResult: StateFlow<String?> = _updateCheckResult.asStateFlow()
 
     fun setTimeOverrideEnabled(enabled: Boolean) = launchOverride {
         developerOverridesRepository.setTimeOverrideEnabled(enabled)
@@ -121,12 +131,45 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setAboutInEnglish(enabled)
     }
 
+    fun setUpdateNotesInEnglish(enabled: Boolean) = launchOverride {
+        developerOverridesRepository.setUpdateNotesInEnglish(enabled)
+    }
+
+    fun setSpoofedVersionName(versionName: String) = launchOverride {
+        developerOverridesRepository.setSpoofedVersionName(versionName)
+        // A stale verdict next to a version that just changed reads as the new one's answer.
+        _updateCheckResult.value = null
+    }
+
+    /**
+     * Runs the same check the app runs at launch and says what it found. The launch check is silent
+     * about everything except an available update, so without this there is no way to tell an
+     * up-to-date app from one that never reached GitHub at all.
+     */
+    fun runUpdateCheck() {
+        if (_updateCheckResult.value == CheckingLabel) return
+        viewModelScope.launch {
+            _updateCheckResult.value = CheckingLabel
+            _updateCheckResult.value = when (val report = appUpdateRepository.check()) {
+                is UpdateCheckReport.Available ->
+                    "Update found: ${report.release.version} (installed ${report.installed}). " +
+                        "Reopen the app to be offered it."
+                is UpdateCheckReport.UpToDate ->
+                    "Up to date: newest release is ${report.latest}, installed is ${report.installed}."
+                is UpdateCheckReport.NoReleases ->
+                    "GitHub answered, but no release has an APK attached."
+                is UpdateCheckReport.Failed -> "Check failed: ${report.reason}"
+            }
+        }
+    }
+
     fun setCompassMonitoringEnabled(enabled: Boolean) = launchOverride {
         developerOverridesRepository.setCompassMonitoringEnabled(enabled)
     }
 
     fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()
+        _updateCheckResult.value = null
     }
 
     private fun launchOverride(block: suspend () -> Unit) {
@@ -195,5 +238,9 @@ class DeveloperViewModel @Inject constructor(
             DeveloperJumpTarget.RoshChodesh -> jc.isRoshChodesh
             DeveloperJumpTarget.ErevShabbat -> date.dayOfWeek == java.time.DayOfWeek.FRIDAY
         }
+    }
+
+    private companion object {
+        const val CheckingLabel = "Checking…"
     }
 }

@@ -111,6 +111,12 @@ internal object DailyLearningCacheCodec {
         ?.let { Base64.getEncoder().encodeToString(it.toByteArray(Charsets.UTF_8)) }
         ?: ""
 
+    // Base64.getDecoder() is strict and throws on malformed input. This is read inside the
+    // daily-learning flow, so a corrupted preferences file would surface as an exception in the
+    // ViewModel's scope rather than as a missing row. A damaged field simply reads as absent, and
+    // decode() then drops the whole entry — the Hebcal refresh rewrites it on the next run.
     private fun String.decodeField(): String? = takeIf(String::isNotEmpty)
-        ?.let { String(Base64.getDecoder().decode(it), Charsets.UTF_8) }
+        ?.let { encoded ->
+            runCatching { String(Base64.getDecoder().decode(encoded), Charsets.UTF_8) }.getOrNull()
+        }
 }

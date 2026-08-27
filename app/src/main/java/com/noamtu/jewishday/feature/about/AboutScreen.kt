@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import com.noamtu.jewishday.ui.LocalUseHebrewInterface
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.noamtu.jewishday.BuildConfig
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.ui.components.InfoCard
 import com.noamtu.jewishday.ui.components.ScreenPaddingValues
@@ -50,6 +49,7 @@ fun AboutScreen(
     val context = LocalContext.current
     val developerModeUnlocked by viewModel.developerModeUnlocked.collectAsStateWithLifecycle()
     val aboutInEnglish by viewModel.aboutInEnglish.collectAsStateWithLifecycle()
+    val displayedVersion by viewModel.displayedVersion.collectAsStateWithLifecycle()
 
     // Hidden unlock: tap the version number 7x (like Android's Developer Options).
     val tapState = remember { VersionTapState() }
@@ -71,6 +71,7 @@ fun AboutScreen(
         ) {
             item {
                 AboutHeader(
+                    version = displayedVersion,
                     onVersionTap = {
                         if (!developerModeUnlocked && tapState.registerTap()) {
                             viewModel.unlockDeveloperMode()
@@ -139,6 +140,7 @@ private class VersionTapState {
 
 @Composable
 private fun AboutHeader(
+    version: String,
     onVersionTap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -151,7 +153,7 @@ private fun AboutHeader(
         Spacer(Modifier.height(4.dp))
         Text(
             modifier = Modifier.clickable(onClick = onVersionTap),
-            text = localizedString(R.string.about_version, R.string.about_version_hebrew, BuildConfig.VERSION_NAME),
+            text = localizedString(R.string.about_version, R.string.about_version_hebrew, version),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
