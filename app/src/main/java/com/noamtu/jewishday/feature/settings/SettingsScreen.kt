@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
@@ -25,6 +26,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -38,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -525,6 +528,7 @@ private fun AdvancedZmanimChoices(
 ) {
     val useHebrew = LocalUseHebrewInterface.current
     var activePicker by remember { mutableStateOf<ZmanimMethodPicker?>(null) }
+    var showTosefetDialog by remember { mutableStateOf(false) }
     // Used only to mark which option is the app default in each picker.
     val defaults = remember { ZmanimCalculationSettings() }
 
@@ -621,12 +625,38 @@ private fun AdvancedZmanimChoices(
         activePicker = picker(text("Motzei Shabbat", "צאת שבת"), MotzeiShabbatMethod.entries, settings.motzeiShabbatMethod, defaults.motzeiShabbatMethod, { it.localizedLabel(useHebrew) }, viewModel::setMotzeiShabbatMethod)
     }
     SettingsDivider()
+    MethodChoiceRow(
+        text("Tosefet Shabbat / Yom Tov", "תוספת שבת/חג"),
+        text("Minutes added after nightfall before Shabbat or Yom Tov goes out.", "דקות שמתווספות אחרי צאת הכוכבים ליציאת שבת או חג."),
+        text("${settings.holyDayTosefetMinutes} minutes", "${settings.holyDayTosefetMinutes} דקות"),
+    ) {
+        showTosefetDialog = true
+    }
+    SettingsDivider()
     MethodChoiceRow(text("Rabbeinu Tam", "רבינו תם"), text("Separate Rabbeinu Tam Shabbat opinion.", "שיטת רבינו תם נפרדת לשבת."), settings.rabbeinuTamMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Rabbeinu Tam", "רבינו תם"), RabbeinuTamMethod.entries, settings.rabbeinuTamMethod, defaults.rabbeinuTamMethod, { it.localizedLabel(useHebrew) }, viewModel::setRabbeinuTamMethod)
     }
     SettingsDivider()
     MethodChoiceRow(text("Erev Pesach Chametz", "חמץ בערב פסח"), text("Sof zman eating and burning chametz.", "סוף זמן אכילת חמץ וביעור חמץ."), settings.chametzMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Erev Pesach Chametz", "חמץ בערב פסח"), ChametzMethod.entries, settings.chametzMethod, defaults.chametzMethod, { it.localizedLabel(useHebrew) }, viewModel::setChametzMethod)
+    }
+
+    if (showTosefetDialog) {
+        MinutesInputDialog(
+            title = text("Tosefet Shabbat / Yom Tov", "תוספת שבת/חג"),
+            description = text(
+                "Minutes added after nightfall. The default is 5.",
+                "דקות שמתווספות אחרי צאת הכוכבים. ברירת המחדל היא 5.",
+            ),
+            initialMinutes = settings.holyDayTosefetMinutes,
+            confirmLabel = text("Save", "שמירה"),
+            dismissLabel = text("Cancel", "ביטול"),
+            onDismiss = { showTosefetDialog = false },
+            onConfirm = { minutes ->
+                viewModel.setHolyDayTosefetMinutes(minutes)
+                showTosefetDialog = false
+            },
+        )
     }
 
     activePicker?.let { pickerConfig ->
@@ -671,6 +701,47 @@ private data class ZmanimMethodOption(
     val selected: Boolean,
     val onSelect: () -> Unit,
 )
+
+/** A small numeric entry dialog for a minutes-valued setting. Digits only, capped at two of them. */
+@Composable
+private fun MinutesInputDialog(
+    title: String,
+    description: String,
+    initialMinutes: Int,
+    confirmLabel: String,
+    dismissLabel: String,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit,
+) {
+    var value by remember { mutableStateOf(initialMinutes.toString()) }
+    val minutes = value.toIntOrNull()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(description, style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { entered ->
+                        // Keep it to a plain 0-99 number; anything else simply isn't accepted.
+                        if (entered.length <= 2 && entered.all(Char::isDigit)) value = entered
+                    },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { minutes?.let(onConfirm) }, enabled = minutes != null) {
+                Text(confirmLabel)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(dismissLabel) }
+        },
+    )
+}
 
 @Composable
 private fun MethodChoiceRow(

@@ -61,16 +61,13 @@ class DateStatusIconNotifier @Inject constructor(
      * re-post the right glyph instantly after a cold start, before recomputation finishes.
      */
     fun render(dayInfo: JewishDayInfo, useHebrew: Boolean): DateIconSpec {
-        val titleRes = if (useHebrew) {
-            R.string.notification_status_hebrew_title_hebrew
-        } else {
-            R.string.notification_status_hebrew_title
-        }
+        // The headline is the day itself ("יום רביעי"), with the Hebrew date as the second line.
+        // Both follow the Jewish day, so they roll together at sunset.
         val rendered = DateIconSpec(
             id = ForegroundId,
             iconText = dayInfo.hebrewDayOfMonthHebrew,
-            title = context.getString(titleRes),
-            content = dayInfo.hebrewDateHebrew,
+            title = if (useHebrew) dayInfo.dayOfWeekHebrew else dayInfo.dayOfWeekEnglish,
+            content = if (useHebrew) dayInfo.hebrewDateHebrew else dayInfo.hebrewDateEnglish,
         )
         persist(rendered)
         return rendered

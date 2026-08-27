@@ -13,7 +13,7 @@ data class ZmanimCalculationSettings(
     val sofZmanShemaGraMethod: SofZmanShemaMethod = SofZmanShemaMethod.Gra,
     val sofZmanShemaMethod: SofZmanShemaMethod = SofZmanShemaMethod.Mga16Point1,
     val sofZmanTefillahGraMethod: SofZmanTefillahMethod = SofZmanTefillahMethod.Gra,
-    val sofZmanTefillahMethod: SofZmanTefillahMethod = SofZmanTefillahMethod.Mga72,
+    val sofZmanTefillahMethod: SofZmanTefillahMethod = SofZmanTefillahMethod.Mga16Point1,
     val chatzotMethod: ChatzotMethod = ChatzotMethod.Solar,
     val chatzotHaLailaMethod: ChatzotMethod = ChatzotMethod.Solar,
     val minchaGedolaMethod: MinchaGedolaMethod = MinchaGedolaMethod.Standard,
@@ -22,8 +22,11 @@ data class ZmanimCalculationSettings(
     val sunsetMethod: SunsetMethod = SunsetMethod.SeaLevel,
     val tzeitHakochavimMethod: TzeitHakochavimMethod = TzeitHakochavimMethod.Degrees6Point2,
     val candleLightingMethod: CandleLightingMethod = CandleLightingMethod.Minutes18,
-    val motzeiShabbatMethod: MotzeiShabbatMethod = MotzeiShabbatMethod.Geonim8Point5,
+    val motzeiShabbatMethod: MotzeiShabbatMethod = MotzeiShabbatMethod.Degrees6Point2,
     val rabbeinuTamMethod: RabbeinuTamMethod = RabbeinuTamMethod.Minutes72,
     val chametzMethod: ChametzMethod = ChametzMethod.Gra,
+    // Minutes added after motzei when leaving a holy day (tosefet Shabbat/Yom Tov). Ordinary
+    // fasts never get it — they end at plain tzeit.
+    val holyDayTosefetMinutes: Int = 5,
     val ateretTorahSunsetOffsetMinutes: Int = 40,
 )
