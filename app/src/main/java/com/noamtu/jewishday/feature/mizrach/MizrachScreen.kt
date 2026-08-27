@@ -61,6 +61,10 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -598,7 +602,19 @@ private fun CompassFace(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(modifier = Modifier.size(240.dp)) {
+        val dialDescription = localizedString(
+            R.string.mizrach_compass_dial_description,
+            R.string.mizrach_compass_dial_description_hebrew,
+            bearingDegrees,
+        )
+        // A Canvas carries no text, so without this the needle is invisible to TalkBack. The
+        // description is keyed on the bearing only — the live heading is read in the draw phase on
+        // purpose, and pulling it up here would recompose the screen at the sensor rate.
+        Canvas(
+            modifier = Modifier
+                .size(240.dp)
+                .semantics { contentDescription = dialDescription },
+        ) {
             // Sensor state is read here, in the draw phase, so each sensor tick only
             // redraws the needle instead of recomposing the whole screen.
             val sensorState = sensorStateProvider()
@@ -661,7 +677,11 @@ private fun CompassFace(
             )
             if (alignment != null) {
                 Spacer(Modifier.height(8.dp))
+                // "Turn left" becoming "Facing Kodesh HaKodashim" is the whole point of the screen
+                // for someone who cannot see the needle, so it is announced rather than merely
+                // readable. Polite: it should not cut across what the user is already hearing.
                 ValuePill(
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     text = alignment.label,
                     containerColor = if (isAligned) alignedColor else MaterialTheme.colorScheme.surface,
                     contentColor = if (isAligned) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurface,

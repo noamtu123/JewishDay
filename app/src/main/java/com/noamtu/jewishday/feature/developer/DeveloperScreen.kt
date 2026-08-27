@@ -60,7 +60,7 @@ fun DeveloperScreen(
     val overrides = state.overrides
     val context = LocalContext.current
     val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
-    var showSpoofedVersionDialog by remember { mutableStateOf(false) }
+    var showSpoofedVersionDialog by rememberSaveable { mutableStateOf(false) }
 
     ScreenSurface(modifier = modifier) {
         LazyColumn(
@@ -210,11 +210,16 @@ fun DeveloperScreen(
 
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("About page")
+                    SectionTitle("English overrides")
                     SwitchRow(
                         label = "Show About page in English",
                         checked = overrides.aboutInEnglish,
                         onCheckedChange = viewModel::setAboutInEnglish,
+                    )
+                    SwitchRow(
+                        label = "Show update changelog in English",
+                        checked = overrides.updateNotesInEnglish,
+                        onCheckedChange = viewModel::setUpdateNotesInEnglish,
                     )
                 }
             }

@@ -19,11 +19,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +47,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -149,6 +155,7 @@ private fun NotificationPermissionSetup(
 private fun AppUpdatePrompt(viewModel: AppUpdateViewModel) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val notesInEnglish by viewModel.notesInEnglish.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { viewModel.checkOnLaunch() }
 
@@ -165,6 +172,7 @@ private fun AppUpdatePrompt(viewModel: AppUpdateViewModel) {
 
     AppUpdateDialog(
         state = state,
+        notesInEnglish = notesInEnglish,
         onDownload = viewModel::download,
         onOpenInstallSettings = {
             runCatching {
@@ -181,11 +189,14 @@ private enum class LocationPromptKind { None, Permission, Services }
  * App-wide location handling, run on every foreground (cold start and each return from recents):
  *
  * - Permission + location on → pull a fresh fix immediately (zmanim compute right away).
- * - No permission → ask the OS directly the first time; if denied (or on later opens) show a dialog
- *   offering "Grant permission" or "Use Jerusalem".
- * - Location switch off → show a dialog offering "Turn on location" or "Use Jerusalem". (Android has
- *   no in-app system prompt to flip that switch without Google Play Services, so this deep-links to
- *   Settings rather than firing a one-tap request like the permission case.)
+ * - No permission → ask the OS directly the first time; if denied (or on later opens) show our own
+ *   dialog offering the three real answers.
+ * - Location switch off → the same dialog, pointing at Settings instead. (Android has no in-app
+ *   system prompt to flip that switch without Google Play Services.)
+ *
+ * The dialog used to be a two-button "Grant permission" / "Use Jerusalem", where "Use Jerusalem"
+ * meant only "not now" — so someone who had decided got asked again on every single launch. It now
+ * separates "this time" from "always", and honours the second.
  *
  * The app never remembers a past location, so the fallback is always Jerusalem.
  */
@@ -195,7 +206,11 @@ private fun LocationAvailabilityPrompt(
     viewModel: LocationPromptViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    // Null while the stored choice is still being read; nothing below acts until it is known.
+    val alwaysUseJerusalem by viewModel.alwaysUseJerusalem.collectAsStateWithLifecycle()
     var kind by remember { mutableStateOf(LocationPromptKind.None) }
+    // What ON_START decided, parked until the stored choice above has loaded.
+    var pending by remember { mutableStateOf<LocationPromptKind?>(null) }
     // Fire the system permission request at most once per foreground; after that (or a denial) use
     // our own dialog instead of re-spamming the OS prompt.
     var systemAsked by remember { mutableStateOf(false) }
@@ -206,54 +221,46 @@ private fun LocationAvailabilityPrompt(
         val granted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         kind = when {
-            !granted -> { viewModel.useJerusalemFallback(); LocationPromptKind.Permission }
-            !context.isLocationServicesEnabled() -> { viewModel.useJerusalemFallback(); LocationPromptKind.Services }
-            else -> { viewModel.refreshCurrentLocation(); LocationPromptKind.None }
+            !granted -> {
+                viewModel.useJerusalemOnce()
+                LocationPromptKind.Permission
+            }
+            !context.isLocationServicesEnabled() -> {
+                viewModel.useJerusalemOnce()
+                LocationPromptKind.Services
+            }
+            else -> {
+                viewModel.useCurrentLocation()
+                LocationPromptKind.None
+            }
         }
         // The location system dialog has now closed, so the notification prompt can safely open.
         onSettled()
-    }
-
-    fun evaluate() {
-        val hasPermission = context.hasLocationPermission()
-        val servicesEnabled = context.isLocationServicesEnabled()
-        when {
-            hasPermission && servicesEnabled -> {
-                viewModel.refreshCurrentLocation()
-                kind = LocationPromptKind.None
-                onSettled()
-            }
-            !hasPermission -> {
-                viewModel.useJerusalemFallback()
-                if (!systemAsked) {
-                    // First open this foreground: ask the OS directly. onSettled() waits for the
-                    // dialog's result callback so the notification dialog doesn't overlap it.
-                    systemAsked = true
-                    permissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
-                        ),
-                    )
-                } else {
-                    kind = LocationPromptKind.Permission
-                    onSettled()
-                }
-            }
-            else -> {
-                // Permission granted, but the location switch is off.
-                viewModel.useJerusalemFallback()
-                kind = LocationPromptKind.Services
-                onSettled()
-            }
-        }
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_START -> evaluate()
+                Lifecycle.Event.ON_START -> {
+                    val hasPermission = context.hasLocationPermission()
+                    val servicesEnabled = context.isLocationServicesEnabled()
+                    pending = when {
+                        hasPermission && servicesEnabled -> {
+                            viewModel.useCurrentLocation()
+                            LocationPromptKind.None
+                        }
+                        !hasPermission -> {
+                            viewModel.useJerusalemOnce()
+                            LocationPromptKind.Permission
+                        }
+                        // Permission granted, but the location switch is off.
+                        else -> {
+                            viewModel.useJerusalemOnce()
+                            LocationPromptKind.Services
+                        }
+                    }
+                }
                 Lifecycle.Event.ON_STOP -> systemAsked = false // ask again on the next fresh open
                 else -> Unit
             }
@@ -262,47 +269,112 @@ private fun LocationAvailabilityPrompt(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    LaunchedEffect(pending, alwaysUseJerusalem) {
+        val wanted = pending ?: return@LaunchedEffect
+        val always = alwaysUseJerusalem ?: return@LaunchedEffect // still loading
+        pending = null
+        when {
+            // Nothing to ask about, or the user settled it for good and must not be asked again.
+            wanted == LocationPromptKind.None || always -> {
+                kind = LocationPromptKind.None
+                onSettled()
+            }
+            // First open of this foreground with no permission: let the OS ask directly. onSettled()
+            // waits for the result callback so the notification dialog cannot overlap it.
+            wanted == LocationPromptKind.Permission && !systemAsked -> {
+                systemAsked = true
+                permissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                    ),
+                )
+            }
+            else -> {
+                kind = wanted
+                onSettled()
+            }
+        }
+    }
+
     if (kind == LocationPromptKind.None) return
     val isPermission = kind == LocationPromptKind.Permission
+    LocationPromptDialog(
+        isPermission = isPermission,
+        onAllow = {
+            kind = LocationPromptKind.None
+            if (isPermission) context.openAppSettings() else context.openLocationSettings()
+        },
+        onUseJerusalemOnce = {
+            kind = LocationPromptKind.None
+            viewModel.useJerusalemOnce()
+        },
+        onUseJerusalemAlways = {
+            kind = LocationPromptKind.None
+            viewModel.useJerusalemAlways()
+        },
+        onDismiss = { kind = LocationPromptKind.None },
+    )
+}
+
+/**
+ * Three answers, ranked: the one that makes the app work best is the filled button, and the two
+ * ways of declining sit below it as quieter text buttons — separated, because "not now" and "stop
+ * asking" are genuinely different answers and collapsing them into one is what made the old dialog
+ * nag. Stacked full width rather than crammed into a button row so the longer Hebrew labels fit.
+ */
+@Composable
+private fun LocationPromptDialog(
+    isPermission: Boolean,
+    onAllow: () -> Unit,
+    onUseJerusalemOnce: () -> Unit,
+    onUseJerusalemAlways: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     AlertDialog(
-        onDismissRequest = { kind = LocationPromptKind.None },
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Outlined.LocationOn, contentDescription = null) },
         title = {
             Text(
-                if (isPermission) {
+                text = if (isPermission) {
                     localizedString(R.string.location_prompt_permission_title, R.string.location_prompt_permission_title_hebrew)
                 } else {
                     localizedString(R.string.location_prompt_services_title, R.string.location_prompt_services_title_hebrew)
                 },
+                textAlign = TextAlign.Center,
             )
         },
         text = {
             Text(
-                if (isPermission) {
+                text = if (isPermission) {
                     localizedString(R.string.location_prompt_permission_body, R.string.location_prompt_permission_body_hebrew)
                 } else {
                     localizedString(R.string.location_prompt_services_body, R.string.location_prompt_services_body_hebrew)
                 },
+                textAlign = TextAlign.Center,
             )
         },
         confirmButton = {
-            TextButton(
-                onClick = {
-                    kind = LocationPromptKind.None
-                    if (isPermission) context.openAppSettings() else context.openLocationSettings()
-                },
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text(
-                    if (isPermission) {
-                        localizedString(R.string.location_prompt_grant, R.string.location_prompt_grant_hebrew)
-                    } else {
-                        localizedString(R.string.location_prompt_turn_on, R.string.location_prompt_turn_on_hebrew)
-                    },
-                )
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = { kind = LocationPromptKind.None }) {
-                Text(localizedString(R.string.location_prompt_use_jerusalem, R.string.location_prompt_use_jerusalem_hebrew))
+                Button(onClick = onAllow, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        if (isPermission) {
+                            localizedString(R.string.location_prompt_grant, R.string.location_prompt_grant_hebrew)
+                        } else {
+                            localizedString(R.string.location_prompt_turn_on, R.string.location_prompt_turn_on_hebrew)
+                        },
+                    )
+                }
+                TextButton(onClick = onUseJerusalemOnce, modifier = Modifier.fillMaxWidth()) {
+                    Text(localizedString(R.string.location_prompt_jerusalem_once, R.string.location_prompt_jerusalem_once_hebrew))
+                }
+                TextButton(onClick = onUseJerusalemAlways, modifier = Modifier.fillMaxWidth()) {
+                    Text(localizedString(R.string.location_prompt_jerusalem_always, R.string.location_prompt_jerusalem_always_hebrew))
+                }
             }
         },
     )
