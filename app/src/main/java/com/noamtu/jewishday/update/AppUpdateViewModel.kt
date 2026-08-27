@@ -4,6 +4,7 @@ package com.noamtu.jewishday.update
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
 import javax.inject.Inject
@@ -11,7 +12,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 
@@ -20,7 +24,11 @@ sealed interface UpdateState {
     /** Nothing to say; no dialog. */
     data object Idle : UpdateState
 
-    data class Available(val release: AppRelease) : UpdateState
+    data class Available(
+        val release: AppRelease,
+        /** Offered but older than what is installed: it needs an uninstall, not an update. */
+        val isDowngrade: Boolean = false,
+    ) : UpdateState
 
     /** [totalBytes] is 0 while the server has not said how large the download is. */
     data class Downloading(
@@ -46,12 +54,18 @@ class AppUpdateViewModel @Inject constructor(
     private val repository: AppUpdateRepository,
     private val installer: ApkInstaller,
     installResults: InstallResults,
+    developerOverrides: DeveloperOverridesRepository,
 ) : ViewModel() {
+
+    /** Hidden developer switch: read the English changelog without switching the whole interface. */
+    val notesInEnglish: StateFlow<Boolean> = developerOverrides.state
+        .map { overrides -> overrides.updateNotesInEnglish }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val state: StateFlow<UpdateState> = _state.asStateFlow()
 
-    private val _pendingRelease = MutableStateFlow<AppRelease?>(null)
+    private val _pendingRelease = MutableStateFlow<UpdateState.Available?>(null)
 
     /**
      * The update that is waiting, whether or not its dialog is open.
@@ -59,13 +73,21 @@ class AppUpdateViewModel @Inject constructor(
      * Dismissing the dialog is "not now", not "never": the release stays here so the home screen
      * can keep a banner offering it, and only an actual install clears it.
      */
-    val pendingRelease: StateFlow<AppRelease?> = _pendingRelease.asStateFlow()
+    val pendingRelease: StateFlow<UpdateState.Available?> = _pendingRelease.asStateFlow()
 
     private var downloaded: File? = null
 
     /** A session already written to disk, waiting only for the app to be in front to commit. */
     private var stagedSessionId: Int? = null
     private var permissionWatch: Job? = null
+
+    /**
+     * Whether this session already got an answer from GitHub. The check runs from a
+     * `LaunchedEffect(Unit)`, which re-fires on every Activity recreation — so without this a
+     * rotation issued a fresh API request each time. Deliberately per *session*, not per day: a
+     * hotfix must still reach people the very next time they open the app.
+     */
+    private var checkedThisSession = false
 
     init {
         viewModelScope.launch {
@@ -96,16 +118,30 @@ class AppUpdateViewModel @Inject constructor(
      * there, and the dialog opens only when they ask for it.
      */
     fun checkOnLaunch() {
-        if (_pendingRelease.value != null) return
+        if (checkedThisSession || _pendingRelease.value != null) return
+        checkedThisSession = true
         viewModelScope.launch {
-            _pendingRelease.value = repository.findUpdate()
+            // Anything still on disk belongs to a previous session that never finished installing —
+            // this view model is new, so nothing here references it. Only a successful install used
+            // to clear the cache, which left a whole APK behind after every abandoned update.
+            repository.clearDownloads()
+            when (val report = repository.check()) {
+                is UpdateCheckReport.Available ->
+                    _pendingRelease.value = UpdateState.Available(report.release, report.isDowngrade)
+                // A check that never reached GitHub answered nothing, so it does not count as this
+                // session's answer — offline at launch must not mean silence until the next one.
+                is UpdateCheckReport.Failed -> checkedThisSession = false
+                is UpdateCheckReport.UpToDate,
+                is UpdateCheckReport.NoReleases,
+                -> Unit
+            }
         }
     }
 
     /** Reopens the dialog for the waiting update, from the banner. */
     fun showPendingRelease() {
-        val release = _pendingRelease.value ?: return
-        if (_state.value == UpdateState.Idle) _state.value = UpdateState.Available(release)
+        val pending = _pendingRelease.value ?: return
+        if (_state.value == UpdateState.Idle) _state.value = pending
     }
 
     fun download(release: AppRelease) {

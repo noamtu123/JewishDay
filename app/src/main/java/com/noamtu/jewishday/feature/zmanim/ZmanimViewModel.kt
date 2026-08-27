@@ -53,6 +53,12 @@ data class ZmanimUiState(
     val header: ZmanimHeaderUi? = null,
     val groups: List<ZmanimGroupUi> = emptyList(),
     val showCandleLightingPrompt: Boolean = false,
+    /**
+     * The hidden developer clock override is pinning "now", so every time on this screen — and the
+     * status-bar icon — is simulated. It survives process death and travels in the settings backup,
+     * so it must be visible on the screen it falsifies, not only in the developer tools.
+     */
+    val developerTimeOverrideActive: Boolean = false,
 )
 
 /** Date header pinned at the top of the tab: the Jewish date with the Gregorian date beneath. */
@@ -127,6 +133,7 @@ private data class ZmanimDisplayInput(
     val enabledZmanimTimes: Set<ZmanimTimeOption>,
     val enabledDailyLearning: Set<DailyLearningType>,
     val showCandleLightingPrompt: Boolean,
+    val developerTimeOverrideActive: Boolean,
 )
 
 private data class DailyLearningRequest(
@@ -234,7 +241,8 @@ class ZmanimViewModel @Inject constructor(
         zmanimDay,
         dailyLearningItems,
         settings,
-    ) { day, learning, settings ->
+        developerOverrides,
+    ) { day, learning, settings, overrides ->
         ZmanimDisplayInput(
             zmanimDay = day,
             dailyLearningItems = learning,
@@ -242,6 +250,7 @@ class ZmanimViewModel @Inject constructor(
             enabledZmanimTimes = settings.enabledZmanimTimes,
             enabledDailyLearning = settings.enabledDailyLearning,
             showCandleLightingPrompt = !settings.candleLightingPromptHandled,
+            developerTimeOverrideActive = overrides.timeOverrideEnabled,
         )
     }
         .distinctUntilChanged()
@@ -254,6 +263,7 @@ class ZmanimViewModel @Inject constructor(
                 .toUiState(
                     use24HourTime = input.use24HourTime,
                     showCandleLightingPrompt = input.showCandleLightingPrompt,
+                    developerTimeOverrideActive = input.developerTimeOverrideActive,
                 )
         }
         .distinctUntilChanged()
@@ -334,6 +344,7 @@ private fun ZmanimDay.mergeRambamRows(): ZmanimDay {
 private fun ZmanimDay.toUiState(
     use24HourTime: Boolean,
     showCandleLightingPrompt: Boolean,
+    developerTimeOverrideActive: Boolean,
 ): ZmanimUiState {
     // Always format the "English" date/time in English regardless of the device locale — otherwise
     // a Hebrew system locale makes Locale.getDefault() render the English header in Hebrew too.
@@ -397,6 +408,7 @@ private fun ZmanimDay.toUiState(
         ),
         groups = uiGroups,
         showCandleLightingPrompt = showCandleLightingPrompt,
+        developerTimeOverrideActive = developerTimeOverrideActive,
     )
 }
 

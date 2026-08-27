@@ -2,21 +2,16 @@
 
 package com.noamtu.jewishday.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,34 +48,6 @@ private val LightColors = lightColorScheme(
     onError = Color.White,
     errorContainer = Color(0xFFFFDBD3),
     onErrorContainer = Color(0xFF3B0A04),
-)
-
-private val DarkColors = darkColorScheme(
-    primary = Color(0xFFAFCDBD),
-    onPrimary = Color(0xFF183426),
-    primaryContainer = Color(0xFF244B38),
-    onPrimaryContainer = Color(0xFFDDECE3),
-    secondary = Color(0xFFD0C7AF),
-    onSecondary = Color(0xFF35301F),
-    secondaryContainer = Color(0xFF4B4633),
-    onSecondaryContainer = Color(0xFFECE5D2),
-    tertiary = Color(0xFFDAB9E8),
-    onTertiary = Color(0xFF3A2545),
-    tertiaryContainer = Color(0xFF523B61),
-    onTertiaryContainer = Color(0xFFF0DBF7),
-    background = Color(0xFF111410),
-    onBackground = Color(0xFFE6E4DC),
-    surface = Color(0xFF171A16),
-    onSurface = Color(0xFFE6E4DC),
-    surfaceVariant = Color(0xFF42483F),
-    onSurfaceVariant = Color(0xFFC5CBC0),
-    outline = Color(0xFF8F978B),
-    outlineVariant = Color(0xFF3E453C),
-    // Soft warm rose: legible on the near-black green ground without glaring.
-    error = Color(0xFFF0B2A6),
-    onError = Color(0xFF5C1508),
-    errorContainer = Color(0xFF7B291A),
-    onErrorContainer = Color(0xFFFFDBD3),
 )
 
 private val AmoledColors = darkColorScheme(
@@ -295,39 +262,31 @@ private val AppShapes = Shapes(
 
 @Composable
 fun JewishDayTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,
-    themeOption: AppThemeOption = AppThemeOption.Classic,
+    themeOption: AppThemeOption = AppThemeOption.Default,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = when {
-        themeOption != AppThemeOption.Classic -> staticColorScheme(themeOption = themeOption, darkTheme = darkTheme)
-
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        else -> staticColorScheme(themeOption = themeOption, darkTheme = darkTheme)
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = staticColorScheme(themeOption),
         typography = AppTypography,
         shapes = AppShapes,
         content = content,
     )
 }
 
-fun appThemeBackgroundColor(themeOption: AppThemeOption, darkTheme: Boolean): Int =
-    staticColorScheme(themeOption = themeOption, darkTheme = darkTheme).background.toArgb()
+fun appThemeBackgroundColor(themeOption: AppThemeOption): Int =
+    staticColorScheme(themeOption).background.toArgb()
 
-private fun staticColorScheme(themeOption: AppThemeOption, darkTheme: Boolean): ColorScheme = when (themeOption) {
-    AppThemeOption.AmoledBlack -> AmoledColors
+/**
+ * Each theme is one fixed palette — the system light/dark setting is deliberately not consulted.
+ * [LightColors] is what remains of the old system-following "Classic calm", now standing on its own
+ * as Olive grove and chosen directly like every other theme.
+ */
+private fun staticColorScheme(themeOption: AppThemeOption): ColorScheme = when (themeOption) {
     AppThemeOption.BlueWhite -> BlueWhiteColors
+    AppThemeOption.OliveGrove -> LightColors
     AppThemeOption.JerusalemStone -> JerusalemStoneColors
     AppThemeOption.Sand -> SandColors
     AppThemeOption.Midnight -> MidnightColors
     AppThemeOption.Slate -> SlateColors
-    AppThemeOption.Classic -> if (darkTheme) DarkColors else LightColors
+    AppThemeOption.AmoledBlack -> AmoledColors
 }

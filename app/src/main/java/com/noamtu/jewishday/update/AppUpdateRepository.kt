@@ -4,6 +4,7 @@ package com.noamtu.jewishday.update
 
 import android.content.Context
 import com.noamtu.jewishday.BuildConfig
+import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -14,6 +15,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.coroutineContext
 
@@ -22,6 +24,7 @@ class AppUpdateRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val releaseClient: GitHubReleaseClient,
     private val developerOverrides: DeveloperOverridesRepository,
+    private val appSettingsRepository: AppSettingsRepository,
 ) {
 
     /**
@@ -50,18 +53,34 @@ class AppUpdateRepository @Inject constructor(
     suspend fun check(): UpdateCheckReport = withContext(Dispatchers.IO) {
         val installed = installedVersion()
             ?: return@withContext UpdateCheckReport.Failed("Could not read the installed version")
-        val latest = runCatching { releaseClient.fetchLatestRelease() }
+        val releases = runCatching { releaseClient.fetchReleases() }
             .getOrElse { error ->
                 return@withContext UpdateCheckReport.Failed(
                     error.message ?: error::class.java.simpleName,
                 )
             }
+
+        // "Latest" is whatever GitHub published last on the channel the user is on — the list
+        // arrives newest first, so this is simply the first one that qualifies. No version string is
+        // compared to work that out.
+        val includePreReleases = appSettingsRepository.settings.first().includePreReleases
+        val latest = releases.firstOrNull { includePreReleases || !it.isPreRelease }
             ?: return@withContext UpdateCheckReport.NoReleases(installed)
-        if (latest.version > installed) {
-            UpdateCheckReport.Available(installed, latest)
-        } else {
-            UpdateCheckReport.UpToDate(installed, latest.version)
-        }
+
+        if (latest.version == installed) return@withContext UpdateCheckReport.UpToDate(installed, latest.version)
+
+        // Normally the latest on the channel is also the newer build, and going from a pre-release
+        // to the stable of the same version is exactly that — the stable ships afterwards. The one
+        // case it runs backwards is turning pre-releases off *before* that stable exists: the newest
+        // stable is then older than what is installed. It is still offered, because it is genuinely
+        // the release the user has now asked for — but Android will not replace a newer build in
+        // place, so the dialog has to say the app must be reinstalled rather than let them find out
+        // from a bare "Update failed".
+        val installedPublishedAt = releases.firstOrNull { it.version == installed }?.publishedAt
+        val isDowngrade = installedPublishedAt != null &&
+            latest.publishedAt?.isBefore(installedPublishedAt) == true
+
+        UpdateCheckReport.Available(installed, latest, isDowngrade)
     }
 
     /**
@@ -122,7 +141,12 @@ class AppUpdateRepository @Inject constructor(
 
 /** The outcome of one update check, in enough detail to explain a check that offered nothing. */
 sealed interface UpdateCheckReport {
-    data class Available(val installed: AppVersion, val release: AppRelease) : UpdateCheckReport
+    data class Available(
+        val installed: AppVersion,
+        val release: AppRelease,
+        /** The offered release predates the installed one, so it cannot be installed over it. */
+        val isDowngrade: Boolean = false,
+    ) : UpdateCheckReport
 
     data class UpToDate(val installed: AppVersion, val latest: AppVersion) : UpdateCheckReport
 

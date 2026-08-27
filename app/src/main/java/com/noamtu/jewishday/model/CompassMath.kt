@@ -50,9 +50,11 @@ fun isFiniteVector(values: FloatArray, count: Int = 3): Boolean {
  * (east, north, up), so each column is one device axis expressed in world coordinates.
  *
  * [displayRotationDegrees] is the Surface.ROTATION_* of the display expressed in degrees
- * (0/90/180/270). The screen-up axis per rotation matches the canonical remapCoordinateSystem
- * table for compasses (ROTATION_90 → remap(AXIS_Y, AXIS_MINUS_X) etc.), so the same physical
- * attitude yields the same on-screen needle in portrait, landscape, and both reversed forms.
+ * (0/90/180/270). The screen-up axis per rotation is the device axis that the canonical
+ * remapCoordinateSystem table maps onto the new Y axis: ROTATION_90 uses remap(AXIS_Y,
+ * AXIS_MINUS_X), whose "new Y" is the device +X axis, and ROTATION_270 uses remap(AXIS_MINUS_Y,
+ * AXIS_X), whose "new Y" is the device -X axis. So the same physical attitude yields the same
+ * on-screen needle in portrait, landscape, and both reversed forms.
  *
  * The heading blends two horizontal references — the screen-up axis (exact when the device is
  * flat) and the back camera (exact when upright). The camera receives only the weight the
@@ -71,17 +73,19 @@ fun screenRelativeHeadingDegrees(
     val upEast: Float
     val upNorth: Float
     when (normalizeDegrees(displayRotationDegrees.toFloat()).toInt()) {
+        // ROTATION_90 is the device turned 90 deg counter-clockwise, so the natural right edge
+        // (+X) is now the top of the screen; ROTATION_270 turns it the other way, making -X the top.
         90 -> {
-            upEast = -rotationMatrix[0]
-            upNorth = -rotationMatrix[3]
+            upEast = rotationMatrix[0]
+            upNorth = rotationMatrix[3]
         }
         180 -> {
             upEast = -rotationMatrix[1]
             upNorth = -rotationMatrix[4]
         }
         270 -> {
-            upEast = rotationMatrix[0]
-            upNorth = rotationMatrix[3]
+            upEast = -rotationMatrix[0]
+            upNorth = -rotationMatrix[3]
         }
         else -> {
             upEast = rotationMatrix[1]

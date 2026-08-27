@@ -40,6 +40,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.InstallMobile
 import androidx.compose.material.icons.outlined.SystemUpdate
@@ -54,6 +57,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,6 +77,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.noamtu.jewishday.R
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
+import com.noamtu.jewishday.ui.LocalUseHebrewInterface
 import com.noamtu.jewishday.ui.localizedString
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -106,6 +113,8 @@ fun AppUpdateDialog(
     onDownload: (AppRelease) -> Unit,
     onOpenInstallSettings: () -> Unit,
     onDismiss: () -> Unit,
+    /** Hidden developer switch: show the English changelog whatever the interface language is. */
+    notesInEnglish: Boolean = false,
 ) {
     if (state is UpdateState.Idle) return
 
@@ -133,7 +142,7 @@ fun AppUpdateDialog(
             transitionSpec = crossfade(),
             modifier = Modifier.fillMaxWidth(),
             label = "updateBody",
-        ) { current -> UpdateDialogBody(state.forContent(current)) }
+        ) { current -> UpdateDialogBody(state.forContent(current), notesInEnglish) }
     }
 }
 
@@ -240,7 +249,7 @@ private fun UpdateDialogShell(
 }
 
 @Composable
-private fun UpdateDialogBody(state: UpdateState) {
+private fun UpdateDialogBody(state: UpdateState, notesInEnglish: Boolean) {
     when (state) {
         is UpdateState.Idle -> Unit
 
@@ -251,8 +260,19 @@ private fun UpdateDialogBody(state: UpdateState) {
                 meta = state.release.metaLine(),
                 metaIcon = Icons.Outlined.Schedule,
             )
+            // Leaving the test channel lands on the newest *stable*, which can be an earlier build
+            // than the pre-release in hand. It installs cleanly — pre-releases share the stable's
+            // versionCode — but it is a step back, and the dialog should not call that an update
+            // without saying so.
+            if (state.isDowngrade) {
+                Notice(
+                    icon = Icons.Outlined.ErrorOutline,
+                    text = localizedString(R.string.update_downgrade_body, R.string.update_downgrade_body_hebrew),
+                    tone = MaterialTheme.colorScheme.error,
+                )
+            }
             if (state.release.notes.isNotBlank()) {
-                ReleaseNotes(state.release.notes)
+                ReleaseNotes(notes = state.release.notes, showInEnglish = notesInEnglish)
             }
         }
 
@@ -407,56 +427,113 @@ private fun Notice(icon: ImageVector, text: String, tone: Color) {
     }
 }
 
-/** What's new, in its own scrolling area so long notes never push the buttons off screen. */
-@Composable
-private fun ReleaseNotes(notes: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            text = localizedString(R.string.update_notes_title, R.string.update_notes_title_hebrew),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            modifier = Modifier.verticalScroll(rememberScrollState()),
-            text = notes.asReleaseNotes(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
 /**
- * Release notes are GitHub markdown, and rendering markdown properly is a library's job. This does
- * the parts that actually show up in these notes — headings, bullet lists and **bold** — so they
- * read as a changelog instead of as a wall of "##", "-" and stray asterisks.
+ * What's new: the release's own changelog, grouped into New / Improved / Fixed.
+ *
+ * The body carries English in the open and Hebrew inside an HTML comment (see [parseReleaseNotes]);
+ * this picks the language matching the interface and takes the heading and text direction with it —
+ * an English changelog laid out right-to-left puts the bullets on the wrong side and mangles the
+ * punctuation. Its own scrolling area, so long notes never push the buttons off screen.
  */
 @Composable
-private fun String.asReleaseNotes(): AnnotatedString {
-    val source = this
-    return remember(source) {
-        buildAnnotatedString {
-            source.lines().forEach { raw ->
-                val line = raw.trim()
-                when {
-                    line.isEmpty() -> Unit
-                    line.startsWith("#") -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                        appendLine(line.trimStart('#').trim())
-                    }
-                    line.startsWith("- ") || line.startsWith("* ") -> {
-                        append("\u2022  ")
-                        appendInline(line.drop(2).trim())
-                        appendLine()
-                    }
-                    else -> {
-                        appendInline(line)
-                        appendLine()
-                    }
-                }
+private fun ReleaseNotes(notes: String, showInEnglish: Boolean) {
+    val useHebrew = LocalUseHebrewInterface.current && !showInEnglish
+    val sections = remember(notes, useHebrew) { parseReleaseNotes(notes, useHebrew) }
+    CompositionLocalProvider(
+        LocalUseHebrewInterface provides useHebrew,
+        LocalLayoutDirection provides if (useHebrew) LayoutDirection.Rtl else LayoutDirection.Ltr,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = localizedString(R.string.update_notes_title, R.string.update_notes_title_hebrew),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                sections.forEach { section -> ReleaseNoteGroup(section) }
             }
         }
     }
 }
+
+/** One category and its entries: a tinted label, then the bullets under it. */
+@Composable
+private fun ReleaseNoteGroup(section: ReleaseNoteSection) {
+    val tone = section.category.tone()
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        section.label()?.let { label ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                section.category.icon()?.let { icon ->
+                    Icon(
+                        modifier = Modifier.size(16.dp),
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = tone,
+                    )
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = tone,
+                )
+            }
+        }
+        section.items.forEach { item ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "\u2022",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = item.asInlineMarkdown(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * A recognised category is labelled in the interface language, not with the heading as written — so
+ * a release whose Hebrew block is missing still says "תיקונים" rather than "Bug fixes". An
+ * unrecognised heading keeps its own words, which is the only honest thing to do with it.
+ */
+@Composable
+private fun ReleaseNoteSection.label(): String? = when (category) {
+    ReleaseNoteCategory.New -> localizedString(R.string.update_notes_new, R.string.update_notes_new_hebrew)
+    ReleaseNoteCategory.Improved -> localizedString(R.string.update_notes_improved, R.string.update_notes_improved_hebrew)
+    ReleaseNoteCategory.Fixed -> localizedString(R.string.update_notes_fixed, R.string.update_notes_fixed_hebrew)
+    ReleaseNoteCategory.Other -> heading.takeIf(String::isNotBlank)
+}
+
+@Composable
+private fun ReleaseNoteCategory.tone(): Color = when (this) {
+    ReleaseNoteCategory.New -> MaterialTheme.colorScheme.tertiary
+    ReleaseNoteCategory.Improved -> MaterialTheme.colorScheme.primary
+    ReleaseNoteCategory.Fixed -> MaterialTheme.colorScheme.secondary
+    ReleaseNoteCategory.Other -> MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+private fun ReleaseNoteCategory.icon(): ImageVector? = when (this) {
+    ReleaseNoteCategory.New -> Icons.Outlined.AutoAwesome
+    ReleaseNoteCategory.Improved -> Icons.Outlined.TrendingUp
+    ReleaseNoteCategory.Fixed -> Icons.Outlined.BugReport
+    ReleaseNoteCategory.Other -> null
+}
+
+/** Bold runs and code spans inside one changelog entry. */
+private fun String.asInlineMarkdown(): AnnotatedString =
+    buildAnnotatedString { appendInline(this@asInlineMarkdown) }
 
 /** Bold runs and code spans within one line; everything else is left as written. */
 private fun AnnotatedString.Builder.appendInline(line: String) {

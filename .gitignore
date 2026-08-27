@@ -28,3 +28,8 @@ CLAUDE.md
 
 # Personal task runner (hardcodes this machine's JAVA_HOME path)
 justfile
+
+# Release notes drafts. English is published to GitHub; the Hebrew translation rides along in the
+# HTML comment the app reads, so it never renders on the release page. The drafts themselves stay
+# local so no Hebrew lands in the repo either.
+release-notes/

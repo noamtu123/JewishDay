@@ -315,9 +315,16 @@ internal fun ComplexZmanimCalendar.chametzTimes(method: ChametzMethod): Pair<Dat
     ChametzMethod.Mga72Zmanis -> {
         val alos = alos72Zmanis
         val shaahZmanis = shaahZmanis72MinutesZmanis
-        val achilah = alos?.let { AstronomicalCalendar.getTimeOffset(it, shaahZmanis * 4) }
-        val biur = alos?.let { AstronomicalCalendar.getTimeOffset(it, shaahZmanis * 5) }
-        achilah to biur
+        // KosherJava signals "no such time at this latitude" with Long.MIN_VALUE, and getTimeOffset
+        // only rejects that sentinel unmultiplied: shaahZmanis * 4 overflows to exactly 0, which
+        // would render the eating deadline as alot itself — a plausible-looking wrong time rather
+        // than an honest blank. Check before doing any arithmetic on it.
+        if (alos == null || shaahZmanis == Long.MIN_VALUE) {
+            null to null
+        } else {
+            AstronomicalCalendar.getTimeOffset(alos, shaahZmanis * 4) to
+                AstronomicalCalendar.getTimeOffset(alos, shaahZmanis * 5)
+        }
     }
     ChametzMethod.Mga16Point1 -> sofZmanAchilasChametzMGA16Point1Degrees to sofZmanBiurChametzMGA16Point1Degrees
     ChametzMethod.BaalHatanya -> sofZmanAchilasChametzBaalHatanya to sofZmanBiurChametzBaalHatanya

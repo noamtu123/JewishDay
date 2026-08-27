@@ -8,6 +8,8 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,9 +37,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
@@ -64,11 +68,11 @@ fun SettingsScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var pendingNotificationTarget by remember { mutableStateOf<NotificationPermissionTarget?>(null) }
-    var showThemeDialog by remember { mutableStateOf(false) }
-    var showLanguageDialog by remember { mutableStateOf(false) }
-    var showZmanimTimes by remember { mutableStateOf(false) }
-    var showDailyLearning by remember { mutableStateOf(false) }
-    var showAdvancedMethods by remember { mutableStateOf(false) }
+    var showThemeDialog by rememberSaveable { mutableStateOf(false) }
+    var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
+    var showZmanimTimes by rememberSaveable { mutableStateOf(false) }
+    var showDailyLearning by rememberSaveable { mutableStateOf(false) }
+    var showAdvancedMethods by rememberSaveable { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -152,6 +156,31 @@ fun SettingsScreen(
                         value = uiState.themeOption.localizedLabel(),
                         onClick = { showThemeDialog = true },
                     )
+                    SectionSettingsDivider()
+                    SettingsSwitchRow(
+                        label = localizedString(R.string.settings_prereleases, R.string.settings_prereleases_hebrew),
+                        description = localizedString(
+                            R.string.settings_prereleases_description,
+                            R.string.settings_prereleases_description_hebrew,
+                        ),
+                        checked = uiState.includePreReleases,
+                        onCheckedChange = viewModel::setIncludePreReleases,
+                    )
+                    // Pre-releases keep the versionCode of the stable they were built on, so
+                    // turning the switch off really does offer a way back. Said here, where the
+                    // decision is made, because "test version" alone does not imply it is reversible.
+                    uiState.installedPreReleaseName?.let { version ->
+                        Text(
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            text = localizedString(
+                                R.string.settings_prereleases_installed_note,
+                                R.string.settings_prereleases_installed_note_hebrew,
+                                version,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
             item {
@@ -391,9 +420,11 @@ private fun SettingsSwitchRow(
     dense: Boolean = false,
 ) {
     Row(
+        // toggleable rather than clickable + a live Switch: TalkBack then reads the row as a single
+        // switch with its label and state, instead of a clickable blob followed by a bare control.
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
             .padding(vertical = if (dense) 8.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -415,7 +446,7 @@ private fun SettingsSwitchRow(
             }
         }
         Spacer(Modifier.width(18.dp))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -478,7 +509,7 @@ private fun SettingsToggleRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable { onCheckedChange(!checked) }
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
             .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -489,14 +520,14 @@ private fun SettingsToggleRow(
             modifier = Modifier.weight(1f),
         )
         Spacer(Modifier.width(18.dp))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
 @Composable
 private fun AppThemeOption.localizedLabel(): String = when (this) {
-    AppThemeOption.Classic -> localizedString(R.string.theme_classic, R.string.theme_classic_hebrew)
     AppThemeOption.BlueWhite -> localizedString(R.string.theme_blue_white, R.string.theme_blue_white_hebrew)
+    AppThemeOption.OliveGrove -> localizedString(R.string.theme_olive_grove, R.string.theme_olive_grove_hebrew)
     AppThemeOption.JerusalemStone -> localizedString(R.string.theme_jerusalem_stone, R.string.theme_jerusalem_stone_hebrew)
     AppThemeOption.Sand -> localizedString(R.string.theme_sand, R.string.theme_sand_hebrew)
     AppThemeOption.Midnight -> localizedString(R.string.theme_midnight, R.string.theme_midnight_hebrew)
@@ -528,7 +559,7 @@ private fun AdvancedZmanimChoices(
 ) {
     val useHebrew = LocalUseHebrewInterface.current
     var activePicker by remember { mutableStateOf<ZmanimMethodPicker?>(null) }
-    var showTosefetDialog by remember { mutableStateOf(false) }
+    var showTosefetDialog by rememberSaveable { mutableStateOf(false) }
     // Used only to mark which option is the app default in each picker.
     val defaults = remember { ZmanimCalculationSettings() }
 
@@ -713,7 +744,7 @@ private fun MinutesInputDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int) -> Unit,
 ) {
-    var value by remember { mutableStateOf(initialMinutes.toString()) }
+    var value by rememberSaveable { mutableStateOf(initialMinutes.toString()) }
     val minutes = value.toIntOrNull()
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -769,11 +800,11 @@ private fun ThemeOptionRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        RadioButton(selected = selected, onClick = onClick)
+        RadioButton(selected = selected, onClick = null)
         Spacer(Modifier.width(8.dp))
         Text(
             text = label,

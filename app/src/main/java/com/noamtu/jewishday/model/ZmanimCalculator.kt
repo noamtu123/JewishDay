@@ -192,9 +192,13 @@ private fun shabbatDatesFor(
     settings: ZmanimCalculationSettings,
     now: Instant?,
 ): ShabbatDates {
+    // Shabbat is out when the header says it is out — at motzei *plus* the user's tosefet, not at
+    // bare motzei. Rolling this section over at motzei instead left a tosefet-long window on
+    // Saturday night where the section already showed next week's candle lighting while the header
+    // still said Shabbat was in, so the screen contradicted itself.
     val afterMotzeiShabbat = date.dayOfWeek == DayOfWeek.SATURDAY &&
         now != null &&
-        motzeiShabbatForDate(location, date, settings)?.let { !now.isBefore(it) } == true
+        holyDayExitForDate(location, date, settings)?.let { !now.isBefore(it) } == true
     val friday = if (date.dayOfWeek == DayOfWeek.SATURDAY && !afterMotzeiShabbat) {
         date.minusDays(1)
     } else {
@@ -230,14 +234,6 @@ fun holyDayExitForDate(
     settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
 ): Instant? = complexZmanimCalendar(location, date, settings)
     .holyDayExit(settings)
-    ?.toInstant()
-
-fun motzeiShabbatForDate(
-    location: JewishLocation = defaultJerusalemLocation,
-    date: LocalDate,
-    settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
-): Instant? = complexZmanimCalendar(location, date, settings)
-    .motzeiShabbat(settings)
     ?.toInstant()
 
 private fun dailyItems(

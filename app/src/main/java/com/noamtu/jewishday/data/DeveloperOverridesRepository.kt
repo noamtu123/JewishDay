@@ -71,6 +71,9 @@ data class DeveloperOverrides(
     // Forces the About page to render in English regardless of the app language, so the English
     // copy can be checked without switching the whole interface.
     val aboutInEnglish: Boolean = false,
+    // The same, for the "What's new" section of the update dialog: a release body carries both
+    // languages, and this shows the English one while the rest of the app stays in Hebrew.
+    val updateNotesInEnglish: Boolean = false,
     // Shows a live sensor/quality diagnostics panel on the Prayer Compass screen.
     val compassMonitoringEnabled: Boolean = false,
     // Makes the update check believe this is the installed version, so any release newer than it
@@ -160,6 +163,8 @@ class DeveloperOverridesRepository @Inject constructor(
 
     suspend fun setAboutInEnglish(enabled: Boolean) = update { it.copy(aboutInEnglish = enabled) }
 
+    suspend fun setUpdateNotesInEnglish(enabled: Boolean) = update { it.copy(updateNotesInEnglish = enabled) }
+
     suspend fun setCompassMonitoringEnabled(enabled: Boolean) = update { it.copy(compassMonitoringEnabled = enabled) }
 
     suspend fun setSpoofedVersionName(versionName: String) =
@@ -198,6 +203,7 @@ class DeveloperOverridesRepository @Inject constructor(
         locationOverrideEnabled = preferences[LocationEnabledKey] ?: false,
         locationPresetId = preferences[LocationPresetKey],
         aboutInEnglish = preferences[AboutEnglishKey] ?: false,
+        updateNotesInEnglish = preferences[UpdateNotesEnglishKey] ?: false,
         compassMonitoringEnabled = preferences[CompassMonitoringKey] ?: false,
         spoofedVersionName = preferences[SpoofedVersionKey].orEmpty(),
     )
@@ -211,6 +217,7 @@ class DeveloperOverridesRepository @Inject constructor(
         preferences[LocationEnabledKey] = overrides.locationOverrideEnabled
         overrides.locationPresetId?.let { preferences[LocationPresetKey] = it }
         preferences[AboutEnglishKey] = overrides.aboutInEnglish
+        preferences[UpdateNotesEnglishKey] = overrides.updateNotesInEnglish
         preferences[CompassMonitoringKey] = overrides.compassMonitoringEnabled
         preferences[SpoofedVersionKey] = overrides.spoofedVersionName
     }
@@ -224,6 +231,7 @@ class DeveloperOverridesRepository @Inject constructor(
         val LocationEnabledKey = booleanPreferencesKey("dev_loc_enabled")
         val LocationPresetKey = stringPreferencesKey("dev_loc_preset")
         val AboutEnglishKey = booleanPreferencesKey("dev_about_english")
+        val UpdateNotesEnglishKey = booleanPreferencesKey("dev_update_notes_english")
         val CompassMonitoringKey = booleanPreferencesKey("dev_compass_monitoring")
         val SpoofedVersionKey = stringPreferencesKey("dev_spoofed_version")
     }

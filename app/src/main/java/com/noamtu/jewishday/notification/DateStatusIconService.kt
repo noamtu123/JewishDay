@@ -141,21 +141,31 @@ class DateStatusIconService : Service() {
         private const val ExtraShowHebrew = "com.noamtu.jewishday.notification.extra.SHOW_HEBREW"
 
         /** Starts (or refreshes) the persistent date icons. */
-        fun start(context: Context) {
-            ContextCompat.startForegroundService(
-                context,
-                Intent(context, DateStatusIconService::class.java),
-            )
-        }
+        fun start(context: Context) = startSafely(context, Intent(context, DateStatusIconService::class.java))
 
         /** Starts the service with enough state to render the selected date icon immediately. */
-        fun start(context: Context, showHebrew: Boolean) {
-            ContextCompat.startForegroundService(
-                context,
-                Intent(context, DateStatusIconService::class.java).apply {
-                    putExtra(ExtraShowHebrew, showHebrew)
-                },
-            )
+        fun start(context: Context, showHebrew: Boolean) = startSafely(
+            context,
+            Intent(context, DateStatusIconService::class.java).apply {
+                putExtra(ExtraShowHebrew, showHebrew)
+            },
+        )
+
+        /**
+         * Android 12+ refuses a foreground-service start from the background unless the app is in
+         * an exempt state. Normally we are — the service is already running, which is itself an
+         * exemption — but not always: if the process was killed and the user has revoked "Alarms &
+         * reminders", the scheduler falls back to an *inexact* alarm, and an inexact alarm is not
+         * an exempt reason. An uncaught throw inside a BroadcastReceiver kills the process, so the
+         * refusal is swallowed here instead. The next alarm, launch, or boot re-establishes the
+         * icon, which is a far better outcome than a background crash.
+         */
+        private fun startSafely(context: Context, intent: Intent) {
+            try {
+                ContextCompat.startForegroundService(context, intent)
+            } catch (exception: Exception) {
+                Log.w(TAG, "Could not start the date status icon service", exception)
+            }
         }
     }
 
