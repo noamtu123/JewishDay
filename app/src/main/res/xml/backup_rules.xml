@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and below. An <include> means "only this", so naming the settings DataStore leaves
+  everything else — SharedPreferences included — out of the backup automatically.
+
+  SharedPreferences staying out is the point: whether the notification permission has been asked
+  for, and whether this install has ever launched, belong to the install rather than the user, and
+  the second of those is what lets a reinstall be told from a migration. See
+  RestoredSettingsReconciler.
+-->
 <full-backup-content>
-    <exclude domain="sharedpref" path="." />
-    <exclude domain="database" path="." />
+    <include domain="file" path="datastore" />
 </full-backup-content>
