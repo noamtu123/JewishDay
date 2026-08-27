@@ -4,6 +4,7 @@ package com.noamtu.jewishday.feature.about
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.noamtu.jewishday.BuildConfig
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -26,7 +27,22 @@ class AboutViewModel @Inject constructor(
         .map { it.aboutInEnglish }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
+    /**
+     * The version this page shows. Normally the real one — but while the developer tools are
+     * spoofing a version it shows that instead, marked, so the spoof is visibly in effect rather
+     * than something you have to take on faith after no update dialog appears.
+     */
+    val displayedVersion: StateFlow<String> = developerOverridesRepository.state
+        .map { overrides ->
+            overrides.spoofedVersionName
+                .takeIf { it.isNotBlank() }
+                ?.let { spoofed -> "$spoofed (spoofed)" }
+                ?: BuildConfig.VERSION_NAME
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BuildConfig.VERSION_NAME)
+
     fun unlockDeveloperMode() {
         viewModelScope.launch { developerOverridesRepository.setUnlocked(true) }
     }
+
 }

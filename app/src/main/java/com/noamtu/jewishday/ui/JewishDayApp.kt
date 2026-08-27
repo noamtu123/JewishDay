@@ -39,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -67,6 +68,10 @@ import com.noamtu.jewishday.feature.developer.DeveloperScreen
 import com.noamtu.jewishday.feature.mizrach.MizrachScreen
 import com.noamtu.jewishday.feature.settings.SettingsScreen
 import com.noamtu.jewishday.feature.zmanim.ZmanimScreen
+import com.noamtu.jewishday.update.AppUpdateDialog
+import com.noamtu.jewishday.update.UpdateBanner
+import com.noamtu.jewishday.update.UpdateState
+import com.noamtu.jewishday.update.AppUpdateViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,12 +81,18 @@ fun JewishDayApp(useHebrewInterface: Boolean = false) {
         LocalUseHebrewInterface provides useHebrewInterface,
         LocalLayoutDirection provides layoutDirection,
     ) {
-        JewishDayNavHost(useHebrewInterface = useHebrewInterface)
+        // Shared deliberately: the banner in the scaffold and the dialog below are two views of
+        // one update, so they must be looking at the same state.
+        val updateViewModel: AppUpdateViewModel = hiltViewModel()
+        JewishDayNavHost(useHebrewInterface = useHebrewInterface, updateViewModel = updateViewModel)
         // The two flows share the system permission dialog, which can only show one at a time.
         // Ask for location first; only once that's settled do we ask for notifications.
         var locationSettled by remember { mutableStateOf(false) }
         LocationAvailabilityPrompt(onSettled = { locationSettled = true })
         NotificationPermissionSetup(canPrompt = locationSettled)
+        // Last in the queue, so a first launch answers the system permission dialogs before this
+        // one appears.
+        AppUpdatePrompt(updateViewModel)
     }
 }
 
@@ -127,6 +138,41 @@ private fun NotificationPermissionSetup(
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+}
+
+/**
+ * Looks for a new release once per launch and, only if there is one, opens the update dialog. A
+ * check that finds nothing — or fails outright — says nothing at all, so an ordinary launch is
+ * untouched by it.
+ */
+@Composable
+private fun AppUpdatePrompt(viewModel: AppUpdateViewModel) {
+    val context = LocalContext.current
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) { viewModel.checkOnLaunch() }
+
+    // Granting the install permission happens on a system screen, so the only place to notice it
+    // was granted is on the way back in.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.onResumed()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    AppUpdateDialog(
+        state = state,
+        onDownload = viewModel::download,
+        onOpenInstallSettings = {
+            runCatching {
+                context.startActivity(viewModel.installPermissionIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        },
+        onDismiss = viewModel::dismiss,
+    )
 }
 
 private enum class LocationPromptKind { None, Permission, Services }
@@ -286,7 +332,7 @@ private fun android.content.Context.openAppSettings() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun JewishDayNavHost(useHebrewInterface: Boolean) {
+private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUpdateViewModel) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -348,20 +394,34 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean) {
                     }
                 },
             ) { contentPadding ->
-                NavHost(
-                    navController = navController,
-                    startDestination = AppDestination.Zmanim.route,
-                    modifier = Modifier.padding(contentPadding),
+                val pendingUpdate by updateViewModel.pendingRelease.collectAsStateWithLifecycle()
+                val updateState by updateViewModel.state.collectAsStateWithLifecycle()
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(contentPadding),
                 ) {
-                    composable(AppDestination.Zmanim.route) { ZmanimScreen() }
-                    composable(AppDestination.Mizrach.route) { MizrachScreen() }
-                    composable(AppDestination.Settings.route) { SettingsScreen() }
-                    composable(AppDestination.About.route) {
-                        AboutScreen(
-                            onOpenDeveloperTools = { navController.navigateSecondaryTo(AppDestination.Developer.route) },
-                        )
+                    // Only while the dialog is closed — otherwise it is saying the same thing twice.
+                    UpdateBanner(
+                        visible = pendingUpdate != null && updateState is UpdateState.Idle,
+                        onClick = updateViewModel::showPendingRelease,
+                    )
+                    NavHost(
+                        navController = navController,
+                        startDestination = AppDestination.Zmanim.route,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        composable(AppDestination.Zmanim.route) { ZmanimScreen() }
+                        composable(AppDestination.Mizrach.route) { MizrachScreen() }
+                        composable(AppDestination.Settings.route) { SettingsScreen() }
+                        composable(AppDestination.About.route) {
+                            AboutScreen(
+                                onOpenDeveloperTools = { navController.navigateSecondaryTo(AppDestination.Developer.route) },
+                            )
+                        }
+                        composable(AppDestination.Developer.route) { DeveloperScreen() }
                     }
-                    composable(AppDestination.Developer.route) { DeveloperScreen() }
                 }
             }
         }

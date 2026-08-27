@@ -12,6 +12,7 @@ lifecycle = "2.10.0"
 navigationCompose = "2.9.8"
 junit = "4.13.2"
 work = "2.11.2"
+json = "20250517"
 zmanim = "2.5.0"
 
 [libraries]
@@ -34,6 +35,7 @@ androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 junit = { module = "junit:junit", version.ref = "junit" }
+json = { module = "org.json:json", version.ref = "json" }
 kosherjava-zmanim = { module = "com.kosherjava:zmanim", version.ref = "zmanim" }
 
 [plugins]

@@ -11,29 +11,37 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noamtu.jewishday.BuildConfig
 import com.noamtu.jewishday.data.DeveloperLocationPresets
 import com.noamtu.jewishday.data.developerLocationPreset
 import com.noamtu.jewishday.ui.components.InfoCard
@@ -51,6 +59,8 @@ fun DeveloperScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val overrides = state.overrides
     val context = LocalContext.current
+    val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
+    var showSpoofedVersionDialog by remember { mutableStateOf(false) }
 
     ScreenSurface(modifier = modifier) {
         LazyColumn(
@@ -152,6 +162,37 @@ fun DeveloperScreen(
 
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("App updates")
+                    ValueRow(
+                        label = "Pretend this build is version",
+                        value = overrides.spoofedVersionName.ifBlank { "Real (${BuildConfig.VERSION_NAME})" },
+                        onClick = { showSpoofedVersionDialog = true },
+                    )
+                    Text(
+                        text = "The update check compares releases against this instead of the " +
+                            "real version, so setting something older (0.5.0) makes the newest " +
+                            "release on GitHub look like an update. Clear it to use the real " +
+                            "version. It shows on the About page too, so you can see it took. " +
+                            "The check, download and install are all real — installing genuinely " +
+                            "replaces this build.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = viewModel::runUpdateCheck) { Text("Run update check") }
+                    updateCheckResult?.let { result ->
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            text = result,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
+            }
+
+            item {
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
                     SectionTitle("Prayer compass")
                     SwitchRow(
                         label = "Monitor compass sensors",
@@ -187,6 +228,18 @@ fun DeveloperScreen(
                 }
             }
         }
+    }
+
+    if (showSpoofedVersionDialog) {
+        SpoofedVersionDialog(
+            initialValue = overrides.spoofedVersionName,
+            realVersion = BuildConfig.VERSION_NAME,
+            onDismiss = { showSpoofedVersionDialog = false },
+            onConfirm = { entered ->
+                viewModel.setSpoofedVersionName(entered)
+                showSpoofedVersionDialog = false
+            },
+        )
     }
 }
 
@@ -259,4 +312,63 @@ private fun SwitchRow(
         Spacer(Modifier.width(12.dp))
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
+}
+
+/** A tappable "setting" row: its label, the value it currently holds, and a tap to change it. */
+@Composable
+private fun ValueRow(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+    }
+}
+
+/**
+ * Asks for the version the update check should compare against, and only stores it on Save — so
+ * the row behind it changes exactly once, when you meant it to, instead of on every keystroke.
+ */
+@Composable
+private fun SpoofedVersionDialog(
+    initialValue: String,
+    realVersion: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var text by rememberSaveable { mutableStateOf(initialValue) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Pretend this build is version") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "An X.Y.Z version. Anything on GitHub newer than it is offered as an " +
+                        "update. Empty means the real version, $realVersion.",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { entered -> text = entered },
+                    singleLine = true,
+                    placeholder = { Text(realVersion) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(text) }) { Text("Save") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
 }
