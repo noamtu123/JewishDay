@@ -3,6 +3,7 @@
 package com.noamtu.jewishday.data
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class HebrewLearningFormatTest {
@@ -60,6 +61,102 @@ class HebrewLearningFormatTest {
         ).toZmanItems().single()
 
         assertEquals("תהילים ק״ו-ק״ז", item.valueHebrew)
+    }
+
+    @Test
+    fun gematriaValueAcceptsNumeralsAndRejectsOrdinaryWords() {
+        assertEquals(32, gematriaValue("לב"))
+        assertEquals(78, gematriaValue("ע״ח")) // already punctuated
+        assertEquals(15, gematriaValue("טו"))
+        // Words only *sum* to a number, they aren't written canonically — so they must be rejected,
+        // otherwise tractate names and halacha titles would be "punctuated" as numerals.
+        assertNull(gematriaValue("ברכות"))
+        assertNull(gematriaValue("שבת"))
+        assertNull(gematriaValue("אחד"))
+        assertNull(gematriaValue("הלכות"))
+        assertNull(gematriaValue(""))
+    }
+
+    @Test
+    fun yerushalmiDafGetsTheSameGershayimAsBavli() {
+        val yerushalmi = listOf(
+            HebcalLearningEntry(category = "yerushalmi", title = "Yerushalmi Berakhot 32", hebrew = "ברכות לב"),
+        ).toZmanItems().single()
+        assertEquals("ברכות ל״ב", yerushalmi.valueHebrew)
+
+        // Bavli already arrives punctuated and must be left exactly as-is.
+        val bavli = listOf(
+            HebcalLearningEntry(category = "dafyomi", title = "Sanhedrin 78", hebrew = "סנהדרין ע״ח"),
+        ).toZmanItems().single()
+        assertEquals("סנהדרין ע״ח", bavli.valueHebrew)
+    }
+
+    @Test
+    fun yerushalmiKeepsMultiWordTractateNamesAndUnnumberedValues() {
+        val multiWord = listOf(
+            HebcalLearningEntry(category = "yerushalmi", title = "Yerushalmi Bava Kamma 5", hebrew = "בבא קמא ה"),
+        ).toZmanItems().single()
+        assertEquals("בבא קמא ה׳", multiWord.valueHebrew)
+
+        val noNumeral = listOf(
+            HebcalLearningEntry(category = "yerushalmi", title = "Yerushalmi Berakhot", hebrew = "ירושלמי ברכות"),
+        ).toZmanItems().single()
+        assertEquals("ירושלמי ברכות", noNumeral.valueHebrew)
+    }
+
+    @Test
+    fun rambamSingleChapterIsPunctuated() {
+        val item = listOf(
+            HebcalLearningEntry(category = "dailyRambam1", title = "Prayer 5", hebrew = "הלכות תפילה פרק ה"),
+        ).toZmanItems().single()
+
+        assertEquals("הלכות תפילה פרק ה׳", item.valueHebrew)
+    }
+
+    @Test
+    fun rambamChapterRangePunctuatesBothEndsAndPluralizes() {
+        val item = listOf(
+            HebcalLearningEntry(category = "dailyRambam3", title = "Prayer 3-5", hebrew = "הלכות תפילה פרק 3-5"),
+        ).toZmanItems().single()
+
+        assertEquals("הלכות תפילה פרקים ג׳-ה׳", item.valueHebrew)
+    }
+
+    @Test
+    fun rambamPluralizesEachBookByItsOwnChapterReference() {
+        // Regression: a day spanning two books used to take a document-wide "is there a range?"
+        // decision and rewrite only the *first* פרק, producing "פרקים ח" for the single chapter
+        // and leaving the real range as "פרק א-ב" — both backwards.
+        val item = listOf(
+            HebcalLearningEntry(
+                category = "dailyRambam3",
+                title = "The Chosen Temple 8, Vessels 1-2",
+                hebrew = "הלכות בית הבחירה פרק ח, הלכות כלי המקדש והעובדין בו פרק 1-2",
+            ),
+        ).toZmanItems().single()
+
+        assertEquals(
+            "הלכות בית הבחירה פרק ח׳, הלכות כלי המקדש והעובדין בו פרקים א׳-ב׳",
+            item.valueHebrew,
+        )
+    }
+
+    @Test
+    fun rambamNormalizesAWrongPluralFromTheSource() {
+        val item = listOf(
+            HebcalLearningEntry(category = "dailyRambam1", title = "Sabbath 19", hebrew = "הלכות שבת פרקים יט"),
+        ).toZmanItems().single()
+
+        assertEquals("הלכות שבת פרק י״ט", item.valueHebrew)
+    }
+
+    @Test
+    fun rambamLeavesNonNumeralChapterTextAlone() {
+        val item = listOf(
+            HebcalLearningEntry(category = "dailyRambam1", title = "Intro", hebrew = "הלכות תפילה פרק אחד"),
+        ).toZmanItems().single()
+
+        assertEquals("הלכות תפילה פרק אחד", item.valueHebrew)
     }
 
     @Test

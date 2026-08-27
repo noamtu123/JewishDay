@@ -2,13 +2,11 @@
 
 package com.noamtu.jewishday
 
-import android.content.res.Configuration
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -19,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.AppThemeOption
 import com.noamtu.jewishday.data.CurrentLocationRepository
+import com.noamtu.jewishday.data.RestoredSettingsReconciler
 import com.noamtu.jewishday.data.StartupSettingsCache
 import com.noamtu.jewishday.data.hasLocationPermission
 import com.noamtu.jewishday.ui.JewishDayApp
@@ -41,37 +40,43 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var startupSettingsCache: StartupSettingsCache
 
+    @Inject
+    lateinit var restoredSettingsReconciler: RestoredSettingsReconciler
+
     private var startupWindowBackgroundColor: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Persist the system-language default before any settings are read, so that a later
-        // system-language change cannot silently flip the in-app language on next launch.
-        runBlocking(Dispatchers.IO) { appSettingsRepository.seedLanguageDefault() }
-        val initialRootSettings = startupSettingsCache.read() ?: runBlocking(Dispatchers.IO) {
-            appSettingsRepository.rootUiSettings.first()
+        // Two things have to happen before a single setting is read, and both block:
+        //
+        //  - anything a backup restored is judged, so the first launch after a reinstall clears it
+        //    while settings carried from another phone are kept (the alternative is the UI reading
+        //    settings that are about to be wiped);
+        //  - the system-language default is persisted, so a later system-language change cannot
+        //    silently flip the in-app language on the next launch.
+        //
+        // They used to be three separate runBlocking calls on the main thread during onCreate —
+        // three dispatcher round trips, and each one re-entering DataStore on its own. One block
+        // shares a single DataStore read across all of them and leaves one stall instead of three.
+        val cachedRootSettings = startupSettingsCache.read()
+        val initialRootSettings = runBlocking(Dispatchers.IO) {
+            restoredSettingsReconciler.reconcile()
+            appSettingsRepository.seedLanguageDefault()
+            // Only pay for the DataStore read when the synchronous cache had nothing. The cache is
+            // SharedPreferences, which is excluded from backup, so it is empty in exactly the cases
+            // the reconciler above has just acted on.
+            cachedRootSettings ?: appSettingsRepository.rootUiSettings.first()
         }
-        setStartupWindowBackground(
-            themeOption = initialRootSettings.themeOption,
-            darkTheme = resources.isSystemDarkTheme(),
-        )
+        setStartupWindowBackground(initialRootSettings.themeOption)
         enableEdgeToEdge()
 
         setContent {
             val rootSettings by appSettingsRepository.rootUiSettings.collectAsStateWithLifecycle(
                 initialValue = initialRootSettings,
             )
-            val darkTheme = isSystemInDarkTheme()
-
             SideEffect {
-                setStartupWindowBackground(
-                    themeOption = rootSettings.themeOption,
-                    darkTheme = darkTheme,
-                )
-                applySystemBarIconAppearance(
-                    themeOption = rootSettings.themeOption,
-                    darkTheme = darkTheme,
-                )
+                setStartupWindowBackground(rootSettings.themeOption)
+                applySystemBarIconAppearance(rootSettings.themeOption)
             }
 
             LaunchedEffect(Unit) {
@@ -81,17 +86,14 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            JewishDayTheme(
-                darkTheme = darkTheme,
-                themeOption = rootSettings.themeOption,
-            ) {
+            JewishDayTheme(themeOption = rootSettings.themeOption) {
                 JewishDayApp(useHebrewInterface = rootSettings.useHebrewInterface)
             }
         }
     }
 
-    private fun setStartupWindowBackground(themeOption: AppThemeOption, darkTheme: Boolean) {
-        val backgroundColor = appThemeBackgroundColor(themeOption = themeOption, darkTheme = darkTheme)
+    private fun setStartupWindowBackground(themeOption: AppThemeOption) {
+        val backgroundColor = appThemeBackgroundColor(themeOption)
         if (startupWindowBackgroundColor == backgroundColor) return
         startupWindowBackgroundColor = backgroundColor
         window.setBackgroundDrawable(
@@ -99,17 +101,14 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    // Status/navigation bar icons must contrast with the app's *theme* background, not
-    // the system dark-mode flag: a light theme (e.g. Blue White) on a dark-mode phone
-    // needs dark icons, otherwise the white system icons vanish on the white background.
-    private fun applySystemBarIconAppearance(themeOption: AppThemeOption, darkTheme: Boolean) {
-        val backgroundColor = appThemeBackgroundColor(themeOption = themeOption, darkTheme = darkTheme)
+    // Status/navigation bar icons contrast with the app's own theme background. No theme follows
+    // the system dark-mode flag, so the flag is not consulted here either: a light theme on a
+    // dark-mode phone needs dark icons, or the white system icons vanish on the white background.
+    private fun applySystemBarIconAppearance(themeOption: AppThemeOption) {
+        val backgroundColor = appThemeBackgroundColor(themeOption)
         val lightBackground = ColorUtils.calculateLuminance(backgroundColor) > 0.5
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.isAppearanceLightStatusBars = lightBackground
         controller.isAppearanceLightNavigationBars = lightBackground
     }
 }
-
-private fun android.content.res.Resources.isSystemDarkTheme(): Boolean =
-    configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES

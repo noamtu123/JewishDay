@@ -56,7 +56,7 @@ class DailyLearningCacheCodecTest {
         assertEquals("Gifts to the Poor 8-10", threeChapters.value)
         assertEquals("3 chapters", threeChapters.description)
         assertEquals("3 פרקים", threeChapters.descriptionHebrew)
-        // Arabic chapter range -> plain gematria letters + plural פרקים, matching the 1-chapter style.
-        assertEquals("הלכות מתנות עניים פרקים ח-י", threeChapters.valueHebrew)
+        // Arabic chapter range -> punctuated gematria + plural פרקים, matching the 1-chapter style.
+        assertEquals("הלכות מתנות עניים פרקים ח׳-י׳", threeChapters.valueHebrew)
     }
 }

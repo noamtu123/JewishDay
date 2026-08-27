@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,7 +48,9 @@ import com.noamtu.jewishday.data.locationSourceForName
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.ui.LocalUseHebrewInterface
 import com.noamtu.jewishday.ui.components.InfoCard
+import com.noamtu.jewishday.ui.components.ScreenHorizontalPadding
 import com.noamtu.jewishday.ui.components.ScreenPaddingValues
+import com.noamtu.jewishday.ui.components.ScreenVerticalPadding
 import com.noamtu.jewishday.ui.components.ScreenSurface
 import com.noamtu.jewishday.ui.components.ValuePill
 import com.noamtu.jewishday.ui.components.readableWidth
@@ -63,6 +67,7 @@ fun ZmanimScreen(
         header = uiState.header,
         groups = uiState.groups,
         showCandleLightingPrompt = uiState.showCandleLightingPrompt,
+        developerTimeOverrideActive = uiState.developerTimeOverrideActive,
         onCandleLightingSelected = viewModel::selectCandleLightingMethod,
         modifier = modifier,
     )
@@ -74,6 +79,7 @@ private fun ZmanimContent(
     header: ZmanimHeaderUi?,
     groups: List<ZmanimGroupUi>,
     showCandleLightingPrompt: Boolean,
+    developerTimeOverrideActive: Boolean,
     onCandleLightingSelected: (CandleLightingMethod) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,6 +92,16 @@ private fun ZmanimContent(
 
     ScreenSurface(modifier = modifier) {
         Column(modifier = Modifier.readableWidth().fillMaxSize()) {
+            // Every time below is simulated while the hidden developer clock is pinned, so say so
+            // on the screen itself — the developer tools are the only other place that knows, and
+            // the override outlives the session that set it.
+            if (developerTimeOverrideActive) {
+                DeveloperTimeOverrideBanner(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, top = 12.dp),
+                )
+            }
             DateBar(
                 header = header,
                 useHebrew = useHebrew,
@@ -119,18 +135,44 @@ private fun ZmanimContent(
             val fastStart = if (useHebrew) header.fastStartHebrew else header.fastStart
             val fastEnd = if (useHebrew) header.fastEndHebrew else header.fastEnd
             if (fastStart != null && fastEnd != null) {
-                FastDayCard(
-                    startTime = fastStart,
-                    endTime = fastEnd,
-                    useHebrew = useHebrew,
+                ObservanceTimesCard(
+                    startText = fastStart,
+                    endText = fastEnd,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 4.dp),
                 )
             }
+            val holyDayStart = if (useHebrew) header.holyDayStartHebrew else header.holyDayStart
+            val holyDayEnd = if (useHebrew) header.holyDayEndHebrew else header.holyDayEnd
+            // A fast on a Friday overlaps Shabbat but is a genuinely different window, so both
+            // cards show. Identical windows would just repeat, so they collapse to one.
+            val holyDayRepeatsFast = holyDayStart == fastStart && holyDayEnd == fastEnd
+            if (holyDayStart != null && holyDayEnd != null && !holyDayRepeatsFast) {
+                ObservanceTimesCard(
+                    startText = holyDayStart,
+                    endText = holyDayEnd,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 4.dp),
+                )
+            }
+            // Warns that another observance begins the instant this one ends. Kept as its own
+            // line rather than inside a card, so the cards stay one row tall.
+            val sequel = if (useHebrew) header.holyDaySequelHebrew else header.holyDaySequel
+            if (sequel != null) {
+                Text(
+                    text = sequel,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.tertiary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, top = 6.dp),
+                )
+            }
             if (showCandleLightingPrompt) {
                 CandleLightingPrompt(
-                    useHebrew = useHebrew,
                     onSelected = onCandleLightingSelected,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -139,7 +181,14 @@ private fun ZmanimContent(
             }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = ScreenPaddingValues,
+                // The warning line already sits close under the cards, and the first group header
+                // brings its own top padding, so the usual screen padding would double the gap.
+                contentPadding = PaddingValues(
+                    start = ScreenHorizontalPadding,
+                    end = ScreenHorizontalPadding,
+                    top = if (sequel != null) 4.dp else ScreenVerticalPadding,
+                    bottom = ScreenVerticalPadding,
+                ),
             ) {
                 groups.forEach { group ->
                     val title = if (useHebrew) group.titleHebrew else group.title
@@ -169,11 +218,10 @@ private fun ZmanimContent(
 
 @Composable
 private fun CandleLightingPrompt(
-    useHebrew: Boolean,
     onSelected: (CandleLightingMethod) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showDialog by remember { mutableStateOf(false) }
+    var showDialog by rememberSaveable { mutableStateOf(false) }
     Surface(
         modifier = modifier.clickable { showDialog = true },
         shape = MaterialTheme.shapes.large,
@@ -186,13 +234,13 @@ private fun CandleLightingPrompt(
         ) {
             Text(
                 modifier = Modifier.weight(1f),
-                text = if (useHebrew) "כמה דקות לפני שקיעה אתה מקבל שבת?" else "How many minutes before sunset do you welcome Shabbat?",
+                text = localizedString(R.string.zmanim_candle_prompt_question, R.string.zmanim_candle_prompt_question_hebrew),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                text = if (useHebrew) "בחר" else "Choose",
+                text = localizedString(R.string.zmanim_candle_prompt_choose, R.string.zmanim_candle_prompt_choose_hebrew),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -202,11 +250,11 @@ private fun CandleLightingPrompt(
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = {
-                Text(if (useHebrew) "קבלת שבת" else "Welcome Shabbat")
+                Text(localizedString(R.string.zmanim_candle_prompt_title, R.string.zmanim_candle_prompt_title_hebrew))
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(if (useHebrew) "בחר כמה דקות לפני שקיעה:" else "Choose how many minutes before sunset:")
+                    Text(localizedString(R.string.zmanim_candle_prompt_body, R.string.zmanim_candle_prompt_body_hebrew))
                     Spacer(Modifier.height(4.dp))
                     CandleLightingMethod.entries.forEach { method ->
                         TextButton(
@@ -216,7 +264,13 @@ private fun CandleLightingPrompt(
                                 onSelected(method)
                             },
                         ) {
-                            Text(if (useHebrew) "${method.offsetMinutes} דקות" else "${method.offsetMinutes} minutes")
+                            Text(
+                                localizedString(
+                                    R.string.zmanim_candle_prompt_minutes,
+                                    R.string.zmanim_candle_prompt_minutes_hebrew,
+                                    method.offsetMinutes,
+                                ),
+                            )
                         }
                     }
                 }
@@ -224,9 +278,29 @@ private fun CandleLightingPrompt(
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text(if (useHebrew) "ביטול" else "Cancel")
+                    Text(localizedString(R.string.settings_cancel, R.string.settings_cancel_hebrew))
                 }
             },
+        )
+    }
+}
+
+/** Loud, unmissable warning that the hidden developer clock is falsifying every time on screen. */
+@Composable
+private fun DeveloperTimeOverrideBanner(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.errorContainer,
+    ) {
+        Text(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            text = localizedString(
+                R.string.zmanim_developer_time_override,
+                R.string.zmanim_developer_time_override_hebrew,
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
         )
     }
 }
@@ -260,7 +334,12 @@ private fun DateBar(
     useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val fastName = if (useHebrew) header.fastNameHebrew else header.fastName
+    // The chip names whichever observance is actually current: a fast and a holy day can be on
+    // screen together — Tzom Gedalyah is announced during Rosh Hashana, and a fast can fall on a
+    // Friday — and the one merely announced must not steal the name from the one happening now.
+    val holyDayName = if (useHebrew) header.holyDayNameHebrew else header.holyDayName
+    val currentFastName = if (useHebrew) header.fastNameHebrew else header.fastName
+    val fastName = if (header.fastLeadsHeader) currentFastName ?: holyDayName else holyDayName ?: currentFastName
     val jewishDate = if (useHebrew) header.jewishDateHebrew else header.jewishDate
     val headlineStyle = MaterialTheme.typography.headlineSmall
     val chipLabelStyle = MaterialTheme.typography.labelLarge
@@ -359,15 +438,15 @@ private fun FastNameChip(
 }
 
 /**
- * The fast entry/exit times in their own small card (like the candle-lighting prompt). Start and
- * end each sit on one line at opposite ends of the card; because the Row follows the layout
- * direction, in Hebrew (RTL) the start is on the right and the end on the left, mirrored in English.
+ * Entry/exit times for the current observance — a fast or Shabbat — in their own small card (like
+ * the candle-lighting prompt). Start and end each sit on one line at opposite ends of the card;
+ * because the Row follows the layout direction, in Hebrew (RTL) the start is on the right and the
+ * end on the left, mirrored in English.
  */
 @Composable
-private fun FastDayCard(
-    startTime: String,
-    endTime: String,
-    useHebrew: Boolean,
+private fun ObservanceTimesCard(
+    startText: String,
+    endText: String,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -381,12 +460,12 @@ private fun FastDayCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = if (useHebrew) "כניסת הצום $startTime" else "Fast starts $startTime",
+                text = startText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
             Text(
-                text = if (useHebrew) "צאת הצום $endTime" else "Fast ends $endTime",
+                text = endText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )

@@ -1,11 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  The settings travel on both channels: cloud-backup so a new phone restored from Google's backup
+  keeps them, and device-transfer so a direct migration does too.
+
+  That alone would also restore them on a plain reinstall, which should start fresh. Android cannot
+  distinguish the two — to the system both are simply a restore — so the app settles it at launch
+  instead: the settings carry a marker naming the device that wrote them, and a restore onto that
+  same device is cleared. See RestoredSettingsReconciler.
+
+  An <include> means "only this", so SharedPreferences is left out of both channels without saying
+  so: it holds the per-install state the reconciler depends on.
+-->
 <data-extraction-rules>
     <cloud-backup>
-        <exclude domain="sharedpref" path="." />
-        <exclude domain="database" path="." />
+        <include domain="file" path="datastore" />
     </cloud-backup>
     <device-transfer>
-        <exclude domain="sharedpref" path="." />
-        <exclude domain="database" path="." />
+        <include domain="file" path="datastore" />
     </device-transfer>
 </data-extraction-rules>

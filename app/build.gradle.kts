@@ -24,8 +24,8 @@ android {
         applicationId = "com.noamtu.jewishday"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.9.0"
+        versionCode = 16
+        versionName = "1.0.0"
     }
 
     signingConfigs {
@@ -53,7 +53,8 @@ android {
 
     lint {
         abortOnError = true
-        // Lint runs explicitly via :app:lintDebug; don't re-run it during release assembly.
+        // Lint is run explicitly as :app:lintRelease (see the justfile); this only stops it being
+        // re-run as part of assembleRelease, which would analyze the same variant twice.
         checkReleaseBuilds = false
     }
 
@@ -97,21 +98,8 @@ dependencies {
     ksp(libs.androidx.hilt.compiler)
 
     testImplementation(libs.junit)
+    // android.jar's org.json is a stub in unit tests; the real one lets release parsing be tested.
+    testImplementation(libs.json)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
-
-// Android lint can analyze generated Hilt sources while release compilation is still creating
-// them when `lintDebug` and `assembleRelease` are requested together. Keep the combined command
-// reliable by running debug lint after release assembly in that task graph.
-tasks.matching { it.name in DebugLintTaskNames }.configureEach {
-    mustRunAfter("assembleRelease")
-}
-
-val DebugLintTaskNames = setOf(
-    "lintAnalyzeDebug",
-    "lintAnalyzeDebugAndroidTest",
-    "lintAnalyzeDebugUnitTest",
-    "lintReportDebug",
-    "lintDebug",
-)
