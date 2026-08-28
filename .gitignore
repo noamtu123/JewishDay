@@ -33,3 +33,6 @@ justfile
 # HTML comment the app reads, so it never renders on the release page. The drafts themselves stay
 # local so no Hebrew lands in the repo either.
 release-notes/
+
+# Claude Code — share project settings, keep local overrides out
+.claude/settings.local.json
