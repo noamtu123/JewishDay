@@ -10,7 +10,8 @@ import com.noamtu.jewishday.model.ZmanimDay
 import com.noamtu.jewishday.model.defaultJerusalemLocation
 import com.noamtu.jewishday.model.jewishDayInfo
 import com.noamtu.jewishday.model.mizrachInfo
-import com.noamtu.jewishday.model.sunsetForDate
+import com.noamtu.jewishday.model.tzeitForDate
+import com.noamtu.jewishday.model.zmanimDateFor
 import com.noamtu.jewishday.model.zmanimForDate
 import java.time.Clock
 import java.time.Instant
@@ -40,15 +41,20 @@ class DefaultJewishDayRepository @Inject constructor(
         settings: ZmanimCalculationSettings,
     ): JewishDayInfo {
         val now = clock.instant()
-        val gregorianDate = now.atZone(location.zoneId).toLocalDate()
-        // The Hebrew date rolls over to the next day at sunset (the day/night boundary).
-        val sunset = sunsetForDate(location, gregorianDate, settings)
-        val jewishDate = if (sunset != null && !now.isBefore(sunset)) {
-            gregorianDate.plusDays(1)
+        // The icon's two lines move on different boundaries. The weekday is the plain civil
+        // weekday, so it turns over at midnight — read on its own in the status bar, a day name
+        // that jumps at nightfall reads as a mistake. The Hebrew date under it rolls at tzeit,
+        // measured against the day the zmanim belong to (which turns over at chatzot halaila), so
+        // that the date the icon shows is the one the app is showing at that moment.
+        val civilDate = now.atZone(location.zoneId).toLocalDate()
+        val zmanimDate = zmanimDateFor(location, settings, now)
+        val tzeit = tzeitForDate(location, zmanimDate, settings)
+        val jewishDate = if (tzeit != null && !now.isBefore(tzeit)) {
+            zmanimDate.plusDays(1)
         } else {
-            gregorianDate
+            zmanimDate
         }
-        return jewishDayInfo(gregorianDate = gregorianDate, jewishDate = jewishDate)
+        return jewishDayInfo(gregorianDate = civilDate, jewishDate = jewishDate)
     }
 
     override fun getZmanim(
@@ -56,7 +62,8 @@ class DefaultJewishDayRepository @Inject constructor(
         settings: ZmanimCalculationSettings,
     ): ZmanimDay {
         val now = clock.instant()
-        val date = now.atZone(location.zoneId).toLocalDate()
+        // The night belongs to the day it started on, so the times only move on at chatzot halaila.
+        val date = zmanimDateFor(location, settings, now)
         return zmanimForDate(location, date, settings, now)
     }
 

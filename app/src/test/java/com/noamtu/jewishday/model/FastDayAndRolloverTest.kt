@@ -11,7 +11,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Covers the halachic day boundary: the displayed Hebrew date rolls at sunset, and the fast
+ * Covers the day boundaries: the displayed Hebrew date rolls at tzeit while the day whose zmanim
+ * are on screen rolls at chatzot halaila, and the fast
  * chip/card follows the fast — announced one Jewish day before it begins and cleared the moment it
  * ends — including the Erev Tisha B'Av / Erev Yom Kippur evenings, when the fast begins at sunset
  * before its civil calendar date.
@@ -109,32 +110,57 @@ class FastDayAndRolloverTest {
     }
 
     @Test
-    fun displayedHebrewDateRollsAtSunset() {
+    fun displayedHebrewDateRollsAtTzeitNotSunset() {
         val sunset = requireNotNull(sunsetForDate(date = seventeenTammuz))
+        val tzeit = requireNotNull(tzeitForDate(date = seventeenTammuz))
 
         val beforeSunset = zmanimForDate(date = seventeenTammuz, now = sunset.minus(Duration.ofHours(1)))
         assertTrue(beforeSunset.hebrewDateEnglish, beforeSunset.hebrewDateEnglish.contains("17 Tammuz"))
 
-        val afterSunset = zmanimForDate(date = seventeenTammuz, now = sunset.plus(Duration.ofMinutes(1)))
-        assertTrue(afterSunset.hebrewDateEnglish, afterSunset.hebrewDateEnglish.contains("18 Tammuz"))
+        // Bein hashmashot — past sunset, before the stars are out — is still the old date.
+        val beinHashmashot = zmanimForDate(date = seventeenTammuz, now = sunset.plus(Duration.ofMinutes(1)))
+        assertTrue(beinHashmashot.hebrewDateEnglish, beinHashmashot.hebrewDateEnglish.contains("17 Tammuz"))
+
+        val afterTzeit = zmanimForDate(date = seventeenTammuz, now = tzeit.plus(Duration.ofMinutes(1)))
+        assertTrue(afterTzeit.hebrewDateEnglish, afterTzeit.hebrewDateEnglish.contains("18 Tammuz"))
     }
 
     @Test
-    fun nextDateBoundaryIsSunsetDuringTheDayAndMidnightAtNight() {
+    fun nextDateBoundaryIsTzeitDuringTheDayAndChatzotHaLailaAtNight() {
         val settings = ZmanimCalculationSettings()
-        val sunset = requireNotNull(sunsetForDate(date = seventeenTammuz))
+        val tzeit = requireNotNull(tzeitForDate(date = seventeenTammuz))
+        val chatzotHaLaila = requireNotNull(chatzotHaLailaForDate(date = seventeenTammuz))
 
         val atNoon = seventeenTammuz.atTime(12, 0).atZone(zone).toInstant()
         assertEquals(
-            sunset.plus(Duration.ofMinutes(1)),
+            tzeit.plus(Duration.ofMinutes(1)),
             nextDateBoundary(defaultJerusalemLocation, settings, atNoon),
         )
 
-        // Late at night (after sunset) the next boundary is the Gregorian midnight.
+        // Late at night the next boundary is chatzot halaila, not civil midnight.
         val lateNight = seventeenTammuz.atTime(23, 30).atZone(zone).toInstant()
         assertEquals(
-            nextGregorianMidnight(defaultJerusalemLocation, lateNight),
+            chatzotHaLaila.plus(Duration.ofMinutes(1)),
             nextDateBoundary(defaultJerusalemLocation, settings, lateNight),
         )
+    }
+
+    @Test
+    fun theDisplayedDayRollsAtChatzotHaLailaRatherThanCivilMidnight() {
+        val settings = ZmanimCalculationSettings()
+        val chatzotHaLaila = requireNotNull(chatzotHaLailaForDate(date = seventeenTammuz))
+        // Solar midnight in Jerusalem falls after civil midnight, so there is a window on the next
+        // civil day that still belongs to 2 July.
+        assertTrue("$chatzotHaLaila", chatzotHaLaila.atZone(zone).toLocalDate() == seventeenTammuz.plusDays(1))
+
+        val justBefore = chatzotHaLaila.minus(Duration.ofMinutes(5))
+        val justAfter = chatzotHaLaila.plus(Duration.ofMinutes(5))
+
+        assertEquals(seventeenTammuz, zmanimDateFor(defaultJerusalemLocation, settings, justBefore))
+        assertEquals(seventeenTammuz.plusDays(1), zmanimDateFor(defaultJerusalemLocation, settings, justAfter))
+
+        // And in the evening, before civil midnight, the day has not moved on yet.
+        val evening = seventeenTammuz.atTime(21, 0).atZone(zone).toInstant()
+        assertEquals(seventeenTammuz, zmanimDateFor(defaultJerusalemLocation, settings, evening))
     }
 }
