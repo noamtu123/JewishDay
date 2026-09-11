@@ -80,6 +80,12 @@ data class ZmanimHeaderUi(
     val fastEndHebrew: String? = null,
     val holyDayName: String? = null,
     val holyDayNameHebrew: String? = null,
+    // The day's own name ("ערב פסח", "פורים") and, ahead of Shabbat, the coming week's parasha.
+    // Both are fallbacks for the chip, behind whatever is actually under way.
+    val dayName: String? = null,
+    val dayNameHebrew: String? = null,
+    val parshaName: String? = null,
+    val parshaNameHebrew: String? = null,
     val holyDayStart: String? = null,
     val holyDayStartHebrew: String? = null,
     val holyDayEnd: String? = null,
@@ -353,11 +359,17 @@ private fun ZmanimDay.toUiState(
     val timePattern = if (use24HourTime) "HH:mm" else "h:mm a"
     val englishTimeFormatter = DateTimeFormatter.ofPattern(timePattern, englishLocale).withZone(zoneId)
     val hebrewTimeFormatter = DateTimeFormatter.ofPattern(timePattern, hebrewLocale).withZone(zoneId)
-    val englishDateFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d", englishLocale)
+    // The weekday and the day-of-month come from different days, so they are formatted separately:
+    // the weekday belongs to the Jewish day and rolls at sunset — Thursday evening is already
+    // "Friday", the same as the status-bar icon — while the civil date stays the civil date of the
+    // day whose zmanim are listed below it.
+    val englishWeekdayFormatter = DateTimeFormatter.ofPattern("EEEE", englishLocale)
+    val englishDayMonthFormatter = DateTimeFormatter.ofPattern("MMMM d", englishLocale)
     // Hebrew writes the month with a "ב" prefix ("17 ביולי"). CLDR keeps that prefix as a literal
     // in the locale's own date pattern rather than in the month name, so a custom pattern has to
     // carry it explicitly — MMMM alone yields the bare "יולי".
-    val hebrewDateFormatter = DateTimeFormatter.ofPattern("EEEE, d 'ב'MMMM", hebrewLocale)
+    val hebrewWeekdayFormatter = DateTimeFormatter.ofPattern("EEEE", hebrewLocale)
+    val hebrewDayMonthFormatter = DateTimeFormatter.ofPattern("d 'ב'MMMM", hebrewLocale)
 
     val uiGroups = groups.mapIndexed { groupIndex, group ->
         ZmanimGroupUi(
@@ -378,18 +390,25 @@ private fun ZmanimDay.toUiState(
         header = ZmanimHeaderUi(
             jewishDate = hebrewDateEnglish,
             jewishDateHebrew = hebrewDateHebrew,
-            gregorianDate = date.format(englishDateFormatter),
-            gregorianDateHebrew = date.format(hebrewDateFormatter),
+            gregorianDate = "${displayedDate.format(englishWeekdayFormatter)}, ${date.format(englishDayMonthFormatter)}",
+            gregorianDateHebrew = "${displayedDate.format(hebrewWeekdayFormatter)}, ${date.format(hebrewDayMonthFormatter)}",
             locationName = locationName,
-            // The name belongs to the observance while it is on; the times show a day ahead.
+            // The fast's name belongs to it only while it is on; the times show a day ahead.
             fastName = fastDayInfo?.takeIf { it.isUnderWay }?.name,
             fastNameHebrew = fastDayInfo?.takeIf { it.isUnderWay }?.nameHebrew,
             fastStart = fastDayInfo?.startTime?.let { observanceLine("Fast starts", it, englishTimeFormatter) },
             fastStartHebrew = fastDayInfo?.startTime?.let { observanceLine("כניסת הצום", it, hebrewTimeFormatter) },
             fastEnd = fastDayInfo?.endTime?.let { observanceLine("Fast ends", it, englishTimeFormatter) },
             fastEndHebrew = fastDayInfo?.endTime?.let { observanceLine("צאת הצום", it, hebrewTimeFormatter) },
+            // The name belongs to the holy day only while it is in; the times show a day ahead.
             holyDayName = holyDayInfo?.takeIf { it.isUnderWay }?.name,
             holyDayNameHebrew = holyDayInfo?.takeIf { it.isUnderWay }?.nameHebrew,
+            dayName = dayName,
+            dayNameHebrew = dayNameHebrew,
+            // While Shabbat is only announced — from the moment the entry/exit card appears — the
+            // parasha gives the card a heading without claiming Shabbat has begun.
+            parshaName = holyDayInfo?.takeUnless { it.isUnderWay }?.parsha,
+            parshaNameHebrew = holyDayInfo?.takeUnless { it.isUnderWay }?.parshaHebrew,
             holyDayStart = holyDayInfo?.startTime?.let {
                 observanceLine("${holyDayInfo.term} starts", it, englishTimeFormatter)
             },

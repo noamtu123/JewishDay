@@ -23,12 +23,14 @@ fun zmanimForDate(
         isUseModernHolidays = true
         setInIsrael(inIsrael)
     }
-    // The displayed Hebrew date rolls over to the next day at sunset (the day/night boundary),
-    // so from sunset onward the header shows the current Jewish date. Day events and the zmanim
-    // themselves stay on the civil date; the fast chip/card follows the active fast (see below).
-    val sunset = calendar.sunset(settings.sunsetMethod)?.toInstant()
-    val afterSunset = now != null && sunset != null && !now.isBefore(sunset)
-    val displayJewishCalendar = if (afterSunset) {
+    // The displayed Hebrew date rolls over to the next day at tzeit hakochavim — not at sunset,
+    // which only opens bein hashmashot, the doubtful stretch between the two days. From tzeit
+    // onward the header shows the current Jewish date. Day events and the zmanim themselves stay
+    // on [date] — the day the caller decided is current, which turns over at chatzot halaila; the
+    // fast chip/card follows the active fast (see below).
+    val tzeit = calendar.tzeit(settings)?.toInstant()
+    val afterTzeit = now != null && tzeit != null && !now.isBefore(tzeit)
+    val displayJewishCalendar = if (afterTzeit) {
         JewishCalendar(date.plusDays(1)).apply {
             isUseModernHolidays = true
             setInIsrael(inIsrael)
@@ -56,6 +58,22 @@ fun zmanimForDate(
     } else {
         null
     }
+    // A Shabbat that is a Yom Tov or Chol Hamoed has no weekly parsha at all, and KosherJava
+    // returns a blank one — which left the section showing an entry and an exit with nothing to
+    // say which Shabbat they belong to. Name the day instead ("ראש השנה"), under its own title,
+    // since "פרשת השבוע: ראש השנה" would not be true.
+    //
+    // Only the section does this. On Shabbat itself the section is dropped and the row moves up to
+    // the day's events, where the header is already naming the day — a second copy would just
+    // repeat it, which is why the promoted row below stays [parshaItem].
+    val shabbatReadingItem = parshaItem ?: run {
+        val yomTovEnglish = englishFormatter.formatYomTov(shabbatJewishCalendar)
+        if (yomTovEnglish.isBlank()) {
+            null
+        } else {
+            ZmanItem("Torah Reading", "קריאת התורה", null, "Upcoming Torah reading", "קריאת התורה הקרובה", yomTovEnglish, hebrewFormatter.formatYomTov(shabbatJewishCalendar))
+        }
+    }
     // Occasional day events (Yom Tov, Rosh Chodesh, Omer, fasts…); shown header-less at the
     // top of the tab and omitted entirely when empty (no standalone "Daily" section).
     val eventItems = dailyItems(
@@ -73,9 +91,13 @@ fun zmanimForDate(
     // own date, so it appears a sunset earlier still; a dawn fast appears at alot of the previous
     // morning. This also closes the Erev Tisha B'Av / Erev Yom Kippur evening gap and stops a
     // finished fast lingering until midnight.
-    // The Hebrew date shown in the header, as a civil date: it rolls at sunset, so from sunset
+    // The Hebrew date shown in the header, as a civil date: it rolls at tzeit, so from nightfall
     // onwards "today" is already tomorrow.
-    val displayedDate = if (afterSunset) date.plusDays(1) else date
+    val displayedDate = if (afterTzeit) date.plusDays(1) else date
+    // Read off the same calendar as the Hebrew date in the header, so the two never disagree: at
+    // sunset on Erev Pesach the date becomes Pesach and the chip stops saying "ערב פסח" with it.
+    val dayName = minorDayName(displayJewishCalendar, englishFormatter)
+    val dayNameHebrew = minorDayName(displayJewishCalendar, hebrewFormatter)
     val announcedFast = announcedFastDayInfo(
         date = date,
         displayedDate = displayedDate,
@@ -98,12 +120,22 @@ fun zmanimForDate(
         hebrewFormatter = hebrewFormatter,
     )
 
-    // On Shabbat itself the Shabbat section only repeats what is already on screen: its candle
-    // lighting and motzei are the header's entry and exit, and its sunset is Friday's, long past.
-    // Only Rabbeinu Tam is still worth showing, and today's calendar gives the same time, so it
-    // joins the day's own list and the section goes away. (After motzei the section already points
-    // at next week's Shabbat, which is not a duplicate, so it stays.)
-    val shabbatSectionRepeatsToday = date.dayOfWeek == DayOfWeek.SATURDAY && shabbatDates.endDate == date
+    // Once Shabbat is in, the section only repeats what is already on screen: the header names it
+    // and gives its entry and exit, and the day's own zmanim list is the one that matters. Matching
+    // on the exit is what decides it — "the header already tells you when this ends" — which also
+    // covers a Yom Tov that ends together with the Shabbat it falls on. Before Shabbat comes in the
+    // section is the only place the times are, so it stays; after motzei it already points at next
+    // week's Shabbat, which is not a duplicate, so it stays then too.
+    val shabbatExit = shabbatEndCalendar.holyDayExit(settings)?.toInstant()
+    val shabbatSectionRepeatsToday = shabbatExit != null &&
+        holyDayInfo != null &&
+        holyDayInfo.isUnderWay &&
+        holyDayInfo.endTime == shabbatExit
+
+    // Rabbeinu Tam is the one row not otherwise on screen, so it moves into the day's own list when
+    // the section goes — but only on Shabbat itself, where today's calendar gives the same time.
+    // On Friday night it would be tomorrow night's, landing out of order among today's zmanim.
+    val shabbatIsToday = date.dayOfWeek == DayOfWeek.SATURDAY && shabbatDates.endDate == date
 
     // A fast that has not begun yet waits its turn while a holy day is still on: the second day of
     // Rosh Hashana announces Tzom Gedalyah, and two cards would claim two things are happening at
@@ -116,9 +148,12 @@ fun zmanimForDate(
     return ZmanimDay(
         locationName = location.name,
         date = date,
+        displayedDate = displayedDate,
         zoneId = location.zoneId,
         hebrewDateEnglish = englishFormatter.format(displayJewishCalendar),
         hebrewDateHebrew = hebrewFormatter.format(displayJewishCalendar),
+        dayName = dayName,
+        dayNameHebrew = dayNameHebrew,
         fastDayInfo = fastDayInfo,
         holyDayInfo = holyDayInfo,
         fastLeadsHeader = fastLeadsHeader(fastDayInfo, holyDayInfo, now),
@@ -151,7 +186,7 @@ fun zmanimForDate(
                     ZmanItem("Tzeit", "צאת הכוכבים", calendar.tzeit(settings)?.toInstant(), settings.tzeitHakochavimMethod.label, settings.tzeitHakochavimMethod.labelHebrew, id = ZmanimTimeOption.Tzeit.storageValue),
                     // Only on Shabbat, where the Shabbat section it normally lives in is dropped.
                     ZmanItem("Rabbeinu Tam", "רבינו תם", calendar.rabbeinuTam(settings.rabbeinuTamMethod)?.toInstant(), settings.rabbeinuTamMethod.label, settings.rabbeinuTamMethod.labelHebrew, id = ZmanimTimeOption.RabbeinuTam.storageValue)
-                        .takeIf { shabbatSectionRepeatsToday },
+                        .takeIf { shabbatSectionRepeatsToday && shabbatIsToday },
                     ZmanItem("Chatzot HaLaila", "חצות הלילה", calendar.chatzotHaLaila(settings.chatzotHaLailaMethod)?.toInstant(), settings.chatzotHaLailaMethod.label, settings.chatzotHaLailaMethod.labelHebrew, id = ZmanimTimeOption.ChatzotHaLaila.storageValue),
                 ),
             ),
@@ -161,10 +196,10 @@ fun zmanimForDate(
                 // The parsha (no id) always shows; the four time rows carry their ZmanimTimeOption
                 // id so the same "Zmanim to show" list can hide them.
                 items = listOfNotNull(
-                    parshaItem,
+                    shabbatReadingItem,
                     ZmanItem("Candle Lighting & Shabbat Entry", "הדלקת נרות וכניסת שבת", shabbatStartCalendar.candleLighting?.toInstant(), "Friday; ${settings.candleLightingMethod.label}", "יום שישי; ${settings.candleLightingMethod.labelHebrew}", id = ZmanimTimeOption.ShabbatCandleLighting.storageValue),
                     ZmanItem("Sunset", "שקיעה", shabbatStartCalendar.sunset(settings.sunsetMethod)?.toInstant(), "Friday; ${settings.sunsetMethod.label}", "יום שישי; ${settings.sunsetMethod.labelHebrew}", id = ZmanimTimeOption.ShabbatSunset.storageValue),
-                    ZmanItem("Motzei Shabbat", "צאת שבת", shabbatEndCalendar.holyDayExit(settings)?.toInstant(), "Saturday; ${settings.motzeiShabbatMethod.label} + ${settings.holyDayTosefetMinutes}m", "מוצאי שבת; ${settings.motzeiShabbatMethod.labelHebrew} + ${settings.holyDayTosefetMinutes} דק׳", id = ZmanimTimeOption.MotzeiShabbat.storageValue),
+                    ZmanItem("Motzei Shabbat", "צאת שבת", shabbatExit, "Saturday; ${settings.motzeiShabbatMethod.label} + ${settings.holyDayTosefetMinutes}m", "מוצאי שבת; ${settings.motzeiShabbatMethod.labelHebrew} + ${settings.holyDayTosefetMinutes} דק׳", id = ZmanimTimeOption.MotzeiShabbat.storageValue),
                     ZmanItem("Rabbeinu Tam", "רבינו תם", shabbatEndCalendar.rabbeinuTam(settings.rabbeinuTamMethod)?.toInstant(), "Saturday; ${settings.rabbeinuTamMethod.label}", "מוצאי שבת; ${settings.rabbeinuTamMethod.labelHebrew}", id = ZmanimTimeOption.RabbeinuTam.storageValue),
                 ),
             ),
@@ -218,7 +253,7 @@ fun tzeitForDate(
     .tzeit(settings)
     ?.toInstant()
 
-/** Sunset for [date] — the instant at which the displayed Hebrew date rolls to the next day. */
+/** Sunset for [date]. The Hebrew date rolls at tzeit, not here — see [tzeitForDate]. */
 fun sunsetForDate(
     location: JewishLocation = defaultJerusalemLocation,
     date: LocalDate,
@@ -249,15 +284,10 @@ private fun dailyItems(
     // The Jewish date is shown in the date header at the top of the tab, and the parsha at the top
     // of the Shabbat section; this list is only the occasional day events.
     //
-    // A Yom Tov is named by the header, along with its entry and exit — including the second
-    // night's candle lighting — so it gets no row here. Every other named day still needs one:
-    // Chol Hamoed, Purim, Isru Chag and the modern holidays never reach the header. Note the test
-    // is on the Yom Tov itself, not on melacha: Isru Chag or Chol Hamoed falling on Shabbat is
-    // named "שבת" by the header, so without a row its own name would be lost.
-    val yomTov = englishFormatter.formatYomTov(jewishCalendar)
-    if (yomTov.isNotBlank() && !jewishCalendar.isTaanis && !jewishCalendar.isYomTovAssurBemelacha) {
-        add(ZmanItem("Yom Tov", "יום טוב", null, "Day information", "מידע על היום", yomTov, hebrewFormatter.formatYomTov(jewishCalendar)))
-    }
+    // Named days no longer get a row: Chol Hamoed, Purim, Erev Pesach, Isru Chag and the modern
+    // holidays are all said by the header chip instead (see [minorDayName]), which is where the
+    // eye already is. A Yom Tov proper was never here either — the header names it along with its
+    // entry and exit.
     if (jewishCalendar.isRoshChodesh) {
         add(ZmanItem("Rosh Chodesh", "ראש חודש", null, "New Jewish month", "ראש חודש", englishFormatter.formatRoshChodesh(jewishCalendar), hebrewFormatter.formatRoshChodesh(jewishCalendar)))
     }
@@ -333,8 +363,8 @@ private fun fastAnnouncedFrom(
     location: JewishLocation,
     settings: ZmanimCalculationSettings,
 ): Instant? = if (startsPreviousEvening(jewishCalendar)) {
-    // Begins at the sunset before [date]; announce it from the sunset before that.
-    sunsetForDate(location, date.minusDays(2), settings)
+    // Begins at the sunset before [date]; announce it a Jewish day earlier, at the tzeit before it.
+    tzeitForDate(location, date.minusDays(2), settings)
 } else {
     // Begins at alot on [date]; announce it from alot the previous morning.
     complexZmanimCalendar(location, date.minusDays(1), settings).alotHashachar(settings)?.toInstant()
@@ -381,9 +411,10 @@ private fun announcedHolyDayInfo(
         var runEnd = day
         while (isForbidden(runEnd.plusDays(1))) runEnd = runEnd.plusDays(1)
 
-        // Announced from the sunset one Jewish day before the run enters. A run any later than that
-        // is further off still, so there is nothing to show at all.
-        val announcedFrom = sunsetForDate(location, runStart.minusDays(2), settings)
+        // Announced from the tzeit one Jewish day before the run enters — the same boundary the
+        // Hebrew date turns on. A run any later than that is further off still, so there is nothing
+        // to show at all.
+        val announcedFrom = tzeitForDate(location, runStart.minusDays(2), settings)
         if (now != null && announcedFrom != null && now.isBefore(announcedFrom)) return null
 
         // Which day of the run is current: the first that has not gone out yet.
@@ -412,13 +443,15 @@ private fun announcedHolyDayInfo(
         return HolyDayInfo(
             name = holyDayName(current, calendarFor(current), englishFormatter, hebrew = false),
             nameHebrew = holyDayName(current, calendarFor(current), hebrewFormatter, hebrew = true),
+            parsha = parshaLabel(current, calendarFor(current), englishFormatter, hebrew = false),
+            parshaHebrew = parshaLabel(current, calendarFor(current), hebrewFormatter, hebrew = true),
             startTime = entry,
             endTime = exitOf(current),
             term = holyDayTerm(current, yomTovDays, hebrew = false),
             termHebrew = holyDayTerm(current, yomTovDays, hebrew = true),
             // Named only while it is genuinely in: from its entry until its exit. That covers the
-            // sunset-to-tzeit gap at the end, when the displayed date has already rolled but the
-            // day is still on, and it keeps the name off before the day has begun.
+            // tail end, when the displayed date has already rolled but the day is still on (motzei
+            // carries a tosefet past tzeit), and it keeps the name off before the day has begun.
             isUnderWay = if (now == null) current == displayedDate else isUnderWay(entry, exitOf(current), now),
             // Describes what is still ahead from today, so it narrows as each day goes out.
             sequel = sequelFor(current, runEnd, ::calendarFor, fastFollows, hebrew = false),
@@ -441,13 +474,47 @@ private fun holyDayName(
 ): String {
     val yomTov = formatter.formatYomTov(calendar)
     val isYomTov = calendar.isYomTovAssurBemelacha && yomTov.isNotBlank()
+    // Chol Hamoed and Isru Chag often fall on Shabbat. The chip would say only "שבת" and the day's
+    // own name would be lost with it, so the two are read together: "שבת חול המועד פסח".
+    //
+    // An erev is left out: the header already warns "שבת + חג" for the Yom Tov that follows, so
+    // "שבת ערב שבועות" only makes the chip longer without saying anything new. A weekday erev is
+    // untouched by this — it still names itself, which is the whole point of the chip.
+    val minorName = minorDayName(calendar, formatter).takeUnless { calendar.isErevYomTov }
     return when {
         isYomTov && day.dayOfWeek == DayOfWeek.SATURDAY ->
             if (hebrew) "$yomTov ושבת" else "$yomTov & Shabbat"
         isYomTov -> yomTov
-        hebrew -> "שבת"
-        else -> "Shabbat"
+        hebrew -> if (minorName == null) "שבת" else "שבת $minorName"
+        else -> if (minorName == null) "Shabbat" else "Shabbat $minorName"
     }
+}
+
+/**
+ * The day's own name when nothing else in the header is going to say it — "ערב פסח", "פורים",
+ * "חול המועד סוכות", "אסרו חג". Null for a Yom Tov and for a fast, which the header names in full
+ * (with their entry and exit) rather than as a bare chip.
+ */
+private fun minorDayName(calendar: JewishCalendar, formatter: HebrewDateFormatter): String? {
+    if (calendar.isYomTovAssurBemelacha || calendar.isTaanis) return null
+    return formatter.formatYomTov(calendar).takeIf { it.isNotBlank() }
+}
+
+/**
+ * What names the coming Shabbat while it is only announced — the parasha, so the entry/exit card
+ * has a heading without the chip claiming Shabbat is already in. Null for a Yom Tov, which has no
+ * weekly parsha of its own, and for any day that is not a Shabbat.
+ */
+private fun parshaLabel(
+    day: LocalDate,
+    calendar: JewishCalendar,
+    formatter: HebrewDateFormatter,
+    hebrew: Boolean,
+): String? {
+    if (day.dayOfWeek != DayOfWeek.SATURDAY) return null
+    val parsha = formatter.formatParsha(calendar)
+    if (parsha.isNullOrBlank()) return null
+    return if (hebrew) "פרשת $parsha" else "Parashat $parsha"
 }
 
 /**

@@ -61,10 +61,11 @@ class HolyDaySequenceTest {
         assertEquals("חג + שבת", info.sequelHebrew)
         assertTrue(info.nameHebrew, info.nameHebrew.contains("שבועות"))
 
-        // And after it goes out, Shabbat itself takes over.
+        // And after it goes out, Shabbat itself takes over — carrying "אסרו חג", since that is the
+        // day's own name and the chip is the only place left that says it.
         val shabbat = shavuot.plusDays(1)
         val next = requireNotNull(infoOn(shavuot, requireNotNull(info.endTime).plus(Duration.ofMinutes(5))))
-        assertEquals("שבת", next.nameHebrew)
+        assertEquals("שבת אסרו חג", next.nameHebrew)
         assertEquals(holyDayExitForDate(date = shabbat), next.endTime)
         assertNull(next.sequelHebrew)
     }
