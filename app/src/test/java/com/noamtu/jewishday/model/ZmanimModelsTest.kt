@@ -119,8 +119,11 @@ class ZmanimModelsTest {
             date = secondDayShavuot,
         ).eventValues()
 
-        // In Israel the day is Isru Chag — nothing is forbidden, so it stays an event row.
-        assertTrue(israelEvents.contains("Isru Chag"))
+        // In Israel the day is Isru Chag falling on Shabbat. Named days have no event row any more
+        // — the header chip says them — and here the chip has to carry both names at once, or
+        // "Shabbat" would swallow the one the day is actually known by.
+        val israelHolyDay = zmanimForDate(location = defaultJerusalemLocation, date = secondDayShavuot).holyDayInfo
+        assertEquals("Shabbat Isru Chag", requireNotNull(israelHolyDay).name)
         // In the diaspora it is the second day of Yom Tov, which the header names instead, so it
         // is deliberately absent from the event rows.
         assertFalse(diasporaEvents.contains("Shavuos"))

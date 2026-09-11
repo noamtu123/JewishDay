@@ -55,6 +55,7 @@ class AppUpdateViewModel @Inject constructor(
     private val installer: ApkInstaller,
     installResults: InstallResults,
     developerOverrides: DeveloperOverridesRepository,
+    private val pendingUpdates: PendingUpdateStore,
 ) : ViewModel() {
 
     /** Hidden developer switch: read the English changelog without switching the whole interface. */
@@ -65,15 +66,11 @@ class AppUpdateViewModel @Inject constructor(
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val state: StateFlow<UpdateState> = _state.asStateFlow()
 
-    private val _pendingRelease = MutableStateFlow<UpdateState.Available?>(null)
-
     /**
-     * The update that is waiting, whether or not its dialog is open.
-     *
-     * Dismissing the dialog is "not now", not "never": the release stays here so the home screen
-     * can keep a banner offering it, and only an actual install clears it.
+     * The update that is waiting, whether or not its dialog is open. Shared with the developer
+     * tools' manual check (see [PendingUpdateStore]), so either check can raise the banner.
      */
-    val pendingRelease: StateFlow<UpdateState.Available?> = _pendingRelease.asStateFlow()
+    val pendingRelease: StateFlow<UpdateState.Available?> = pendingUpdates.pending
 
     private var downloaded: File? = null
 
@@ -96,7 +93,7 @@ class AppUpdateViewModel @Inject constructor(
                     is InstallOutcome.Succeeded -> {
                         permissionWatch?.cancel()
                         repository.clearDownloads()
-                        _pendingRelease.value = null
+                        pendingUpdates.clear()
                         _state.value = UpdateState.Idle
                     }
                     // Declining the system dialog lands here too, so offer the install again
@@ -118,7 +115,7 @@ class AppUpdateViewModel @Inject constructor(
      * there, and the dialog opens only when they ask for it.
      */
     fun checkOnLaunch() {
-        if (checkedThisSession || _pendingRelease.value != null) return
+        if (checkedThisSession || pendingUpdates.pending.value != null) return
         checkedThisSession = true
         viewModelScope.launch {
             // Anything still on disk belongs to a previous session that never finished installing —
@@ -127,7 +124,7 @@ class AppUpdateViewModel @Inject constructor(
             repository.clearDownloads()
             when (val report = repository.check()) {
                 is UpdateCheckReport.Available ->
-                    _pendingRelease.value = UpdateState.Available(report.release, report.isDowngrade)
+                    pendingUpdates.offer(report.release, report.isDowngrade)
                 // A check that never reached GitHub answered nothing, so it does not count as this
                 // session's answer — offline at launch must not mean silence until the next one.
                 is UpdateCheckReport.Failed -> checkedThisSession = false
@@ -140,7 +137,7 @@ class AppUpdateViewModel @Inject constructor(
 
     /** Reopens the dialog for the waiting update, from the banner. */
     fun showPendingRelease() {
-        val pending = _pendingRelease.value ?: return
+        val pending = pendingUpdates.pending.value ?: return
         if (_state.value == UpdateState.Idle) _state.value = pending
     }
 

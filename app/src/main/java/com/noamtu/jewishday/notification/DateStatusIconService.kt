@@ -14,7 +14,7 @@ import androidx.core.content.ContextCompat
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.JewishDayRepository
-import com.noamtu.jewishday.model.nextSunset
+import com.noamtu.jewishday.model.nextStatusIconBoundary
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Clock
 import java.time.temporal.ChronoUnit
@@ -101,7 +101,9 @@ class DateStatusIconService : Service() {
             startForegroundCompat(notifier.buildNotification(rendered))
             notifier.cancel(DateStatusIconNotifier.SecondaryId)
             val now = clock.instant()
-            alarmScheduler.scheduleNext(nextSunset(location, settings.zmanimSettings, now))
+            // The weekday flips at midnight and the Hebrew date at sunset, so wake at whichever
+            // of the two comes first.
+            alarmScheduler.scheduleNext(nextStatusIconBoundary(location, settings.zmanimSettings, now))
         } catch (exception: Exception) {
             // Keep the existing icon up and retry soon rather than disappearing it.
             Log.w(TAG, "Date status icon refresh failed; retrying later", exception)

@@ -337,9 +337,16 @@ private fun DateBar(
     // The chip names whichever observance is actually current: a fast and a holy day can be on
     // screen together — Tzom Gedalyah is announced during Rosh Hashana, and a fast can fall on a
     // Friday — and the one merely announced must not steal the name from the one happening now.
+    //
+    // With nothing under way it falls back to the day's own name ("ערב פסח", "פורים"), which is
+    // where those days are said now that they have no row of their own; and failing that, ahead of
+    // Shabbat, to the coming week's parasha.
     val holyDayName = if (useHebrew) header.holyDayNameHebrew else header.holyDayName
     val currentFastName = if (useHebrew) header.fastNameHebrew else header.fastName
-    val fastName = if (header.fastLeadsHeader) currentFastName ?: holyDayName else holyDayName ?: currentFastName
+    val underWayName = if (header.fastLeadsHeader) currentFastName ?: holyDayName else holyDayName ?: currentFastName
+    val dayName = if (useHebrew) header.dayNameHebrew else header.dayName
+    val parshaName = if (useHebrew) header.parshaNameHebrew else header.parshaName
+    val chipLabel = underWayName ?: dayName ?: parshaName
     val jewishDate = if (useHebrew) header.jewishDateHebrew else header.jewishDate
     val headlineStyle = MaterialTheme.typography.headlineSmall
     val chipLabelStyle = MaterialTheme.typography.labelLarge
@@ -354,10 +361,10 @@ private fun DateBar(
             val gregorianDate = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate
             // Would the prominent Hebrew-date line run past the fast chip's left edge if the chip sat
             // beside it? If so, switch to the "title" layout instead of overlapping.
-            val dateOverlapsChip = fastName != null && run {
+            val dateOverlapsChip = chipLabel != null && run {
                 val contentWidthPx = with(density) { maxWidth.toPx() }
                 val dateWidthPx = textMeasurer.measure(jewishDate, headlineStyle).size.width
-                val chipTextWidthPx = textMeasurer.measure(fastName, chipLabelStyle).size.width
+                val chipTextWidthPx = textMeasurer.measure(chipLabel, chipLabelStyle).size.width
                 // Chip span = its text + its horizontal padding (10.dp each side). Require a few dp of
                 // real overlap before rearranging, so a near-miss (like a short "Fast of Esther") is
                 // left in the compact layout.
@@ -365,9 +372,9 @@ private fun DateBar(
                 val minOverlapPx = with(density) { 4.dp.toPx() }
                 dateWidthPx + chipTextWidthPx + chipPaddingPx - contentWidthPx > minOverlapPx
             }
-            if (fastName != null && dateOverlapsChip) {
-                // A long fast name can't fit beside the date, so give the Hebrew date its own line,
-                // centered like a title, and put the fast chip on the day line beside the civil date.
+            if (chipLabel != null && dateOverlapsChip) {
+                // A long label can't fit beside the date, so give the Hebrew date its own line,
+                // centered like a title, and put the chip on the day line beside the civil date.
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         modifier = Modifier.fillMaxWidth(),
@@ -388,15 +395,15 @@ private fun DateBar(
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                         )
                         Spacer(Modifier.width(12.dp))
-                        FastNameChip(fastName = fastName, style = chipLabelStyle)
+                        ObservanceChip(label = chipLabel, style = chipLabelStyle)
                     }
                 }
             } else {
                 // Date fits beside the chip: keep the compact layout — date at the start, chip pinned
                 // to the far side (the visual left in the RTL Hebrew layout), vertically centered.
-                if (fastName != null) {
+                if (chipLabel != null) {
                     Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                        FastNameChip(fastName = fastName, style = chipLabelStyle)
+                        ObservanceChip(label = chipLabel, style = chipLabelStyle)
                     }
                 }
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -418,8 +425,8 @@ private fun DateBar(
 }
 
 @Composable
-private fun FastNameChip(
-    fastName: String,
+private fun ObservanceChip(
+    label: String,
     style: TextStyle,
     modifier: Modifier = Modifier,
 ) {
@@ -430,7 +437,7 @@ private fun FastNameChip(
     ) {
         Text(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            text = fastName,
+            text = label,
             style = style,
             color = MaterialTheme.colorScheme.onTertiaryContainer,
         )

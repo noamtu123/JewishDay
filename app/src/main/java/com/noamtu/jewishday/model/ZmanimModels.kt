@@ -22,10 +22,17 @@ data class ZmanItem(
 data class ZmanimDay(
     val locationName: String,
     val date: LocalDate,
+    // The civil date the Hebrew date above belongs to: [date] until sunset, the day after from
+    // sunset on. The header's weekday comes from here, so it rolls with the Hebrew date.
+    val displayedDate: LocalDate,
     val zoneId: ZoneId,
     // The Jewish (Hebrew) calendar date, formatted for the date header at the top of the tab.
     val hebrewDateEnglish: String,
     val hebrewDateHebrew: String,
+    // The day's own name — "ערב פסח", "פורים", "חול המועד סוכות" — for the header chip, on the days
+    // no fast or holy day already claims it. Null on an ordinary day.
+    val dayName: String? = null,
+    val dayNameHebrew: String? = null,
     val groups: List<ZmanimGroup>,
     // Populated only on one of the six fasts, for the date header.
     val fastDayInfo: FastDayInfo? = null,
@@ -44,6 +51,10 @@ data class ZmanimDay(
 data class HolyDayInfo(
     val name: String,
     val nameHebrew: String,
+    // What the header chip says while the day is only announced — "פרשת נצבים" — so the entry/exit
+    // card is labelled without the chip claiming Shabbat is in. Null for a Yom Tov (no parsha).
+    val parsha: String? = null,
+    val parshaHebrew: String? = null,
     val startTime: Instant?,
     val endTime: Instant?,
     // How this day's own times are named — "Shabbat", "Yom Tov", or "first day" / "second day"
