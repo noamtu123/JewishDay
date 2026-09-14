@@ -32,8 +32,9 @@ import com.noamtu.jewishday.ui.localizedString
 /**
  * The standing offer of an update, shown at the top of the app whenever one is waiting.
  *
- * The dialog opens by itself once per launch, but dismissing it should not be the end of the
- * matter — this keeps the update one tap away without ever interrupting again.
+ * Finding an update never opens the dialog by itself; this is how it is offered, and tapping it
+ * opens the dialog. Dismissing that dialog is "not now", so the banner stays, keeping the update one
+ * tap away without ever interrupting.
  */
 @Composable
 fun UpdateBanner(
