@@ -19,7 +19,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -68,7 +73,10 @@ fun ZmanimScreen(
         groups = uiState.groups,
         showCandleLightingPrompt = uiState.showCandleLightingPrompt,
         developerTimeOverrideActive = uiState.developerTimeOverrideActive,
+        dayOffset = uiState.dayOffset,
         onCandleLightingSelected = viewModel::selectCandleLightingMethod,
+        onStepDay = viewModel::stepDay,
+        onShowToday = viewModel::showToday,
         modifier = modifier,
     )
 }
@@ -80,7 +88,10 @@ private fun ZmanimContent(
     groups: List<ZmanimGroupUi>,
     showCandleLightingPrompt: Boolean,
     developerTimeOverrideActive: Boolean,
+    dayOffset: Int,
     onCandleLightingSelected: (CandleLightingMethod) -> Unit,
+    onStepDay: (Int) -> Unit,
+    onShowToday: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val useHebrew = LocalUseHebrewInterface.current
@@ -108,6 +119,14 @@ private fun ZmanimContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
+            )
+            DayStepper(
+                dayOffset = dayOffset,
+                onStepDay = onStepDay,
+                onShowToday = onShowToday,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp),
             )
             // When the times aren't from a fresh device fix, note it in tiny print. The Jerusalem
             // fallback is coloured red so it's obvious the times aren't for where you are; a named
@@ -181,12 +200,13 @@ private fun ZmanimContent(
             }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                // The warning line already sits close under the cards, and the first group header
+                // Whatever sits last above the list — a card, the warning line, or the day stepper
+                // with its tall touch targets — already leaves room, and the first group header
                 // brings its own top padding, so the usual screen padding would double the gap.
                 contentPadding = PaddingValues(
                     start = ScreenHorizontalPadding,
                     end = ScreenHorizontalPadding,
-                    top = if (sequel != null) 4.dp else ScreenVerticalPadding,
+                    top = 2.dp,
                     bottom = ScreenVerticalPadding,
                 ),
             ) {
@@ -324,6 +344,55 @@ private fun ZmanimLoadingContent(modifier: Modifier = Modifier) {
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Steps the whole screen a day at a time. The times are the plain calendar day's and turn over at
+ * midnight, so looking up tomorrow morning's tefillah on the way to bed is something you ask for
+ * rather than something the screen does to you.
+ *
+ * The arrows follow the layout direction, so in the Hebrew (RTL) layout "previous" sits on the
+ * right. The middle says "היום" on today; on any other day it becomes the way back, "חזרה להיום",
+ * coloured so a screen showing another day cannot be mistaken for now.
+ */
+@Composable
+private fun DayStepper(
+    dayOffset: Int,
+    onStepDay: (Int) -> Unit,
+    onShowToday: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isToday = dayOffset == 0
+    val label = if (isToday) {
+        localizedString(R.string.zmanim_day_today, R.string.zmanim_day_today_hebrew)
+    } else {
+        localizedString(R.string.zmanim_day_back_to_today, R.string.zmanim_day_back_to_today_hebrew)
+    }
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        IconButton(onClick = { onStepDay(-1) }) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = localizedString(R.string.zmanim_day_previous, R.string.zmanim_day_previous_hebrew),
+            )
+        }
+        TextButton(onClick = onShowToday, enabled = !isToday) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (isToday) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+            )
+        }
+        IconButton(onClick = { onStepDay(1) }) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = localizedString(R.string.zmanim_day_next, R.string.zmanim_day_next_hebrew),
+            )
         }
     }
 }
