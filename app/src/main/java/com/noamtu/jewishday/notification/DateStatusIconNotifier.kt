@@ -62,7 +62,7 @@ class DateStatusIconNotifier @Inject constructor(
      */
     fun render(dayInfo: JewishDayInfo, useHebrew: Boolean): DateIconSpec {
         // The headline is the day itself ("יום רביעי"), with the Hebrew date as the second line.
-        // Both follow the Jewish day, so they roll together at sunset.
+        // They roll on different boundaries: the weekday at midnight, the Hebrew date at sunset.
         val rendered = DateIconSpec(
             id = ForegroundId,
             iconText = dayInfo.hebrewDayOfMonthHebrew,

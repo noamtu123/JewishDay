@@ -14,7 +14,7 @@ import javax.inject.Singleton
 
 /**
  * Schedules an exact, idle-tolerant alarm at the next date boundary so the status-bar icon
- * flips right at tzeit / midnight instead of whenever Doze next lets a deferred job run.
+ * flips right at midnight / sunset instead of whenever Doze next lets a deferred job run.
  */
 @Singleton
 class DateStatusIconAlarmScheduler @Inject constructor(

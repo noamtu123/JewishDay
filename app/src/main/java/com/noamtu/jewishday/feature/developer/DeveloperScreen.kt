@@ -49,6 +49,7 @@ import com.noamtu.jewishday.ui.components.ScreenPaddingValues
 import com.noamtu.jewishday.ui.components.ScreenSurface
 import com.noamtu.jewishday.ui.components.readableWidth
 import java.time.LocalDate
+import java.time.LocalTime
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -101,20 +102,37 @@ fun DeveloperScreen(
                             OutlinedButton(onClick = { viewModel.shiftDays(1) }) { Text("+1 day") }
                             OutlinedButton(onClick = { viewModel.shiftHours(-1) }) { Text("-1 hour") }
                             OutlinedButton(onClick = { viewModel.shiftHours(1) }) { Text("+1 hour") }
+                            // Both pickers open on the date and time being simulated, not on the
+                            // real now — coming back to this screen mid-spoof used to offer to
+                            // reset you to today, which is never what was wanted.
                             OutlinedButton(
                                 onClick = {
-                                    val today = LocalDate.now()
+                                    val date = state.effectiveDate
                                     android.app.DatePickerDialog(
                                         context,
                                         { _, year, month, dayOfMonth ->
                                             viewModel.setOverrideDate(LocalDate.of(year, month + 1, dayOfMonth))
                                         },
-                                        today.year,
-                                        today.monthValue - 1,
-                                        today.dayOfMonth,
+                                        date.year,
+                                        date.monthValue - 1,
+                                        date.dayOfMonth,
                                     ).show()
                                 },
                             ) { Text("Pick date…") }
+                            OutlinedButton(
+                                onClick = {
+                                    val time = state.effectiveTime
+                                    android.app.TimePickerDialog(
+                                        context,
+                                        { _, hourOfDay, minute ->
+                                            viewModel.setOverrideTime(LocalTime.of(hourOfDay, minute))
+                                        },
+                                        time.hour,
+                                        time.minute,
+                                        true,
+                                    ).show()
+                                },
+                            ) { Text("Pick time…") }
                         }
                     }
                 }
