@@ -13,6 +13,7 @@ import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.model.isInIsrael
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import com.noamtu.jewishday.update.AppUpdateRepository
+import com.noamtu.jewishday.update.PendingUpdateStore
 import com.noamtu.jewishday.update.UpdateCheckReport
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -58,6 +59,13 @@ data class DeveloperUiState(
     val effectiveLocation: String = "",
     val jewishDate: String = "",
     val dayInfo: String = "",
+    // The date and time the app is currently being told it is. The pickers open on these rather
+    // than on the real today, so coming back to this screen resumes the spoof instead of silently
+    // offering to reset it to now.
+    // LocalDate.EPOCH needs API 34; the app runs from 26. Any placeholder does — this is replaced
+    // the moment the real state is built.
+    val effectiveDate: LocalDate = LocalDate.of(1970, 1, 1),
+    val effectiveTime: LocalTime = LocalTime.MIDNIGHT,
 )
 
 @HiltViewModel
@@ -67,6 +75,7 @@ class DeveloperViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val clock: Clock,
     private val appUpdateRepository: AppUpdateRepository,
+    private val pendingUpdates: PendingUpdateStore,
 ) : ViewModel() {
 
     // Israel/diaspora now follows the effective location, so re-render whenever it changes.
@@ -98,11 +107,19 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.shiftVirtualTime(Duration.ofHours(hours).toMillis())
     }
 
-    /** Sets the overridden date, keeping the current time-of-day. */
+    /** Sets the overridden date, keeping the time-of-day currently being simulated. */
     fun setOverrideDate(date: LocalDate) = launchOverride {
         val zone = clock.zone
         val timeOfDay = clock.instant().atZone(zone).toLocalTime()
         val virtual = date.atTime(timeOfDay).atZone(zone).toInstant().toEpochMilli()
+        developerOverridesRepository.setVirtualTime(virtual)
+    }
+
+    /** Sets the overridden time-of-day, keeping the date currently being simulated. */
+    fun setOverrideTime(time: LocalTime) = launchOverride {
+        val zone = clock.zone
+        val date = clock.instant().atZone(zone).toLocalDate()
+        val virtual = date.atTime(time).atZone(zone).toInstant().toEpochMilli()
         developerOverridesRepository.setVirtualTime(virtual)
     }
 
@@ -137,27 +154,42 @@ class DeveloperViewModel @Inject constructor(
 
     fun setSpoofedVersionName(versionName: String) = launchOverride {
         developerOverridesRepository.setSpoofedVersionName(versionName)
-        // A stale verdict next to a version that just changed reads as the new one's answer.
+        // A stale verdict next to a version that just changed reads as the new one's answer, and a
+        // banner raised for the old spoof is the same lie in a louder place.
         _updateCheckResult.value = null
+        pendingUpdates.clear()
     }
 
     /**
      * Runs the same check the app runs at launch and says what it found. The launch check is silent
      * about everything except an available update, so without this there is no way to tell an
      * up-to-date app from one that never reached GitHub at all.
+     *
+     * A found update is also handed to [PendingUpdateStore], which is what the home screen's banner
+     * reads — so the offer appears straight away instead of only after a restart. A check that
+     * finds nothing clears any offer a previous check left, so the banner never outlives the
+     * spoofed version that produced it.
      */
     fun runUpdateCheck() {
         if (_updateCheckResult.value == CheckingLabel) return
         viewModelScope.launch {
             _updateCheckResult.value = CheckingLabel
             _updateCheckResult.value = when (val report = appUpdateRepository.check()) {
-                is UpdateCheckReport.Available ->
+                is UpdateCheckReport.Available -> {
+                    pendingUpdates.offer(report.release, report.isDowngrade)
                     "Update found: ${report.release.version} (installed ${report.installed}). " +
-                        "Reopen the app to be offered it."
-                is UpdateCheckReport.UpToDate ->
+                        "It is being offered on the home screen now."
+                }
+                is UpdateCheckReport.UpToDate -> {
+                    pendingUpdates.clear()
                     "Up to date: newest release is ${report.latest}, installed is ${report.installed}."
-                is UpdateCheckReport.NoReleases ->
+                }
+                is UpdateCheckReport.NoReleases -> {
+                    pendingUpdates.clear()
                     "GitHub answered, but no release has an APK attached."
+                }
+                // A check that never reached GitHub found nothing out, so it must not withdraw an
+                // offer that an earlier, successful check made.
                 is UpdateCheckReport.Failed -> "Check failed: ${report.reason}"
             }
         }
@@ -170,6 +202,7 @@ class DeveloperViewModel @Inject constructor(
     fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()
         _updateCheckResult.value = null
+        pendingUpdates.clear()
     }
 
     private fun launchOverride(block: suspend () -> Unit) {
@@ -201,6 +234,8 @@ class DeveloperViewModel @Inject constructor(
             effectiveLocation = "${location.name} (${location.zoneId})",
             jewishDate = hebrewFormatter.format(jewishCalendar),
             dayInfo = describeDay(jewishCalendar),
+            effectiveDate = localDate,
+            effectiveTime = zoned.toLocalTime(),
         )
     }
 

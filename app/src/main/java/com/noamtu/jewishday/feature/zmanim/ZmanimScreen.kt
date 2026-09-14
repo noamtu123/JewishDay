@@ -19,7 +19,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -68,7 +73,10 @@ fun ZmanimScreen(
         groups = uiState.groups,
         showCandleLightingPrompt = uiState.showCandleLightingPrompt,
         developerTimeOverrideActive = uiState.developerTimeOverrideActive,
+        dayOffset = uiState.dayOffset,
         onCandleLightingSelected = viewModel::selectCandleLightingMethod,
+        onStepDay = viewModel::stepDay,
+        onShowToday = viewModel::showToday,
         modifier = modifier,
     )
 }
@@ -80,7 +88,10 @@ private fun ZmanimContent(
     groups: List<ZmanimGroupUi>,
     showCandleLightingPrompt: Boolean,
     developerTimeOverrideActive: Boolean,
+    dayOffset: Int,
     onCandleLightingSelected: (CandleLightingMethod) -> Unit,
+    onStepDay: (Int) -> Unit,
+    onShowToday: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val useHebrew = LocalUseHebrewInterface.current
@@ -108,6 +119,14 @@ private fun ZmanimContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
+            )
+            DayStepper(
+                dayOffset = dayOffset,
+                onStepDay = onStepDay,
+                onShowToday = onShowToday,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 24.dp, end = 24.dp),
             )
             // When the times aren't from a fresh device fix, note it in tiny print. The Jerusalem
             // fallback is coloured red so it's obvious the times aren't for where you are; a named
@@ -181,12 +200,13 @@ private fun ZmanimContent(
             }
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                // The warning line already sits close under the cards, and the first group header
+                // Whatever sits last above the list — a card, the warning line, or the day stepper
+                // with its tall touch targets — already leaves room, and the first group header
                 // brings its own top padding, so the usual screen padding would double the gap.
                 contentPadding = PaddingValues(
                     start = ScreenHorizontalPadding,
                     end = ScreenHorizontalPadding,
-                    top = if (sequel != null) 4.dp else ScreenVerticalPadding,
+                    top = 2.dp,
                     bottom = ScreenVerticalPadding,
                 ),
             ) {
@@ -328,6 +348,55 @@ private fun ZmanimLoadingContent(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * Steps the whole screen a day at a time. The times are the plain calendar day's and turn over at
+ * midnight, so looking up tomorrow morning's tefillah on the way to bed is something you ask for
+ * rather than something the screen does to you.
+ *
+ * The arrows follow the layout direction, so in the Hebrew (RTL) layout "previous" sits on the
+ * right. The middle says "היום" on today; on any other day it becomes the way back, "חזרה להיום",
+ * coloured so a screen showing another day cannot be mistaken for now.
+ */
+@Composable
+private fun DayStepper(
+    dayOffset: Int,
+    onStepDay: (Int) -> Unit,
+    onShowToday: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isToday = dayOffset == 0
+    val label = if (isToday) {
+        localizedString(R.string.zmanim_day_today, R.string.zmanim_day_today_hebrew)
+    } else {
+        localizedString(R.string.zmanim_day_back_to_today, R.string.zmanim_day_back_to_today_hebrew)
+    }
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        IconButton(onClick = { onStepDay(-1) }) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                contentDescription = localizedString(R.string.zmanim_day_previous, R.string.zmanim_day_previous_hebrew),
+            )
+        }
+        TextButton(onClick = onShowToday, enabled = !isToday) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (isToday) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary,
+            )
+        }
+        IconButton(onClick = { onStepDay(1) }) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = localizedString(R.string.zmanim_day_next, R.string.zmanim_day_next_hebrew),
+            )
+        }
+    }
+}
+
 @Composable
 private fun DateBar(
     header: ZmanimHeaderUi,
@@ -337,9 +406,16 @@ private fun DateBar(
     // The chip names whichever observance is actually current: a fast and a holy day can be on
     // screen together — Tzom Gedalyah is announced during Rosh Hashana, and a fast can fall on a
     // Friday — and the one merely announced must not steal the name from the one happening now.
+    //
+    // With nothing under way it falls back to the day's own name ("ערב פסח", "פורים"), which is
+    // where those days are said now that they have no row of their own; and failing that, ahead of
+    // Shabbat, to the coming week's parasha.
     val holyDayName = if (useHebrew) header.holyDayNameHebrew else header.holyDayName
     val currentFastName = if (useHebrew) header.fastNameHebrew else header.fastName
-    val fastName = if (header.fastLeadsHeader) currentFastName ?: holyDayName else holyDayName ?: currentFastName
+    val underWayName = if (header.fastLeadsHeader) currentFastName ?: holyDayName else holyDayName ?: currentFastName
+    val dayName = if (useHebrew) header.dayNameHebrew else header.dayName
+    val parshaName = if (useHebrew) header.parshaNameHebrew else header.parshaName
+    val chipLabel = underWayName ?: dayName ?: parshaName
     val jewishDate = if (useHebrew) header.jewishDateHebrew else header.jewishDate
     val headlineStyle = MaterialTheme.typography.headlineSmall
     val chipLabelStyle = MaterialTheme.typography.labelLarge
@@ -354,10 +430,10 @@ private fun DateBar(
             val gregorianDate = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate
             // Would the prominent Hebrew-date line run past the fast chip's left edge if the chip sat
             // beside it? If so, switch to the "title" layout instead of overlapping.
-            val dateOverlapsChip = fastName != null && run {
+            val dateOverlapsChip = chipLabel != null && run {
                 val contentWidthPx = with(density) { maxWidth.toPx() }
                 val dateWidthPx = textMeasurer.measure(jewishDate, headlineStyle).size.width
-                val chipTextWidthPx = textMeasurer.measure(fastName, chipLabelStyle).size.width
+                val chipTextWidthPx = textMeasurer.measure(chipLabel, chipLabelStyle).size.width
                 // Chip span = its text + its horizontal padding (10.dp each side). Require a few dp of
                 // real overlap before rearranging, so a near-miss (like a short "Fast of Esther") is
                 // left in the compact layout.
@@ -365,9 +441,9 @@ private fun DateBar(
                 val minOverlapPx = with(density) { 4.dp.toPx() }
                 dateWidthPx + chipTextWidthPx + chipPaddingPx - contentWidthPx > minOverlapPx
             }
-            if (fastName != null && dateOverlapsChip) {
-                // A long fast name can't fit beside the date, so give the Hebrew date its own line,
-                // centered like a title, and put the fast chip on the day line beside the civil date.
+            if (chipLabel != null && dateOverlapsChip) {
+                // A long label can't fit beside the date, so give the Hebrew date its own line,
+                // centered like a title, and put the chip on the day line beside the civil date.
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         modifier = Modifier.fillMaxWidth(),
@@ -388,15 +464,15 @@ private fun DateBar(
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                         )
                         Spacer(Modifier.width(12.dp))
-                        FastNameChip(fastName = fastName, style = chipLabelStyle)
+                        ObservanceChip(label = chipLabel, style = chipLabelStyle)
                     }
                 }
             } else {
                 // Date fits beside the chip: keep the compact layout — date at the start, chip pinned
                 // to the far side (the visual left in the RTL Hebrew layout), vertically centered.
-                if (fastName != null) {
+                if (chipLabel != null) {
                     Box(modifier = Modifier.align(Alignment.CenterEnd)) {
-                        FastNameChip(fastName = fastName, style = chipLabelStyle)
+                        ObservanceChip(label = chipLabel, style = chipLabelStyle)
                     }
                 }
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -418,8 +494,8 @@ private fun DateBar(
 }
 
 @Composable
-private fun FastNameChip(
-    fastName: String,
+private fun ObservanceChip(
+    label: String,
     style: TextStyle,
     modifier: Modifier = Modifier,
 ) {
@@ -430,7 +506,7 @@ private fun FastNameChip(
     ) {
         Text(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-            text = fastName,
+            text = label,
             style = style,
             color = MaterialTheme.colorScheme.onTertiaryContainer,
         )

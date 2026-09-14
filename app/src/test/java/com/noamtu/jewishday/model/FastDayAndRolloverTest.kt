@@ -11,7 +11,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Covers the halachic day boundary: the displayed Hebrew date rolls at sunset, and the fast
+ * Covers the day boundaries: the displayed Hebrew date rolls at tzeit while the day whose zmanim
+ * are on screen rolls at chatzot halaila, and the fast
  * chip/card follows the fast — announced one Jewish day before it begins and cleared the moment it
  * ends — including the Erev Tisha B'Av / Erev Yom Kippur evenings, when the fast begins at sunset
  * before its civil calendar date.
@@ -109,32 +110,123 @@ class FastDayAndRolloverTest {
     }
 
     @Test
-    fun displayedHebrewDateRollsAtSunset() {
+    fun displayedHebrewDateRollsAtTzeitNotSunset() {
         val sunset = requireNotNull(sunsetForDate(date = seventeenTammuz))
+        val tzeit = requireNotNull(tzeitForDate(date = seventeenTammuz))
 
         val beforeSunset = zmanimForDate(date = seventeenTammuz, now = sunset.minus(Duration.ofHours(1)))
         assertTrue(beforeSunset.hebrewDateEnglish, beforeSunset.hebrewDateEnglish.contains("17 Tammuz"))
 
-        val afterSunset = zmanimForDate(date = seventeenTammuz, now = sunset.plus(Duration.ofMinutes(1)))
-        assertTrue(afterSunset.hebrewDateEnglish, afterSunset.hebrewDateEnglish.contains("18 Tammuz"))
+        // Bein hashmashot — past sunset, before the stars are out — is still the old date.
+        val beinHashmashot = zmanimForDate(date = seventeenTammuz, now = sunset.plus(Duration.ofMinutes(1)))
+        assertTrue(beinHashmashot.hebrewDateEnglish, beinHashmashot.hebrewDateEnglish.contains("17 Tammuz"))
+
+        val afterTzeit = zmanimForDate(date = seventeenTammuz, now = tzeit.plus(Duration.ofMinutes(1)))
+        assertTrue(afterTzeit.hebrewDateEnglish, afterTzeit.hebrewDateEnglish.contains("18 Tammuz"))
     }
 
     @Test
-    fun nextDateBoundaryIsSunsetDuringTheDayAndMidnightAtNight() {
+    fun nextDateBoundaryIsTzeitDuringTheDayThenMidnightThenChatzotHaLaila() {
         val settings = ZmanimCalculationSettings()
-        val sunset = requireNotNull(sunsetForDate(date = seventeenTammuz))
+        val tzeit = requireNotNull(tzeitForDate(date = seventeenTammuz))
+        val chatzotHaLaila = requireNotNull(chatzotHaLailaForDate(date = seventeenTammuz))
 
         val atNoon = seventeenTammuz.atTime(12, 0).atZone(zone).toInstant()
         assertEquals(
-            sunset.plus(Duration.ofMinutes(1)),
+            tzeit.plus(Duration.ofMinutes(1)),
             nextDateBoundary(defaultJerusalemLocation, settings, atNoon),
         )
 
-        // Late at night (after sunset) the next boundary is the Gregorian midnight.
+        // Late at night civil midnight comes first — the times turn over there.
         val lateNight = seventeenTammuz.atTime(23, 30).atZone(zone).toInstant()
         assertEquals(
             nextGregorianMidnight(defaultJerusalemLocation, lateNight),
             nextDateBoundary(defaultJerusalemLocation, settings, lateNight),
         )
+
+        // Just past midnight, chatzot halaila (after 00:00 in Jerusalem) is still ahead.
+        val pastMidnight = seventeenTammuz.plusDays(1).atTime(0, 5).atZone(zone).toInstant()
+        assertEquals(
+            chatzotHaLaila.plus(Duration.ofMinutes(1)),
+            nextDateBoundary(defaultJerusalemLocation, settings, pastMidnight),
+        )
+    }
+
+    @Test
+    fun theHebrewDateCivilDateRollsAtTzeit() {
+        val settings = ZmanimCalculationSettings()
+        val tzeit = requireNotNull(tzeitForDate(date = seventeenTammuz))
+
+        // Before nightfall the Hebrew date is still today's.
+        assertEquals(
+            seventeenTammuz,
+            jewishDayCivilDate(defaultJerusalemLocation, settings, tzeit.minus(Duration.ofMinutes(5))),
+        )
+        // After it, and for the whole evening, the Hebrew date is tomorrow's.
+        assertEquals(
+            seventeenTammuz.plusDays(1),
+            jewishDayCivilDate(defaultJerusalemLocation, settings, tzeit.plus(Duration.ofMinutes(5))),
+        )
+        val evening = seventeenTammuz.atTime(21, 0).atZone(zone).toInstant()
+        assertEquals(seventeenTammuz.plusDays(1), jewishDayCivilDate(defaultJerusalemLocation, settings, evening))
+        // Still the same day after civil midnight: the Jewish day turns at the next tzeit.
+        val afterMidnight = seventeenTammuz.plusDays(1).atTime(0, 15).atZone(zone).toInstant()
+        assertEquals(seventeenTammuz.plusDays(1), jewishDayCivilDate(defaultJerusalemLocation, settings, afterMidnight))
+    }
+
+    @Test
+    fun theChatzotHaLailaRowIsAlwaysTheMidnightStillAhead() {
+        val settings = ZmanimCalculationSettings()
+        val tonight = requireNotNull(chatzotHaLailaForDate(date = seventeenTammuz))
+        // Solar midnight in Jerusalem lands after civil midnight, on the following civil day.
+        assertEquals(seventeenTammuz.plusDays(1), tonight.atZone(zone).toLocalDate())
+
+        // In the evening the Hebrew date has rolled to tomorrow, but this row must still answer
+        // "when is midnight tonight".
+        val evening = seventeenTammuz.atTime(21, 0).atZone(zone).toInstant()
+        assertEquals(tonight, upcomingChatzotHaLaila(defaultJerusalemLocation, settings, evening))
+
+        // During the day it is the coming night's, as it always was.
+        val noon = seventeenTammuz.atTime(12, 0).atZone(zone).toInstant()
+        assertEquals(tonight, upcomingChatzotHaLaila(defaultJerusalemLocation, settings, noon))
+
+        // And once tonight's has passed, the next one.
+        val past = tonight.plus(Duration.ofMinutes(5))
+        assertEquals(
+            chatzotHaLailaForDate(date = seventeenTammuz.plusDays(1)),
+            upcomingChatzotHaLaila(defaultJerusalemLocation, settings, past),
+        )
+    }
+
+    @Test
+    fun theEveningListStaysOnTodayWhileTheMidnightRowLooksAhead() {
+        val location = defaultJerusalemLocation
+        val settings = ZmanimCalculationSettings()
+        val evening = seventeenTammuz.atTime(21, 0).atZone(zone).toInstant()
+        val day = zmanimForDate(location, seventeenTammuz, settings, evening)
+
+        // The times do not move under you after nightfall — the stepper is how you reach tomorrow.
+        assertEquals(seventeenTammuz, day.date)
+        // Only the Hebrew date has rolled.
+        assertEquals(seventeenTammuz.plusDays(1), day.displayedDate)
+
+        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title == "Chatzot HaLaila" }.time
+        assertEquals(chatzotHaLailaForDate(location, seventeenTammuz, settings), chatzotHaLaila)
+    }
+
+    @Test
+    fun theMidnightRowIsTheComingOneEvenInTheSmallHours() {
+        val location = defaultJerusalemLocation
+        val settings = ZmanimCalculationSettings()
+        val tonight = requireNotNull(chatzotHaLailaForDate(location, seventeenTammuz, settings))
+
+        // 00:15 on 3 July: the calendar day has turned, but chatzot halaila is still 25 minutes
+        // away. Reading the row off the new calendar day alone would put it a whole day out.
+        val smallHours = seventeenTammuz.plusDays(1).atTime(0, 15).atZone(zone).toInstant()
+        val day = zmanimForDate(location, seventeenTammuz.plusDays(1), settings, smallHours)
+        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title == "Chatzot HaLaila" }.time
+
+        assertEquals(tonight, chatzotHaLaila)
+        assertTrue("$chatzotHaLaila", requireNotNull(chatzotHaLaila).isAfter(smallHours))
     }
 }
