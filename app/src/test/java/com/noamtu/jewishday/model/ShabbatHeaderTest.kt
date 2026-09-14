@@ -65,4 +65,64 @@ class ShabbatHeaderTest {
         assertNull(zmanimForDate(date = saturday, now = motzei.plus(Duration.ofMinutes(5))).holyDayInfo)
         assertNull(zmanimForDate(date = sunday, now = motzei.plus(Duration.ofHours(12))).holyDayInfo)
     }
+
+    @Test
+    fun whileOnlyAnnouncedTheChipCarriesTheParashaAndNotTheName() {
+        val thursdaySunset = requireNotNull(sunsetForDate(date = thursday))
+        val announced = requireNotNull(
+            zmanimForDate(date = thursday, now = thursdaySunset.plus(Duration.ofMinutes(30))).holyDayInfo,
+        )
+
+        assertEquals(false, announced.isUnderWay)
+        assertEquals("שבת", announced.nameHebrew)
+        // The entry/exit card is on screen from here, so the chip needs something to say that is
+        // not "שבת" — Shabbat has not come in yet.
+        assertEquals("פרשת נצבים וילך", announced.parshaHebrew)
+        assertEquals("Parashat Nitzavim Vayeilech", announced.parsha)
+    }
+
+    @Test
+    fun onceShabbatIsInTheParashaIsStillCarriedAlongsideTheName() {
+        val inShabbat = requireNotNull(
+            zmanimForDate(
+                date = saturday,
+                now = requireNotNull(sunsetForDate(date = saturday)).minus(Duration.ofHours(4)),
+            ).holyDayInfo,
+        )
+
+        assertEquals(true, inShabbat.isUnderWay)
+        assertEquals("שבת", inShabbat.nameHebrew)
+        assertEquals("פרשת נצבים וילך", inShabbat.parshaHebrew)
+    }
+
+    @Test
+    fun onlyTheTwoErevsWithSomethingOfTheirOwnAreNamed() {
+        // Erev Pesach has the chametz deadlines and Erev Yom Kippur the seudah mafseket, so they
+        // are worth a chip. Every other erev only leads into a Yom Tov whose entry and exit are
+        // already on screen, and naming it there says nothing new.
+        fun dayNameOn(date: LocalDate): String? = zmanimForDate(date = date).dayNameHebrew
+
+        assertEquals("ערב פסח", dayNameOn(LocalDate.of(2026, 4, 1)))
+        assertEquals("ערב יום כיפור", dayNameOn(LocalDate.of(2026, 9, 20)))
+        assertNull(dayNameOn(LocalDate.of(2026, 9, 11))) // Erev Rosh Hashana
+        assertNull(dayNameOn(LocalDate.of(2026, 9, 25))) // Erev Sukkot
+
+        // The ordinary named days are untouched.
+        assertEquals("פורים", dayNameOn(LocalDate.of(2026, 3, 3)))
+        assertEquals("חול המועד פסח", dayNameOn(LocalDate.of(2026, 4, 4)))
+    }
+
+    @Test
+    fun aShabbatThatIsYomTovStillNamesItsReading() {
+        // 2026-09-12 is the first day of Rosh Hashana and falls on Shabbat, so it has no weekly
+        // parsha at all. The Shabbat section used to drop the row entirely rather than say so.
+        val roshHashana = LocalDate.of(2026, 9, 12)
+        val reading = zmanimForDate(date = roshHashana.minusDays(2))
+            .groups
+            .first { it.title == "Shabbat" }
+            .items
+            .first { it.title == "Torah Reading" }
+
+        assertEquals("ראש השנה", reading.valueHebrew)
+    }
 }
