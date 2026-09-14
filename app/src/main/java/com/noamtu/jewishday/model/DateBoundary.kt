@@ -40,8 +40,7 @@ fun nextTzeit(
 
 /**
  * Chatzot halaila of the night that begins on [date] — solar midnight, a little either side of
- * civil midnight. This, not midnight, is where the displayed *day* turns over: the zmanim list,
- * the weekday and the civil date all stay on [date] until it passes.
+ * civil midnight.
  */
 fun chatzotHaLailaForDate(
     location: JewishLocation = defaultJerusalemLocation,
@@ -52,27 +51,37 @@ fun chatzotHaLailaForDate(
     ?.toInstant()
 
 /**
- * The civil date the displayed zmanim belong to. The night belongs to the day it started on, so
- * the list only rolls forward at chatzot halaila: between civil midnight and chatzot you are still
- * shown the previous day's times. (The Hebrew *date* is separate — it rolls at sunset.)
- *
- * Solar midnight can land either side of civil midnight depending on longitude and DST, so both
- * neighbouring nights are checked rather than assuming it falls after midnight.
+ * The civil date whose daytime belongs to the Jewish day now in progress — the civil date of the
+ * Hebrew date to show. It rolls at tzeit: from nightfall on Thursday the Hebrew date is Friday's.
+ * The zmanim list does not follow it; the times stay on the calendar day and turn over at midnight.
  */
-fun zmanimDateFor(
+fun jewishDayCivilDate(
     location: JewishLocation,
     settings: ZmanimCalculationSettings,
     now: Instant,
 ): LocalDate {
     val civilDate = now.atZone(location.zoneId).toLocalDate()
-    val tonightsChatzot = chatzotHaLailaForDate(location, civilDate, settings)
-    if (tonightsChatzot != null && !now.isBefore(tonightsChatzot)) return civilDate.plusDays(1)
-    val lastNightsChatzot = chatzotHaLailaForDate(location, civilDate.minusDays(1), settings)
-    if (lastNightsChatzot != null && now.isBefore(lastNightsChatzot)) return civilDate.minusDays(1)
-    return civilDate
+    val tzeit = tzeitForDate(location, civilDate, settings)
+    return if (tzeit != null && !now.isBefore(tzeit)) civilDate.plusDays(1) else civilDate
 }
 
-/** The next chatzot halaila (plus a minute), the instant at which the displayed day rolls over. */
+/**
+ * The next chatzot halaila after [now] — the midnight of the night in progress, or the coming one
+ * once it has passed. Solar midnight can land either side of civil midnight depending on longitude
+ * and DST, so both neighbouring nights are considered.
+ */
+fun upcomingChatzotHaLaila(
+    location: JewishLocation,
+    settings: ZmanimCalculationSettings,
+    now: Instant,
+): Instant? {
+    val civilDate = now.atZone(location.zoneId).toLocalDate()
+    return listOf(civilDate.minusDays(1), civilDate, civilDate.plusDays(1))
+        .mapNotNull { date -> chatzotHaLailaForDate(location, date, settings) }
+        .firstOrNull { it.isAfter(now) }
+}
+
+/** The next chatzot halaila (plus a minute), the instant the "chatzot halaila" row flips nights. */
 fun nextChatzotHaLaila(
     location: JewishLocation,
     settings: ZmanimCalculationSettings,
@@ -99,14 +108,18 @@ fun nextStatusIconBoundary(
     nextTzeit(location, settings, now),
 )
 
-/** The next instant at which either the displayed day or the Hebrew date changes. */
+/**
+ * The next instant the zmanim screen needs recomputing for the date alone: midnight, when the
+ * calendar day and every time on the list turn over; tzeit, when the Hebrew date and weekday roll;
+ * and chatzot halaila, when the "next chatzot" row flips to the following night.
+ */
 fun nextDateBoundary(
     location: JewishLocation,
     settings: ZmanimCalculationSettings,
     now: Instant,
 ): Instant = minOf(
-    nextChatzotHaLaila(location, settings, now),
-    nextTzeit(location, settings, now),
+    nextGregorianMidnight(location, now),
+    minOf(nextChatzotHaLaila(location, settings, now), nextTzeit(location, settings, now)),
 )
 
 fun nextWeeklyParshaBoundary(
@@ -172,7 +185,7 @@ fun nextZmanimRefreshBoundary(
 
 /**
  * Emits immediately and then again whenever the displayed date changes (tzeit for the Hebrew
- * date, chatzot halaila for the day itself), so date-bound UI state recomputes while visible.
+ * date, midnight for the day itself), so date-bound UI state recomputes while visible.
  */
 fun dateBoundaryTicker(
     clock: Clock,

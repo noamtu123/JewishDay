@@ -96,6 +96,23 @@ class ShabbatHeaderTest {
     }
 
     @Test
+    fun onlyTheTwoErevsWithSomethingOfTheirOwnAreNamed() {
+        // Erev Pesach has the chametz deadlines and Erev Yom Kippur the seudah mafseket, so they
+        // are worth a chip. Every other erev only leads into a Yom Tov whose entry and exit are
+        // already on screen, and naming it there says nothing new.
+        fun dayNameOn(date: LocalDate): String? = zmanimForDate(date = date).dayNameHebrew
+
+        assertEquals("ערב פסח", dayNameOn(LocalDate.of(2026, 4, 1)))
+        assertEquals("ערב יום כיפור", dayNameOn(LocalDate.of(2026, 9, 20)))
+        assertNull(dayNameOn(LocalDate.of(2026, 9, 11))) // Erev Rosh Hashana
+        assertNull(dayNameOn(LocalDate.of(2026, 9, 25))) // Erev Sukkot
+
+        // The ordinary named days are untouched.
+        assertEquals("פורים", dayNameOn(LocalDate.of(2026, 3, 3)))
+        assertEquals("חול המועד פסח", dayNameOn(LocalDate.of(2026, 4, 4)))
+    }
+
+    @Test
     fun aShabbatThatIsYomTovStillNamesItsReading() {
         // 2026-09-12 is the first day of Rosh Hashana and falls on Shabbat, so it has no weekly
         // parsha at all. The Shabbat section used to drop the row entirely rather than say so.
