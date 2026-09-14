@@ -126,7 +126,7 @@ class FastDayAndRolloverTest {
     }
 
     @Test
-    fun nextDateBoundaryIsTzeitDuringTheDayAndChatzotHaLailaAtNight() {
+    fun nextDateBoundaryIsTzeitDuringTheDayThenMidnightThenChatzotHaLaila() {
         val settings = ZmanimCalculationSettings()
         val tzeit = requireNotNull(tzeitForDate(date = seventeenTammuz))
         val chatzotHaLaila = requireNotNull(chatzotHaLailaForDate(date = seventeenTammuz))
@@ -137,30 +137,96 @@ class FastDayAndRolloverTest {
             nextDateBoundary(defaultJerusalemLocation, settings, atNoon),
         )
 
-        // Late at night the next boundary is chatzot halaila, not civil midnight.
+        // Late at night civil midnight comes first — the times turn over there.
         val lateNight = seventeenTammuz.atTime(23, 30).atZone(zone).toInstant()
         assertEquals(
-            chatzotHaLaila.plus(Duration.ofMinutes(1)),
+            nextGregorianMidnight(defaultJerusalemLocation, lateNight),
             nextDateBoundary(defaultJerusalemLocation, settings, lateNight),
+        )
+
+        // Just past midnight, chatzot halaila (after 00:00 in Jerusalem) is still ahead.
+        val pastMidnight = seventeenTammuz.plusDays(1).atTime(0, 5).atZone(zone).toInstant()
+        assertEquals(
+            chatzotHaLaila.plus(Duration.ofMinutes(1)),
+            nextDateBoundary(defaultJerusalemLocation, settings, pastMidnight),
         )
     }
 
     @Test
-    fun theDisplayedDayRollsAtChatzotHaLailaRatherThanCivilMidnight() {
+    fun theHebrewDateCivilDateRollsAtTzeit() {
         val settings = ZmanimCalculationSettings()
-        val chatzotHaLaila = requireNotNull(chatzotHaLailaForDate(date = seventeenTammuz))
-        // Solar midnight in Jerusalem falls after civil midnight, so there is a window on the next
-        // civil day that still belongs to 2 July.
-        assertTrue("$chatzotHaLaila", chatzotHaLaila.atZone(zone).toLocalDate() == seventeenTammuz.plusDays(1))
+        val tzeit = requireNotNull(tzeitForDate(date = seventeenTammuz))
 
-        val justBefore = chatzotHaLaila.minus(Duration.ofMinutes(5))
-        val justAfter = chatzotHaLaila.plus(Duration.ofMinutes(5))
-
-        assertEquals(seventeenTammuz, zmanimDateFor(defaultJerusalemLocation, settings, justBefore))
-        assertEquals(seventeenTammuz.plusDays(1), zmanimDateFor(defaultJerusalemLocation, settings, justAfter))
-
-        // And in the evening, before civil midnight, the day has not moved on yet.
+        // Before nightfall the Hebrew date is still today's.
+        assertEquals(
+            seventeenTammuz,
+            jewishDayCivilDate(defaultJerusalemLocation, settings, tzeit.minus(Duration.ofMinutes(5))),
+        )
+        // After it, and for the whole evening, the Hebrew date is tomorrow's.
+        assertEquals(
+            seventeenTammuz.plusDays(1),
+            jewishDayCivilDate(defaultJerusalemLocation, settings, tzeit.plus(Duration.ofMinutes(5))),
+        )
         val evening = seventeenTammuz.atTime(21, 0).atZone(zone).toInstant()
-        assertEquals(seventeenTammuz, zmanimDateFor(defaultJerusalemLocation, settings, evening))
+        assertEquals(seventeenTammuz.plusDays(1), jewishDayCivilDate(defaultJerusalemLocation, settings, evening))
+        // Still the same day after civil midnight: the Jewish day turns at the next tzeit.
+        val afterMidnight = seventeenTammuz.plusDays(1).atTime(0, 15).atZone(zone).toInstant()
+        assertEquals(seventeenTammuz.plusDays(1), jewishDayCivilDate(defaultJerusalemLocation, settings, afterMidnight))
+    }
+
+    @Test
+    fun theChatzotHaLailaRowIsAlwaysTheMidnightStillAhead() {
+        val settings = ZmanimCalculationSettings()
+        val tonight = requireNotNull(chatzotHaLailaForDate(date = seventeenTammuz))
+        // Solar midnight in Jerusalem lands after civil midnight, on the following civil day.
+        assertEquals(seventeenTammuz.plusDays(1), tonight.atZone(zone).toLocalDate())
+
+        // In the evening the Hebrew date has rolled to tomorrow, but this row must still answer
+        // "when is midnight tonight".
+        val evening = seventeenTammuz.atTime(21, 0).atZone(zone).toInstant()
+        assertEquals(tonight, upcomingChatzotHaLaila(defaultJerusalemLocation, settings, evening))
+
+        // During the day it is the coming night's, as it always was.
+        val noon = seventeenTammuz.atTime(12, 0).atZone(zone).toInstant()
+        assertEquals(tonight, upcomingChatzotHaLaila(defaultJerusalemLocation, settings, noon))
+
+        // And once tonight's has passed, the next one.
+        val past = tonight.plus(Duration.ofMinutes(5))
+        assertEquals(
+            chatzotHaLailaForDate(date = seventeenTammuz.plusDays(1)),
+            upcomingChatzotHaLaila(defaultJerusalemLocation, settings, past),
+        )
+    }
+
+    @Test
+    fun theEveningListStaysOnTodayWhileTheMidnightRowLooksAhead() {
+        val location = defaultJerusalemLocation
+        val settings = ZmanimCalculationSettings()
+        val evening = seventeenTammuz.atTime(21, 0).atZone(zone).toInstant()
+        val day = zmanimForDate(location, seventeenTammuz, settings, evening)
+
+        // The times do not move under you after nightfall — the stepper is how you reach tomorrow.
+        assertEquals(seventeenTammuz, day.date)
+        // Only the Hebrew date has rolled.
+        assertEquals(seventeenTammuz.plusDays(1), day.displayedDate)
+
+        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title == "Chatzot HaLaila" }.time
+        assertEquals(chatzotHaLailaForDate(location, seventeenTammuz, settings), chatzotHaLaila)
+    }
+
+    @Test
+    fun theMidnightRowIsTheComingOneEvenInTheSmallHours() {
+        val location = defaultJerusalemLocation
+        val settings = ZmanimCalculationSettings()
+        val tonight = requireNotNull(chatzotHaLailaForDate(location, seventeenTammuz, settings))
+
+        // 00:15 on 3 July: the calendar day has turned, but chatzot halaila is still 25 minutes
+        // away. Reading the row off the new calendar day alone would put it a whole day out.
+        val smallHours = seventeenTammuz.plusDays(1).atTime(0, 15).atZone(zone).toInstant()
+        val day = zmanimForDate(location, seventeenTammuz.plusDays(1), settings, smallHours)
+        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title == "Chatzot HaLaila" }.time
+
+        assertEquals(tonight, chatzotHaLaila)
+        assertTrue("$chatzotHaLaila", requireNotNull(chatzotHaLaila).isAfter(smallHours))
     }
 }

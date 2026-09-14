@@ -24,6 +24,14 @@
     <string name="zmanim_candle_prompt_body_hebrew">בחר כמה דקות לפני שקיעה:</string>
     <string name="zmanim_candle_prompt_minutes">%1$d minutes</string>
     <string name="zmanim_candle_prompt_minutes_hebrew">%1$d דקות</string>
+    <string name="zmanim_day_today">Today</string>
+    <string name="zmanim_day_today_hebrew">היום</string>
+    <string name="zmanim_day_back_to_today">Back to today</string>
+    <string name="zmanim_day_back_to_today_hebrew">חזרה להיום</string>
+    <string name="zmanim_day_previous">Previous day</string>
+    <string name="zmanim_day_previous_hebrew">יום קודם</string>
+    <string name="zmanim_day_next">Next day</string>
+    <string name="zmanim_day_next_hebrew">יום הבא</string>
     <string name="zmanim_loading">Calculating zmanim</string>
     <string name="zmanim_loading_hebrew">מחשב זמנים</string>
     <string name="mizrach_from">From %1$s</string>

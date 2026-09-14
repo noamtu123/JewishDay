@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DailyLearningRepository
+import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.data.JewishDayRepository
 import com.noamtu.jewishday.model.CandleLightingMethod
@@ -34,6 +35,7 @@ import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -53,6 +55,8 @@ data class ZmanimUiState(
     val header: ZmanimHeaderUi? = null,
     val groups: List<ZmanimGroupUi> = emptyList(),
     val showCandleLightingPrompt: Boolean = false,
+    /** How many days from today the screen is showing; 0 is today. */
+    val dayOffset: Int = 0,
     /**
      * The hidden developer clock override is pinning "now", so every time on this screen — and the
      * status-bar icon — is simulated. It survives process death and travels in the settings backup,
@@ -130,6 +134,7 @@ private data class ZmanimSettingsSnapshot(
 private data class ZmanimCalculationInput(
     val calculationSettings: ZmanimCalculationSettings,
     val location: JewishLocation,
+    val dayOffset: Int,
 )
 
 private data class ZmanimDisplayInput(
@@ -140,6 +145,14 @@ private data class ZmanimDisplayInput(
     val enabledDailyLearning: Set<DailyLearningType>,
     val showCandleLightingPrompt: Boolean,
     val developerTimeOverrideActive: Boolean,
+    val dayOffset: Int,
+)
+
+private data class ZmanimTrigger(
+    val calculationSettings: ZmanimCalculationSettings,
+    val location: JewishLocation,
+    val overrides: DeveloperOverrides,
+    val dayOffset: Int,
 )
 
 private data class DailyLearningRequest(
@@ -200,24 +213,28 @@ class ZmanimViewModel @Inject constructor(
     // (StateFlow is already conflated/distinct, so no distinctUntilChanged here.)
     private val developerOverrides = developerOverridesRepository.state
 
+    private val _dayOffset = MutableStateFlow(0)
+
     private val zmanimDay = combine(
         calculationSettings,
         location,
         developerOverrides,
-    ) { settings, currentLocation, overrides ->
-        Triple(settings, currentLocation, overrides)
+        _dayOffset,
+    ) { settings, currentLocation, overrides, dayOffset ->
+        ZmanimTrigger(settings, currentLocation, overrides, dayOffset)
     }
         .distinctUntilChanged()
         .conflate()
         // Re-emit at each date boundary so zmanim roll over while the screen stays open.
-        .flatMapLatest { (settings, currentLocation, _) ->
-            dateBoundaryTicker(clock, currentLocation, settings)
-                .map { ZmanimCalculationInput(settings, currentLocation) }
+        .flatMapLatest { trigger ->
+            dateBoundaryTicker(clock, trigger.location, trigger.calculationSettings)
+                .map { ZmanimCalculationInput(trigger.calculationSettings, trigger.location, trigger.dayOffset) }
         }
         .map { input ->
             jewishDayRepository.getZmanim(
                 location = input.location,
                 settings = input.calculationSettings,
+                dayOffset = input.dayOffset,
             )
         }
         .distinctUntilChanged()
@@ -248,7 +265,8 @@ class ZmanimViewModel @Inject constructor(
         dailyLearningItems,
         settings,
         developerOverrides,
-    ) { day, learning, settings, overrides ->
+        _dayOffset,
+    ) { day, learning, settings, overrides, dayOffset ->
         ZmanimDisplayInput(
             zmanimDay = day,
             dailyLearningItems = learning,
@@ -257,6 +275,7 @@ class ZmanimViewModel @Inject constructor(
             enabledDailyLearning = settings.enabledDailyLearning,
             showCandleLightingPrompt = !settings.candleLightingPromptHandled,
             developerTimeOverrideActive = overrides.timeOverrideEnabled,
+            dayOffset = dayOffset,
         )
     }
         .distinctUntilChanged()
@@ -270,6 +289,7 @@ class ZmanimViewModel @Inject constructor(
                     use24HourTime = input.use24HourTime,
                     showCandleLightingPrompt = input.showCandleLightingPrompt,
                     developerTimeOverrideActive = input.developerTimeOverrideActive,
+                    dayOffset = input.dayOffset,
                 )
         }
         .distinctUntilChanged()
@@ -279,6 +299,15 @@ class ZmanimViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = ZmanimUiState(),
         )
+
+    /** Steps the screen to another day, or back to today with [showToday]. */
+    fun stepDay(days: Int) {
+        _dayOffset.value = (_dayOffset.value + days).coerceIn(-MaxDayOffset, MaxDayOffset)
+    }
+
+    fun showToday() {
+        _dayOffset.value = 0
+    }
 
     fun selectCandleLightingMethod(method: CandleLightingMethod) {
         viewModelScope.launch {
@@ -351,6 +380,7 @@ private fun ZmanimDay.toUiState(
     use24HourTime: Boolean,
     showCandleLightingPrompt: Boolean,
     developerTimeOverrideActive: Boolean,
+    dayOffset: Int,
 ): ZmanimUiState {
     // Always format the "English" date/time in English regardless of the device locale — otherwise
     // a Hebrew system locale makes Locale.getDefault() render the English header in Hebrew too.
@@ -360,9 +390,9 @@ private fun ZmanimDay.toUiState(
     val englishTimeFormatter = DateTimeFormatter.ofPattern(timePattern, englishLocale).withZone(zoneId)
     val hebrewTimeFormatter = DateTimeFormatter.ofPattern(timePattern, hebrewLocale).withZone(zoneId)
     // The weekday and the day-of-month come from different days, so they are formatted separately:
-    // the weekday belongs to the Jewish day and rolls at sunset — Thursday evening is already
-    // "Friday", the same as the status-bar icon — while the civil date stays the civil date of the
-    // day whose zmanim are listed below it.
+    // the weekday belongs to the Jewish day and rolls at tzeit — Thursday evening is already
+    // "Friday", along with the Hebrew date above it — while the day-of-month is the calendar date
+    // the times below belong to, which turns over at midnight.
     val englishWeekdayFormatter = DateTimeFormatter.ofPattern("EEEE", englishLocale)
     val englishDayMonthFormatter = DateTimeFormatter.ofPattern("MMMM d", englishLocale)
     // Hebrew writes the month with a "ב" prefix ("17 ביולי"). CLDR keeps that prefix as a literal
@@ -428,6 +458,7 @@ private fun ZmanimDay.toUiState(
         groups = uiGroups,
         showCandleLightingPrompt = showCandleLightingPrompt,
         developerTimeOverrideActive = developerTimeOverrideActive,
+        dayOffset = dayOffset,
     )
 }
 
@@ -504,3 +535,6 @@ private fun Instant?.formatTime(formatter: DateTimeFormatter): String = this?.le
 /** One line of an observance card: what the time is, then the time — "צאת חג שני 19:20". */
 private fun observanceLine(label: String, time: Instant, formatter: DateTimeFormatter): String =
     "$label ${formatter.format(time)}"
+
+/** A year either way is plenty for looking something up, and keeps the stepper from running off. */
+private const val MaxDayOffset = 365

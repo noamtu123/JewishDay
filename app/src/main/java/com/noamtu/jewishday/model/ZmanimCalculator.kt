@@ -15,6 +15,10 @@ fun zmanimForDate(
     date: LocalDate,
     settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
     now: Instant? = null,
+    // Overrides whether the Hebrew date has rolled past tzeit. A day stepped to from today has no
+    // clock of its own, so it takes today's answer — otherwise stepping from yesterday (unrolled)
+    // to an evening today (rolled) would jump the Hebrew date and weekday by two.
+    hebrewDateRolled: Boolean? = null,
 ): ZmanimDay {
     val calendar = complexZmanimCalendar(location, date, settings)
     // Israel vs. diaspora calendar is derived from where you are, not a manual setting.
@@ -26,10 +30,10 @@ fun zmanimForDate(
     // The displayed Hebrew date rolls over to the next day at tzeit hakochavim — not at sunset,
     // which only opens bein hashmashot, the doubtful stretch between the two days. From tzeit
     // onward the header shows the current Jewish date. Day events and the zmanim themselves stay
-    // on [date] — the day the caller decided is current, which turns over at chatzot halaila; the
-    // fast chip/card follows the active fast (see below).
+    // on [date] — the plain calendar day, which turns over at midnight; the fast chip/card follows
+    // the active fast (see below).
     val tzeit = calendar.tzeit(settings)?.toInstant()
-    val afterTzeit = now != null && tzeit != null && !now.isBefore(tzeit)
+    val afterTzeit = hebrewDateRolled ?: (now != null && tzeit != null && !now.isBefore(tzeit))
     val displayJewishCalendar = if (afterTzeit) {
         JewishCalendar(date.plusDays(1)).apply {
             isUseModernHolidays = true
@@ -187,7 +191,7 @@ fun zmanimForDate(
                     // Only on Shabbat, where the Shabbat section it normally lives in is dropped.
                     ZmanItem("Rabbeinu Tam", "רבינו תם", calendar.rabbeinuTam(settings.rabbeinuTamMethod)?.toInstant(), settings.rabbeinuTamMethod.label, settings.rabbeinuTamMethod.labelHebrew, id = ZmanimTimeOption.RabbeinuTam.storageValue)
                         .takeIf { shabbatSectionRepeatsToday && shabbatIsToday },
-                    ZmanItem("Chatzot HaLaila", "חצות הלילה", calendar.chatzotHaLaila(settings.chatzotHaLailaMethod)?.toInstant(), settings.chatzotHaLailaMethod.label, settings.chatzotHaLailaMethod.labelHebrew, id = ZmanimTimeOption.ChatzotHaLaila.storageValue),
+                    ZmanItem("Chatzot HaLaila", "חצות הלילה", upcomingChatzotHaLailaFor(location, date, settings, now), settings.chatzotHaLailaMethod.label, settings.chatzotHaLailaMethod.labelHebrew, id = ZmanimTimeOption.ChatzotHaLaila.storageValue),
                 ),
             ),
             if (shabbatSectionRepeatsToday) null else ZmanimGroup(
@@ -215,6 +219,20 @@ fun zmanimForDate(
         ),
     )
 }
+
+/**
+ * The chatzot halaila to list: the midnight of the night in progress, and the coming one once that
+ * has passed. Not the listed day's own — from tzeit the day has already rolled to tomorrow, and
+ * tomorrow's midnight is a day away, while "when is midnight tonight" is the question this row is
+ * read to answer. Without a clock there is no night in progress, so the day's own is used.
+ */
+private fun upcomingChatzotHaLailaFor(
+    location: JewishLocation,
+    date: LocalDate,
+    settings: ZmanimCalculationSettings,
+    now: Instant?,
+): Instant? = now?.let { upcomingChatzotHaLaila(location, settings, it) }
+    ?: chatzotHaLailaForDate(location, date, settings)
 
 private data class ShabbatDates(
     val startDate: LocalDate,
@@ -475,12 +493,9 @@ private fun holyDayName(
     val yomTov = formatter.formatYomTov(calendar)
     val isYomTov = calendar.isYomTovAssurBemelacha && yomTov.isNotBlank()
     // Chol Hamoed and Isru Chag often fall on Shabbat. The chip would say only "שבת" and the day's
-    // own name would be lost with it, so the two are read together: "שבת חול המועד פסח".
-    //
-    // An erev is left out: the header already warns "שבת + חג" for the Yom Tov that follows, so
-    // "שבת ערב שבועות" only makes the chip longer without saying anything new. A weekday erev is
-    // untouched by this — it still names itself, which is the whole point of the chip.
-    val minorName = minorDayName(calendar, formatter).takeUnless { calendar.isErevYomTov }
+    // own name would be lost with it, so the two are read together: "שבת חול המועד פסח". An erev is
+    // already excluded by [minorDayName].
+    val minorName = minorDayName(calendar, formatter)
     return when {
         isYomTov && day.dayOfWeek == DayOfWeek.SATURDAY ->
             if (hebrew) "$yomTov ושבת" else "$yomTov & Shabbat"
@@ -491,12 +506,25 @@ private fun holyDayName(
 }
 
 /**
- * The day's own name when nothing else in the header is going to say it — "ערב פסח", "פורים",
- * "חול המועד סוכות", "אסרו חג". Null for a Yom Tov and for a fast, which the header names in full
- * (with their entry and exit) rather than as a bare chip.
+ * An erev only earns the chip when the day itself carries something to do that its Yom Tov does
+ * not. On these two it does; on every other erev the coming Yom Tov is already on screen with its
+ * entry and exit, and "ערב ראש השנה" beside that card says nothing the card does not.
+ */
+private val ErevDaysWorthNaming = setOf(
+    JewishCalendar.EREV_PESACH, // the chametz deadlines fall on it
+    JewishCalendar.EREV_YOM_KIPPUR, // the seudah mafseket falls on it
+)
+
+/**
+ * The day's own name when nothing else in the header is going to say it — "פורים", "חול המועד
+ * סוכות", "אסרו חג", and the two erevs above.
+ *
+ * Null for a Yom Tov and for a fast, which the header names in full (with their entry and exit)
+ * rather than as a bare chip.
  */
 private fun minorDayName(calendar: JewishCalendar, formatter: HebrewDateFormatter): String? {
     if (calendar.isYomTovAssurBemelacha || calendar.isTaanis) return null
+    if (calendar.isErevYomTov && calendar.yomTovIndex !in ErevDaysWorthNaming) return null
     return formatter.formatYomTov(calendar).takeIf { it.isNotBlank() }
 }
 

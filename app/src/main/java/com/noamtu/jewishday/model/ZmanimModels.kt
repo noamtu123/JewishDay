@@ -21,9 +21,12 @@ data class ZmanItem(
 
 data class ZmanimDay(
     val locationName: String,
+    // The civil date these zmanim are for. It turns over at midnight like any calendar day, and is
+    // whatever day the user has stepped to.
     val date: LocalDate,
-    // The civil date the Hebrew date above belongs to: [date] until sunset, the day after from
-    // sunset on. The header's weekday comes from here, so it rolls with the Hebrew date.
+    // The civil date the Hebrew date belongs to: [date] until tzeit, the day after from tzeit on.
+    // The header's weekday comes from here, so it rolls with the Hebrew date rather than at
+    // midnight — Thursday evening is already "Friday".
     val displayedDate: LocalDate,
     val zoneId: ZoneId,
     // The Jewish (Hebrew) calendar date, formatted for the date header at the top of the tab.
