@@ -24,6 +24,10 @@
     <string name="zmanim_candle_prompt_body_hebrew">בחר כמה דקות לפני שקיעה:</string>
     <string name="zmanim_candle_prompt_minutes">%1$d minutes</string>
     <string name="zmanim_candle_prompt_minutes_hebrew">%1$d דקות</string>
+    <string name="zmanim_candle_prompt_custom">Custom</string>
+    <string name="zmanim_candle_prompt_custom_hebrew">מותאם אישית</string>
+    <string name="zmanim_candle_prompt_save">Save</string>
+    <string name="zmanim_candle_prompt_save_hebrew">שמירה</string>
     <string name="zmanim_day_today">Today</string>
     <string name="zmanim_day_today_hebrew">היום</string>
     <string name="zmanim_day_back_to_today">Back to today</string>
