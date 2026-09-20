@@ -5,6 +5,7 @@ package com.noamtu.jewishday.data
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.noamtu.jewishday.model.AlotHashacharMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
+import com.noamtu.jewishday.model.CustomZmanValue
 import com.noamtu.jewishday.model.ChametzMethod
 import com.noamtu.jewishday.model.ChatzotMethod
 import com.noamtu.jewishday.model.MinchaGedolaMethod
@@ -19,7 +20,6 @@ import com.noamtu.jewishday.model.SunriseMethod
 import com.noamtu.jewishday.model.SunsetMethod
 import com.noamtu.jewishday.model.TzeitHakochavimMethod
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.ZmanimPreset
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -100,23 +100,36 @@ class DataStoreAppSettingsRepositoryTest {
             ),
             FakeStartupSettingsCache(),
         )
+        // Every method a different value from its default, and every custom option carrying a
+        // number of its own, so a field left out of the encode or the decode shows up here.
         val zmanimSettings = ZmanimCalculationSettings(
-            preset = ZmanimPreset.Custom,
-            alotHashacharMethod = AlotHashacharMethod.Degrees18,
-            misheyakirMethod = MisheyakirMethod.Degrees7Point65,
+            alotHashacharMethod = AlotHashacharMethod.CustomDegrees,
+            alotHashacharCustom = CustomZmanValue(degrees = 18.5, minutes = 71, zmaniyotMinutes = 73),
+            misheyakirMethod = MisheyakirMethod.CustomMinutesBeforeSunrise,
+            misheyakirCustom = CustomZmanValue(degrees = 7.65, minutes = 44, zmaniyotMinutes = 46),
             sunriseMethod = SunriseMethod.ElevationAdjusted,
-            sofZmanShemaMethod = SofZmanShemaMethod.Mga18,
-            sofZmanTefillahMethod = SofZmanTefillahMethod.Mga18,
+            sofZmanShemaMethod = SofZmanShemaMethod.CustomZmaniyotMinutes,
+            sofZmanShemaCustom = CustomZmanValue(degrees = 18.0, minutes = 89, zmaniyotMinutes = 91),
+            sofZmanTefillahMethod = SofZmanTefillahMethod.CustomDegrees,
+            sofZmanTefillahCustom = CustomZmanValue(degrees = 17.25, minutes = 88, zmaniyotMinutes = 92),
             chatzotMethod = ChatzotMethod.FixedLocal,
             minchaGedolaMethod = MinchaGedolaMethod.AhavatShalom,
+            minchaGedolaCustom = CustomZmanValue(degrees = 15.5, minutes = 70, zmaniyotMinutes = 74),
             minchaKetanaMethod = MinchaKetanaMethod.BaalHatanya,
+            minchaKetanaCustom = CustomZmanValue(degrees = 15.25, minutes = 69, zmaniyotMinutes = 75),
             plagHaminchaMethod = PlagHaminchaMethod.AteretTorah,
+            plagHaminchaCustom = CustomZmanValue(degrees = 14.5, minutes = 68, zmaniyotMinutes = 76),
             sunsetMethod = SunsetMethod.ElevationAdjusted,
-            tzeitHakochavimMethod = TzeitHakochavimMethod.Minutes90,
-            candleLightingMethod = CandleLightingMethod.Minutes40,
-            motzeiShabbatMethod = MotzeiShabbatMethod.Minutes60,
-            rabbeinuTamMethod = RabbeinuTamMethod.Degrees26,
+            tzeitHakochavimMethod = TzeitHakochavimMethod.CustomMinutes,
+            tzeitHakochavimCustom = CustomZmanValue(degrees = 5.9, minutes = 51, zmaniyotMinutes = 53),
+            candleLightingMethod = CandleLightingMethod.Custom,
+            candleLightingCustomMinutes = 22,
+            motzeiShabbatMethod = MotzeiShabbatMethod.CustomZmaniyotMinutes,
+            motzeiShabbatCustom = CustomZmanValue(degrees = 6.45, minutes = 59, zmaniyotMinutes = 61),
+            rabbeinuTamMethod = RabbeinuTamMethod.BainHashmashot2Stars,
+            rabbeinuTamCustom = CustomZmanValue(degrees = 25.5, minutes = 119, zmaniyotMinutes = 121),
             chametzMethod = ChametzMethod.BaalHatanya,
+            chametzCustom = CustomZmanValue(degrees = 16.05, minutes = 73, zmaniyotMinutes = 77),
             ateretTorahSunsetOffsetMinutes = 37,
         )
 

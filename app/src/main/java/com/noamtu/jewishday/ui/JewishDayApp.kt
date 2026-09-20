@@ -8,6 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -147,9 +148,9 @@ private fun NotificationPermissionSetup(
 }
 
 /**
- * Looks for a new release once per launch and, only if there is one, opens the update dialog. A
- * check that finds nothing — or fails outright — says nothing at all, so an ordinary launch is
- * untouched by it.
+ * Looks for a new release every time the app is opened — cold, or warm from the background — and,
+ * only if there is one, raises the update banner. A check that finds nothing — or fails outright —
+ * says nothing at all, so an ordinary launch is untouched by it.
  */
 @Composable
 private fun AppUpdatePrompt(viewModel: AppUpdateViewModel) {
@@ -157,14 +158,23 @@ private fun AppUpdatePrompt(viewModel: AppUpdateViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val notesInEnglish by viewModel.notesInEnglish.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) { viewModel.checkOnLaunch() }
-
+    // ON_START is the app becoming visible: a cold launch and every return from the background,
+    // but not a system popup (such as the location permission prompt) closing over it, which only
+    // pauses and resumes. A rotation stops and starts the screen as well, so ON_STOP reports whether
+    // the Activity is only being recreated, and that start is not counted as an opening.
+    //
     // Granting the install permission happens on a system screen, so the only place to notice it
-    // was granted is on the way back in.
+    // was granted is on the way back in — ON_RESUME.
+    val activity = LocalActivity.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner, activity) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.onResumed()
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.onAppShown()
+                Lifecycle.Event.ON_RESUME -> viewModel.onResumed()
+                Lifecycle.Event.ON_STOP -> viewModel.onAppHidden(activity?.isChangingConfigurations == true)
+                else -> Unit
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -492,7 +502,9 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUp
                                 onOpenDeveloperTools = { navController.navigateSecondaryTo(AppDestination.Developer.route) },
                             )
                         }
-                        composable(AppDestination.Developer.route) { DeveloperScreen() }
+                        composable(AppDestination.Developer.route) {
+                            DeveloperScreen(onExit = { navController.popBackStack() })
+                        }
                     }
                 }
             }
