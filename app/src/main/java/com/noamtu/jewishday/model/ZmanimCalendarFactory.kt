@@ -30,7 +30,7 @@ internal fun complexZmanimCalendar(
     }
     return ComplexZmanimCalendar(geoLocation).apply {
         setCalendar(calculationDate)
-        candleLightingOffset = settings.candleLightingMethod.offsetMinutes.toDouble()
+        candleLightingOffset = settings.candleLightingOffsetMinutes.toDouble()
         ateretTorahSunsetOffset = settings.ateretTorahSunsetOffsetMinutes.toDouble()
     }
 }

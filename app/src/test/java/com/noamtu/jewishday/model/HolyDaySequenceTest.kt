@@ -12,8 +12,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Back-to-back holy days are shown one at a time, each carrying a warning that another begins the
- * moment it ends, and each replaced by the next as it goes out.
+ * Back-to-back holy days are one span — the first day's entry and the last day's exit — carrying a
+ * warning of what the stretch is made of, and named for whichever day is currently in.
  *
  * Fixed dates (Jerusalem): 2029-09-10/11 Rosh Hashana on Monday and Tuesday (a plain two-day Yom
  * Tov); 2026-09-12/13 Rosh Hashana starting on Shabbat; 2026-05-22 Shavuot on a Friday, running
@@ -27,46 +27,58 @@ class HolyDaySequenceTest {
         requireNotNull(sunsetForDate(date = date)).minus(Duration.ofHours(hours))
 
     @Test
-    fun twoDayYomTovShowsTheFirstDayWithADoubleHolidayWarning() {
+    fun twoDayYomTovSpansBothDaysWithADoubleHolidayWarning() {
         val first = LocalDate.of(2029, 9, 10)
+        val second = first.plusDays(1)
         val info = requireNotNull(infoOn(first, hoursBeforeSunset(first, 3)))
 
-        // The first day's own window, not a span across both.
+        // One span: candle lighting before the first day, and the second day's exit.
         assertEquals(first.minusDays(1), requireNotNull(info.startTime).atZone(zone).toLocalDate())
-        assertEquals(holyDayExitForDate(date = first), info.endTime)
+        assertEquals(holyDayExitForDate(date = second), info.endTime)
         // Tzom Gedalyah begins the morning after the chag, so it belongs in the warning.
         assertEquals("חג כפול + צום", info.sequelHebrew)
     }
 
     @Test
-    fun onceTheFirstDayGoesOutItIsReplacedByTheSecond() {
+    fun theSpanIsUnchangedByTheBoundaryBetweenTheTwoDays() {
         val first = LocalDate.of(2029, 9, 10)
         val second = first.plusDays(1)
         val firstExit = requireNotNull(holyDayExitForDate(date = first))
 
-        val info = requireNotNull(infoOn(first, firstExit.plus(Duration.ofMinutes(5))))
-        // The second day begins exactly where the first ended — candles from an existing flame.
-        assertEquals(firstExit, info.startTime)
-        assertEquals(holyDayExitForDate(date = second), info.endTime)
-        // One chag day left, then the fast.
-        assertEquals("חג + צום", info.sequelHebrew)
+        val before = requireNotNull(infoOn(first, hoursBeforeSunset(first, 3)))
+        val after = requireNotNull(infoOn(first, firstExit.plus(Duration.ofMinutes(5))))
+        // Nothing happens at the boundary: candles are lit from an existing flame and melacha stays
+        // forbidden, so the card does not change hands.
+        assertEquals(before.startTime, after.startTime)
+        assertEquals(holyDayExitForDate(date = second), after.endTime)
+        assertTrue(after.isUnderWay)
+        // The warning narrows, though — one chag day left, then the fast.
+        assertEquals("חג + צום", after.sequelHebrew)
     }
 
     @Test
     fun yomTovRunningIntoShabbatWarnsInThatOrder() {
         val shavuot = LocalDate.of(2026, 5, 22)
+        val shabbat = shavuot.plusDays(1)
         val info = requireNotNull(infoOn(shavuot, hoursBeforeSunset(shavuot, 3)))
 
-        assertEquals(holyDayExitForDate(date = shavuot), info.endTime)
+        // The span runs to the end of Shabbat, and each end is named for its own day. One day of
+        // chag, so it is "החג" rather than an ordinal.
+        assertEquals(holyDayExitForDate(date = shabbat), info.endTime)
+        assertEquals("החג", info.entryTermHebrew)
+        assertEquals("שבת", info.exitTermHebrew)
         assertEquals("חג + שבת", info.sequelHebrew)
         assertTrue(info.nameHebrew, info.nameHebrew.contains("שבועות"))
 
-        // And after it goes out, Shabbat itself takes over — carrying "אסרו חג", since that is the
-        // day's own name and the chip is the only place left that says it.
-        val shabbat = shavuot.plusDays(1)
-        val next = requireNotNull(infoOn(shavuot, requireNotNull(info.endTime).plus(Duration.ofMinutes(5))))
+        // Once the chag itself is out the name follows Shabbat — carrying "אסרו חג", since that is
+        // the day's own name and the chip is the only place left that says it — while the span's
+        // times are unchanged.
+        val chagOut = requireNotNull(holyDayExitForDate(date = shavuot)).plus(Duration.ofMinutes(5))
+        val next = requireNotNull(infoOn(shavuot, chagOut))
         assertEquals("שבת אסרו חג", next.nameHebrew)
+        assertEquals(info.startTime, next.startTime)
         assertEquals(holyDayExitForDate(date = shabbat), next.endTime)
+        // Only Shabbat is left, and one thing ahead is not a warning.
         assertNull(next.sequelHebrew)
     }
 
@@ -78,6 +90,10 @@ class HolyDaySequenceTest {
 
         assertEquals("שבת", info.nameHebrew)
         assertEquals("שבת + חג", info.sequelHebrew)
+        // Shabbat brings the stretch in and the chag takes it out, which is what the two ends say.
+        assertEquals("שבת", info.entryTermHebrew)
+        assertEquals("החג", info.exitTermHebrew)
+        assertEquals(holyDayExitForDate(date = shabbat.plusDays(1)), info.endTime)
     }
 
     @Test
@@ -112,6 +128,12 @@ class HolyDaySequenceTest {
         assertEquals("שבת", onShabbat.nameHebrew)
         // Shabbat is the last forbidden day, but the deferred fast still follows it.
         assertEquals("שבת + צום", onShabbat.sequelHebrew)
+        // The span still reaches back to Thursday's candle lighting and out at Shabbat's exit, and
+        // names both ends: two days of chag then Shabbat.
+        assertEquals(first.minusDays(1), requireNotNull(onShabbat.startTime).atZone(zone).toLocalDate())
+        assertEquals(holyDayExitForDate(date = shabbat), onShabbat.endTime)
+        assertEquals("חג ראשון", onShabbat.entryTermHebrew)
+        assertEquals("שבת", onShabbat.exitTermHebrew)
     }
 
     @Test
@@ -152,18 +174,23 @@ class HolyDaySequenceTest {
     }
 
     @Test
-    fun eachDayOfAMultiDayYomTovNamesItsOwnTimes() {
+    fun theSpanIsNamedForTheDaysAtItsTwoEnds() {
+        // A two-day Yom Tov comes in on its first day and goes out on its second, and the card says
+        // so — otherwise nothing on screen tells you how far the stretch reaches.
         val first = LocalDate.of(2029, 9, 10)
-        val second = first.plusDays(1)
-
-        assertEquals("חג ראשון", requireNotNull(infoOn(first, hoursBeforeSunset(first, 3))).termHebrew)
-        assertEquals("חג שני", requireNotNull(infoOn(second, hoursBeforeSunset(second, 3))).termHebrew)
+        val twoDay = requireNotNull(infoOn(first, hoursBeforeSunset(first, 3)))
+        assertEquals("חג ראשון", twoDay.entryTermHebrew)
+        assertEquals("חג שני", twoDay.exitTermHebrew)
 
         // A single-day Yom Tov is just "the chag", and Shabbat is Shabbat.
         val yomKippur = LocalDate.of(2026, 9, 21)
-        assertEquals("החג", requireNotNull(infoOn(yomKippur, hoursBeforeSunset(yomKippur, 3))).termHebrew)
+        val kippur = requireNotNull(infoOn(yomKippur, hoursBeforeSunset(yomKippur, 3)))
+        assertEquals("החג", kippur.entryTermHebrew)
+        assertEquals("החג", kippur.exitTermHebrew)
         val saturday = LocalDate.of(2026, 9, 5)
-        assertEquals("שבת", requireNotNull(infoOn(saturday, hoursBeforeSunset(saturday, 3))).termHebrew)
+        val lone = requireNotNull(infoOn(saturday, hoursBeforeSunset(saturday, 3)))
+        assertEquals("שבת", lone.entryTermHebrew)
+        assertEquals("שבת", lone.exitTermHebrew)
     }
 
     @Test
