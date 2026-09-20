@@ -47,9 +47,10 @@ data class ZmanimDay(
 )
 
 /**
- * A single melacha-forbidden day — Shabbat or one day of a Yom Tov — with its own entry and exit.
- * Days that run back to back are shown one after the other rather than as one span, each replaced
- * by the next as it goes out, with [followedBy] warning that another begins the moment this ends.
+ * A melacha-forbidden stretch — Shabbat, a Yom Tov, or several of them running back to back — as
+ * one span: it enters when its first day enters and goes out when its last day does, so nothing has
+ * to be pieced together from a card that changes at every boundary in between. [sequel] says what
+ * the stretch is made of, and [name] still follows the day currently in.
  */
 data class HolyDayInfo(
     val name: String,
@@ -58,12 +59,16 @@ data class HolyDayInfo(
     // card is labelled without the chip claiming Shabbat is in. Null for a Yom Tov (no parsha).
     val parsha: String? = null,
     val parshaHebrew: String? = null,
+    // The whole stretch: its first day's entry and its last day's exit.
     val startTime: Instant?,
     val endTime: Instant?,
-    // How this day's own times are named — "Shabbat", "Yom Tov", or "first day" / "second day"
-    // when a Yom Tov runs more than one day.
-    val term: String,
-    val termHebrew: String,
+    // What the two times are named, each by the day it falls on, so the pair says how far the stretch
+    // reaches: "כניסת חג ראשון" … "צאת חג שני" for a two-day Yom Tov, and "כניסת החג" … "צאת שבת" for
+    // one running into Shabbat.
+    val entryTerm: String,
+    val entryTermHebrew: String,
+    val exitTerm: String,
+    val exitTermHebrew: String,
     // True while the day is actually in — from its entry until its exit. The times show a day
     // earlier than that; the name does not.
     val isUnderWay: Boolean = true,

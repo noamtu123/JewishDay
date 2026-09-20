@@ -3,8 +3,10 @@
 package com.noamtu.jewishday.data
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -14,7 +16,10 @@ import com.noamtu.jewishday.model.AlotHashacharMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.ChametzMethod
 import com.noamtu.jewishday.model.ChatzotMethod
+import com.noamtu.jewishday.model.CustomZmanUnit
+import com.noamtu.jewishday.model.CustomZmanValue
 import com.noamtu.jewishday.model.DailyLearningType
+import com.noamtu.jewishday.model.LegacyLadderChoice
 import com.noamtu.jewishday.model.MinchaGedolaMethod
 import com.noamtu.jewishday.model.MinchaKetanaMethod
 import com.noamtu.jewishday.model.MisheyakirMethod
@@ -27,8 +32,8 @@ import com.noamtu.jewishday.model.SunriseMethod
 import com.noamtu.jewishday.model.SunsetMethod
 import com.noamtu.jewishday.model.TzeitHakochavimMethod
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.ZmanimPreset
 import com.noamtu.jewishday.model.ZmanimTimeOption
+import com.noamtu.jewishday.model.legacyLadderChoice
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -224,8 +229,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
 
     override suspend fun setZmanimSettings(settings: ZmanimCalculationSettings) {
         dataStore.edit { preferences ->
-            preferences[ZmanimPresetKey] = settings.preset.storageValue
-            preferences[UseElevation] = settings.useElevation
             preferences[AlotHashacharMethodKey] = settings.alotHashacharMethod.storageValue
             preferences[MisheyakirMethodKey] = settings.misheyakirMethod.storageValue
             preferences[SunriseMethodKey] = settings.sunriseMethod.storageValue
@@ -244,8 +247,22 @@ class DataStoreAppSettingsRepository @Inject constructor(
             preferences[MotzeiShabbatMethodKey] = settings.motzeiShabbatMethod.storageValue
             preferences[RabbeinuTamMethodKey] = settings.rabbeinuTamMethod.storageValue
             preferences[ChametzMethodKey] = settings.chametzMethod.storageValue
+            preferences[CandleLightingCustomMinutes] = settings.candleLightingCustomMinutes
             preferences[HolyDayTosefetMinutes] = settings.holyDayTosefetMinutes
             preferences[AteretTorahOffsetMinutes] = settings.ateretTorahSunsetOffsetMinutes
+            // The numbers behind the custom options, one set per zman. All three units are stored,
+            // not just the one selected, so switching units and back does not lose what was typed.
+            preferences.putCustomValues(AlotZman, settings.alotHashacharCustom)
+            preferences.putCustomValues(MisheyakirZman, settings.misheyakirCustom)
+            preferences.putCustomValues(ShemaZman, settings.sofZmanShemaCustom)
+            preferences.putCustomValues(TefillahZman, settings.sofZmanTefillahCustom)
+            preferences.putCustomValues(MinchaGedolaZman, settings.minchaGedolaCustom)
+            preferences.putCustomValues(MinchaKetanaZman, settings.minchaKetanaCustom)
+            preferences.putCustomValues(PlagZman, settings.plagHaminchaCustom)
+            preferences.putCustomValues(TzeitZman, settings.tzeitHakochavimCustom)
+            preferences.putCustomValues(MotzeiZman, settings.motzeiShabbatCustom)
+            preferences.putCustomValues(RabbeinuTamZman, settings.rabbeinuTamCustom)
+            preferences.putCustomValues(ChametzZman, settings.chametzCustom)
         }
     }
 
@@ -278,37 +295,120 @@ class DataStoreAppSettingsRepository @Inject constructor(
         // defaults, so a default change in ZmanimCalculationSettings can never drift from
         // what a fresh install decodes.
         val defaults = ZmanimCalculationSettings()
+        // The stored method, when this build still offers it. Options whose storage value survived
+        // must be resolved first: several of them read like ladder rungs ("minutes_72", "degrees_6_2")
+        // and would otherwise be mistaken for one and overwrite that zman's typed-in numbers.
+        val storedAlot = AlotHashacharMethod.fromStorageValue(preferences[AlotHashacharMethodKey])
+        val storedMisheyakir = MisheyakirMethod.fromStorageValue(preferences[MisheyakirMethodKey])
+        val storedShema = SofZmanShemaMethod.fromStorageValue(preferences[SofZmanShemaMethodKey])
+        val storedTefillah = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahMethodKey])
+        val storedMinchaGedola = MinchaGedolaMethod.fromStorageValue(preferences[MinchaGedolaMethodKey])
+        val storedMinchaKetana = MinchaKetanaMethod.fromStorageValue(preferences[MinchaKetanaMethodKey])
+        val storedPlag = PlagHaminchaMethod.fromStorageValue(preferences[PlagHaminchaMethodKey])
+        val storedTzeit = TzeitHakochavimMethod.fromStorageValue(preferences[TzeitHakochavimMethodKey])
+        val storedMotzei = MotzeiShabbatMethod.fromStorageValue(preferences[MotzeiShabbatMethodKey])
+        val storedRabbeinuTam = RabbeinuTamMethod.fromStorageValue(preferences[RabbeinuTamMethodKey])
+        val storedChametz = ChametzMethod.fromStorageValue(preferences[ChametzMethodKey])
+
+        // Otherwise: a rung of one of the old fixed ladders, recovered as the matching custom option
+        // carrying the same number, so an upgrade does not silently move anyone's zmanim. Two zmanim
+        // go back further still, to when the choice was stored as a bare minute offset.
+        val alotLadder = storedAlot.orLadder(preferences[AlotHashacharMethodKey])
+            ?: retiredOption(storedAlot, preferences[AlotHashacharMethodKey], BaalHatanyaValue, CustomZmanUnit.Degrees, 16.9)
+            ?: preferences[AlotHashacharOffsetMinutes]?.takeIf { storedAlot == null }?.let { minutesLadder(it) }
+        val misheyakirLadder = storedMisheyakir.orLadder(preferences[MisheyakirMethodKey])
+        val shemaLadder = storedShema.orLadder(preferences[SofZmanShemaMethodKey])
+        val tefillahLadder = storedTefillah.orLadder(preferences[SofZmanTefillahMethodKey])
+        val minchaGedolaLadder = storedMinchaGedola.orLadder(preferences[MinchaGedolaMethodKey])
+        val minchaKetanaLadder = storedMinchaKetana.orLadder(preferences[MinchaKetanaMethodKey])
+        // Zero meant the GRA, which is the default anyway.
+        val plagLadder = storedPlag.orLadder(preferences[PlagHaminchaMethodKey])
+            ?: preferences[PlagHaminchaOffsetMinutes]
+                ?.takeIf { storedPlag == null && it > 0 }
+                ?.let { minutesLadder(it) }
+        // Ateret Torah's nightfall was simply this many minutes after sunset, so it carries over as
+        // that — it is no longer offered as a nightfall opinion, since he never published one.
+        val ateretTorahOffset = (preferences[AteretTorahOffsetMinutes] ?: defaults.ateretTorahSunsetOffsetMinutes).toDouble()
+        val tzeitLadder = storedTzeit.orLadder(preferences[TzeitHakochavimMethodKey])
+            ?: retiredOption(storedTzeit, preferences[TzeitHakochavimMethodKey], BaalHatanyaValue, CustomZmanUnit.Degrees, 6.0)
+            ?: retiredOption(storedTzeit, preferences[TzeitHakochavimMethodKey], AteretTorahValue, CustomZmanUnit.Minutes, ateretTorahOffset)
+        val motzeiLadder = storedMotzei.orLadder(preferences[MotzeiShabbatMethodKey])
+            ?: retiredOption(storedMotzei, preferences[MotzeiShabbatMethodKey], BaalHatanyaValue, CustomZmanUnit.Degrees, 6.0)
+            ?: retiredOption(storedMotzei, preferences[MotzeiShabbatMethodKey], AteretTorahValue, CustomZmanUnit.Minutes, ateretTorahOffset)
+        val rabbeinuTamLadder = storedRabbeinuTam.orLadder(preferences[RabbeinuTamMethodKey])
+            ?: retiredOption(
+                storedRabbeinuTam,
+                preferences[RabbeinuTamMethodKey],
+                BainHashmashot13Point24Value,
+                CustomZmanUnit.Degrees,
+                13.24,
+            )
+        val chametzLadder = storedChametz.orLadder(preferences[ChametzMethodKey])
+        // 18 minutes was a fixed option until it became the custom field's starting value, so a
+        // stored "minutes_18" is read as that: the custom option carrying 18.
+        val storedCandle = CandleLightingMethod.fromStorageValue(preferences[CandleLightingMethodKey])
+        val candleLadderMinutes = storedCandle.orLadder(preferences[CandleLightingMethodKey])?.value?.toInt()
+            ?: preferences[CandleLightingOffsetMinutes]?.takeIf { storedCandle == null }
         return ZmanimCalculationSettings(
-            preset = ZmanimPreset.fromStorageValue(preferences[ZmanimPresetKey]) ?: defaults.preset,
-            useElevation = preferences[UseElevation] ?: defaults.useElevation,
-            alotHashacharMethod = AlotHashacharMethod.fromStorageValue(preferences[AlotHashacharMethodKey])
-                ?: preferences[AlotHashacharOffsetMinutes]?.let { legacyAlotMethod(it) }
+            alotHashacharMethod = storedAlot
+                ?: alotLadder?.let { alotHashacharMethodFor(it.unit) }
                 ?: defaults.alotHashacharMethod,
-            misheyakirMethod = MisheyakirMethod.fromStorageValue(preferences[MisheyakirMethodKey]) ?: defaults.misheyakirMethod,
+            alotHashacharCustom = preferences.customValues(AlotZman, defaults.alotHashacharCustom, alotLadder),
+            misheyakirMethod = storedMisheyakir
+                ?: misheyakirLadder?.let { misheyakirMethodFor(it.unit) }
+                ?: defaults.misheyakirMethod,
+            misheyakirCustom = preferences.customValues(MisheyakirZman, defaults.misheyakirCustom, misheyakirLadder),
             sunriseMethod = SunriseMethod.fromStorageValue(preferences[SunriseMethodKey])
                 ?: if (preferences[UseSeaLevelSunrise] == false) SunriseMethod.ElevationAdjusted else defaults.sunriseMethod,
             sofZmanShemaGraMethod = SofZmanShemaMethod.fromStorageValue(preferences[SofZmanShemaGraMethodKey])
                 ?: defaults.sofZmanShemaGraMethod,
-            sofZmanShemaMethod = SofZmanShemaMethod.fromStorageValue(preferences[SofZmanShemaMethodKey])
+            sofZmanShemaMethod = storedShema
+                ?: shemaLadder?.let { sofZmanShemaMethodFor(it) }
                 ?: defaults.sofZmanShemaMethod,
+            sofZmanShemaCustom = preferences.customValues(ShemaZman, defaults.sofZmanShemaCustom, shemaLadder),
             sofZmanTefillahGraMethod = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahGraMethodKey])
                 ?: defaults.sofZmanTefillahGraMethod,
-            sofZmanTefillahMethod = SofZmanTefillahMethod.fromStorageValue(preferences[SofZmanTefillahMethodKey])
+            sofZmanTefillahMethod = storedTefillah
+                ?: tefillahLadder?.let { sofZmanTefillahMethodFor(it.unit) }
                 ?: defaults.sofZmanTefillahMethod,
+            sofZmanTefillahCustom = preferences.customValues(TefillahZman, defaults.sofZmanTefillahCustom, tefillahLadder),
             chatzotMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotMethodKey]) ?: defaults.chatzotMethod,
             chatzotHaLailaMethod = ChatzotMethod.fromStorageValue(preferences[ChatzotHaLailaMethodKey]) ?: defaults.chatzotHaLailaMethod,
-            minchaGedolaMethod = MinchaGedolaMethod.fromStorageValue(preferences[MinchaGedolaMethodKey]) ?: defaults.minchaGedolaMethod,
-            minchaKetanaMethod = MinchaKetanaMethod.fromStorageValue(preferences[MinchaKetanaMethodKey]) ?: defaults.minchaKetanaMethod,
-            plagHaminchaMethod = PlagHaminchaMethod.fromStorageValue(preferences[PlagHaminchaMethodKey])
-                ?: legacyPlagMethod(preferences[PlagHaminchaOffsetMinutes] ?: 0),
+            minchaGedolaMethod = storedMinchaGedola
+                ?: minchaGedolaLadder?.let { minchaGedolaMethodFor(it.unit) }
+                ?: defaults.minchaGedolaMethod,
+            minchaGedolaCustom = preferences.customValues(MinchaGedolaZman, defaults.minchaGedolaCustom, minchaGedolaLadder),
+            minchaKetanaMethod = storedMinchaKetana
+                ?: minchaKetanaLadder?.let { minchaKetanaMethodFor(it.unit) }
+                ?: defaults.minchaKetanaMethod,
+            minchaKetanaCustom = preferences.customValues(MinchaKetanaZman, defaults.minchaKetanaCustom, minchaKetanaLadder),
+            plagHaminchaMethod = storedPlag
+                ?: plagLadder?.let { plagHaminchaMethodFor(it.unit) }
+                ?: defaults.plagHaminchaMethod,
+            plagHaminchaCustom = preferences.customValues(PlagZman, defaults.plagHaminchaCustom, plagLadder),
             sunsetMethod = SunsetMethod.fromStorageValue(preferences[SunsetMethodKey])
                 ?: if (preferences[UseSeaLevelSunset] == false) SunsetMethod.ElevationAdjusted else defaults.sunsetMethod,
-            tzeitHakochavimMethod = TzeitHakochavimMethod.fromStorageValue(preferences[TzeitHakochavimMethodKey]) ?: defaults.tzeitHakochavimMethod,
-            candleLightingMethod = CandleLightingMethod.fromStorageValue(preferences[CandleLightingMethodKey])
-                ?: legacyCandleMethod(preferences[CandleLightingOffsetMinutes] ?: defaults.candleLightingMethod.offsetMinutes),
-            motzeiShabbatMethod = MotzeiShabbatMethod.fromStorageValue(preferences[MotzeiShabbatMethodKey]) ?: defaults.motzeiShabbatMethod,
-            rabbeinuTamMethod = RabbeinuTamMethod.fromStorageValue(preferences[RabbeinuTamMethodKey]) ?: defaults.rabbeinuTamMethod,
-            chametzMethod = ChametzMethod.fromStorageValue(preferences[ChametzMethodKey]) ?: defaults.chametzMethod,
+            tzeitHakochavimMethod = storedTzeit
+                ?: tzeitLadder?.let { tzeitCustomMethodFor(it.unit) }
+                ?: defaults.tzeitHakochavimMethod,
+            tzeitHakochavimCustom = preferences.customValues(TzeitZman, defaults.tzeitHakochavimCustom, tzeitLadder),
+            candleLightingMethod = storedCandle
+                ?: legacyCandleMethod(candleLadderMinutes, defaults.candleLightingMethod),
+            candleLightingCustomMinutes = candleLadderMinutes
+                ?: preferences[CandleLightingCustomMinutes]
+                ?: defaults.candleLightingCustomMinutes,
+            motzeiShabbatMethod = storedMotzei
+                ?: motzeiLadder?.let { motzeiCustomMethodFor(it.unit) }
+                ?: defaults.motzeiShabbatMethod,
+            motzeiShabbatCustom = preferences.customValues(MotzeiZman, defaults.motzeiShabbatCustom, motzeiLadder),
+            rabbeinuTamMethod = storedRabbeinuTam
+                ?: rabbeinuTamLadder?.let { rabbeinuTamCustomMethodFor(it.unit) }
+                ?: defaults.rabbeinuTamMethod,
+            rabbeinuTamCustom = preferences.customValues(RabbeinuTamZman, defaults.rabbeinuTamCustom, rabbeinuTamLadder),
+            chametzMethod = storedChametz
+                ?: chametzLadder?.let { chametzCustomMethodFor(it.unit) }
+                ?: defaults.chametzMethod,
+            chametzCustom = preferences.customValues(ChametzZman, defaults.chametzCustom, chametzLadder),
             holyDayTosefetMinutes = preferences[HolyDayTosefetMinutes] ?: defaults.holyDayTosefetMinutes,
             ateretTorahSunsetOffsetMinutes = preferences[AteretTorahOffsetMinutes] ?: defaults.ateretTorahSunsetOffsetMinutes,
         )
@@ -338,26 +438,14 @@ class DataStoreAppSettingsRepository @Inject constructor(
             }
     }
 
-    private fun legacyAlotMethod(minutes: Int): AlotHashacharMethod = when (minutes) {
-        90 -> AlotHashacharMethod.Minutes90
-        120 -> AlotHashacharMethod.Minutes120
-        else -> AlotHashacharMethod.Minutes72
-    }
-
-    private fun legacyPlagMethod(minutes: Int): PlagHaminchaMethod = when (minutes) {
-        60 -> PlagHaminchaMethod.Mga60
-        72 -> PlagHaminchaMethod.Mga72
-        90 -> PlagHaminchaMethod.Mga90
-        96 -> PlagHaminchaMethod.Mga96
-        120 -> PlagHaminchaMethod.Mga120
-        else -> PlagHaminchaMethod.Gra
-    }
-
-    private fun legacyCandleMethod(minutes: Int): CandleLightingMethod = when (minutes) {
-        20 -> CandleLightingMethod.Minutes20
-        30 -> CandleLightingMethod.Minutes30
-        40 -> CandleLightingMethod.Minutes40
-        else -> CandleLightingMethod.Minutes18
+    /**
+     * The fixed minhag options if the recovered offset is one of them, else the custom option
+     * carrying it. Builds before the method picker existed stored nothing but a bare offset.
+     */
+    private fun legacyCandleMethod(minutes: Int?, default: CandleLightingMethod): CandleLightingMethod {
+        if (minutes == null) return default
+        return CandleLightingMethod.PromptOptions.firstOrNull { it.offsetMinutes == minutes }
+            ?: CandleLightingMethod.Custom
     }
 
     private companion object {
@@ -379,7 +467,6 @@ class DataStoreAppSettingsRepository @Inject constructor(
         const val LegacyClassicTheme: String = "classic"
 
         val AmoledBlackTheme = booleanPreferencesKey("amoled_black_theme")
-        val ZmanimPresetKey = stringPreferencesKey("zmanim_preset")
         val AlotHashacharMethodKey = stringPreferencesKey("zmanim_alot_method")
         val MisheyakirMethodKey = stringPreferencesKey("zmanim_misheyakir_method")
         val SunriseMethodKey = stringPreferencesKey("zmanim_sunrise_method")
@@ -400,11 +487,158 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val ChametzMethodKey = stringPreferencesKey("zmanim_chametz_method")
         val HolyDayTosefetMinutes = intPreferencesKey("holy_day_tosefet_minutes")
         val AteretTorahOffsetMinutes = intPreferencesKey("zmanim_ateret_torah_offset_minutes")
-        val UseElevation = booleanPreferencesKey("zmanim_use_elevation")
         val AlotHashacharOffsetMinutes = intPreferencesKey("zmanim_alot_offset_minutes")
         val PlagHaminchaOffsetMinutes = intPreferencesKey("zmanim_plag_offset_minutes")
         val UseSeaLevelSunrise = booleanPreferencesKey("zmanim_use_sea_level_sunrise")
         val UseSeaLevelSunset = booleanPreferencesKey("zmanim_use_sea_level_sunset")
         val CandleLightingOffsetMinutes = intPreferencesKey("zmanim_candle_lighting_offset_minutes")
+        val CandleLightingCustomMinutes = intPreferencesKey("zmanim_candle_custom_minutes")
+
+        // Key prefixes for the per-zman custom values. Short and stable: they are part of the
+        // on-disk format, so renaming one silently resets that zman's typed-in numbers.
+        const val AlotZman = "alot"
+        const val MisheyakirZman = "misheyakir"
+        const val ShemaZman = "shema"
+        const val TefillahZman = "tefillah"
+        const val MinchaGedolaZman = "mincha_gedola"
+        const val MinchaKetanaZman = "mincha_ketana"
+        const val PlagZman = "plag"
+        const val TzeitZman = "tzeit"
+        const val MotzeiZman = "motzei"
+        const val RabbeinuTamZman = "rabbeinu_tam"
+        const val ChametzZman = "chametz"
+
+        // Storage values of the named options that were dropped because they were only a degree
+        // value. Kept here so an install that had one still computes the same times.
+        const val BaalHatanyaValue = "baal_hatanya"
+        const val BainHashmashot13Point24Value = "bain_hashmashot_13_24"
+        const val AteretTorahValue = "ateret_torah"
     }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Custom zman values on disk
+//
+// Each zman keeps three numbers — a degree value, a minute count and a zmaniyot-minute count — under
+// keys built from its own short prefix, so adding a zman is one prefix rather than three new keys.
+// ---------------------------------------------------------------------------------------------
+
+private fun customDegreesKey(zman: String) = doublePreferencesKey("zmanim_${zman}_custom_degrees")
+private fun customMinutesKey(zman: String) = intPreferencesKey("zmanim_${zman}_custom_minutes")
+private fun customZmaniyotKey(zman: String) = intPreferencesKey("zmanim_${zman}_custom_zmaniyot")
+
+private fun MutablePreferences.putCustomValues(zman: String, values: CustomZmanValue) {
+    this[customDegreesKey(zman)] = values.degrees
+    this[customMinutesKey(zman)] = values.minutes
+    this[customZmaniyotKey(zman)] = values.zmaniyotMinutes
+}
+
+/**
+ * The stored numbers for [zman], with [legacy] — the ladder rung an older build had selected —
+ * written over the matching one, so that rung becomes this build's custom value for it.
+ */
+private fun Preferences.customValues(
+    zman: String,
+    defaults: CustomZmanValue,
+    legacy: LegacyLadderChoice?,
+): CustomZmanValue {
+    val stored = CustomZmanValue(
+        degrees = this[customDegreesKey(zman)] ?: defaults.degrees,
+        minutes = this[customMinutesKey(zman)] ?: defaults.minutes,
+        zmaniyotMinutes = this[customZmaniyotKey(zman)] ?: defaults.zmaniyotMinutes,
+    )
+    return legacy?.let { stored.withValue(it.unit, it.value) } ?: stored
+}
+
+/**
+ * A named option that was dropped because it was only a number in disguise, recovered as that number:
+ * the Baal Hatanya's dawn is 16.9° and his nightfall 6°, Rabbeinu Tam's Bein Hashmashot 13.24° is
+ * 13.24°, and Ateret Torah's nightfall was a fixed offset after sunset. Only the name is gone; the
+ * time it produced is not.
+ */
+private fun retiredOption(
+    resolved: Any?,
+    stored: String?,
+    name: String,
+    unit: CustomZmanUnit,
+    value: Double,
+): LegacyLadderChoice? =
+    if (resolved != null || stored != name) null else LegacyLadderChoice(unit, value)
+
+/** The ladder rung [stored] names, but only when this build did not recognise it as an option. */
+private fun Any?.orLadder(stored: String?): LegacyLadderChoice? =
+    if (this != null) null else legacyLadderChoice(stored)
+
+/** A bare minute count from a build that predates the method pickers entirely. */
+private fun minutesLadder(minutes: Int) = LegacyLadderChoice(CustomZmanUnit.Minutes, minutes.toDouble())
+
+// Which custom option of each zman a recovered rung belongs to.
+
+private fun alotHashacharMethodFor(unit: CustomZmanUnit) = when (unit) {
+    CustomZmanUnit.Degrees -> AlotHashacharMethod.CustomDegrees
+    CustomZmanUnit.Minutes -> AlotHashacharMethod.CustomMinutes
+    CustomZmanUnit.ZmaniyotMinutes -> AlotHashacharMethod.CustomZmaniyotMinutes
+}
+
+private fun misheyakirMethodFor(unit: CustomZmanUnit) = when (unit) {
+    CustomZmanUnit.Degrees -> MisheyakirMethod.CustomDegrees
+    CustomZmanUnit.Minutes -> MisheyakirMethod.CustomMinutesBeforeSunrise
+    CustomZmanUnit.ZmaniyotMinutes -> MisheyakirMethod.CustomZmaniyotMinutesBeforeSunrise
+}
+
+private fun sofZmanShemaMethodFor(ladder: LegacyLadderChoice) = when {
+    ladder.toFixedLocalChatzot && ladder.unit == CustomZmanUnit.Degrees ->
+        SofZmanShemaMethod.CustomDegreesToFixedLocalChatzot
+    ladder.toFixedLocalChatzot -> SofZmanShemaMethod.CustomMinutesToFixedLocalChatzot
+    ladder.unit == CustomZmanUnit.Degrees -> SofZmanShemaMethod.CustomDegrees
+    ladder.unit == CustomZmanUnit.Minutes -> SofZmanShemaMethod.CustomMinutes
+    else -> SofZmanShemaMethod.CustomZmaniyotMinutes
+}
+
+private fun sofZmanTefillahMethodFor(unit: CustomZmanUnit) = when (unit) {
+    CustomZmanUnit.Degrees -> SofZmanTefillahMethod.CustomDegrees
+    CustomZmanUnit.Minutes -> SofZmanTefillahMethod.CustomMinutes
+    CustomZmanUnit.ZmaniyotMinutes -> SofZmanTefillahMethod.CustomZmaniyotMinutes
+}
+
+private fun minchaGedolaMethodFor(unit: CustomZmanUnit) = when (unit) {
+    CustomZmanUnit.Degrees -> MinchaGedolaMethod.CustomDegrees
+    CustomZmanUnit.Minutes -> MinchaGedolaMethod.CustomMinutes
+    CustomZmanUnit.ZmaniyotMinutes -> MinchaGedolaMethod.CustomZmaniyotMinutes
+}
+
+private fun minchaKetanaMethodFor(unit: CustomZmanUnit) = when (unit) {
+    CustomZmanUnit.Degrees -> MinchaKetanaMethod.CustomDegrees
+    CustomZmanUnit.Minutes -> MinchaKetanaMethod.CustomMinutes
+    CustomZmanUnit.ZmaniyotMinutes -> MinchaKetanaMethod.CustomZmaniyotMinutes
+}
+
+private fun plagHaminchaMethodFor(unit: CustomZmanUnit) = when (unit) {
+    CustomZmanUnit.Degrees -> PlagHaminchaMethod.CustomDegrees
+    CustomZmanUnit.Minutes -> PlagHaminchaMethod.CustomMinutes
+    CustomZmanUnit.ZmaniyotMinutes -> PlagHaminchaMethod.CustomZmaniyotMinutes
+}
+
+private fun tzeitCustomMethodFor(unit: CustomZmanUnit) = when (unit) {
+    CustomZmanUnit.Degrees -> TzeitHakochavimMethod.CustomDegrees
+    CustomZmanUnit.Minutes -> TzeitHakochavimMethod.CustomMinutes
+    CustomZmanUnit.ZmaniyotMinutes -> TzeitHakochavimMethod.CustomZmaniyotMinutes
+}
+
+private fun motzeiCustomMethodFor(unit: CustomZmanUnit) = when (unit) {
+    CustomZmanUnit.Degrees -> MotzeiShabbatMethod.CustomDegrees
+    CustomZmanUnit.Minutes -> MotzeiShabbatMethod.CustomMinutes
+    CustomZmanUnit.ZmaniyotMinutes -> MotzeiShabbatMethod.CustomZmaniyotMinutes
+}
+
+private fun rabbeinuTamCustomMethodFor(unit: CustomZmanUnit) = when (unit) {
+    CustomZmanUnit.Degrees -> RabbeinuTamMethod.CustomDegrees
+    CustomZmanUnit.Minutes -> RabbeinuTamMethod.CustomMinutes
+    CustomZmanUnit.ZmaniyotMinutes -> RabbeinuTamMethod.CustomZmaniyotMinutes
+}
+
+private fun chametzCustomMethodFor(unit: CustomZmanUnit) = when (unit) {
+    CustomZmanUnit.Degrees -> ChametzMethod.CustomDegrees
+    CustomZmanUnit.Minutes -> ChametzMethod.CustomMinutes
+    CustomZmanUnit.ZmaniyotMinutes -> ChametzMethod.CustomZmaniyotMinutes
 }

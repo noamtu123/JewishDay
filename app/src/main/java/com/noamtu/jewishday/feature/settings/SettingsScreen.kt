@@ -559,12 +559,26 @@ private fun AdvancedZmanimChoices(
 ) {
     val useHebrew = LocalUseHebrewInterface.current
     var activePicker by remember { mutableStateOf<ZmanimMethodPicker?>(null) }
+    var activeCustomPrompt by remember { mutableStateOf<CustomMethodPrompt?>(null) }
     var showTosefetDialog by rememberSaveable { mutableStateOf(false) }
+    var showCandleLightingDialog by rememberSaveable { mutableStateOf(false) }
+    var showAteretTorahDialog by rememberSaveable { mutableStateOf(false) }
+    val usesAteretTorah = settings.sofZmanShemaMethod == SofZmanShemaMethod.AteretTorah ||
+        settings.sofZmanTefillahMethod == SofZmanTefillahMethod.AteretTorah ||
+        settings.minchaGedolaMethod == MinchaGedolaMethod.AteretTorah ||
+        settings.minchaKetanaMethod == MinchaKetanaMethod.AteretTorah ||
+        settings.plagHaminchaMethod == PlagHaminchaMethod.AteretTorah
     // Used only to mark which option is the app default in each picker.
     val defaults = remember { ZmanimCalculationSettings() }
 
     fun text(english: String, hebrew: String): String = if (useHebrew) hebrew else english
 
+    /**
+     * Builds a method picker: the named opinions, and then a single "Custom" row for everything a
+     * number can express. The row does not try to say what that number is — choosing it opens a
+     * dialog that asks how the zman is measured (degrees, fixed minutes, zmaniyot minutes) and what
+     * the value is, which is the only place those two questions make sense together.
+     */
     fun <T> picker(
         title: String,
         options: List<T>,
@@ -572,88 +586,225 @@ private fun AdvancedZmanimChoices(
         default: T,
         label: (T) -> String,
         onSelect: (T) -> Unit,
-    ): ZmanimMethodPicker = ZmanimMethodPicker(
-        title = title,
-        options = options.map { option ->
+        // Null for the pickers that have no custom options at all (sunrise, sunset, chatzot).
+        customUnit: ((T) -> CustomZmanUnit?)? = null,
+        values: CustomZmanValue? = null,
+        onSelectCustom: ((T, CustomZmanUnit, Double) -> Unit)? = null,
+    ): ZmanimMethodPicker {
+        val customs = options.filter { customUnit?.invoke(it) != null }
+        val namedOptions = options.filterNot { it in customs }.map { option ->
             val optionLabel = label(option)
             ZmanimMethodOption(
                 label = if (option == default) text("$optionLabel (default)", "$optionLabel (ברירת מחדל)") else optionLabel,
                 selected = option == selected,
                 onSelect = { onSelect(option) },
             )
-        },
-    )
+        }
+        if (customs.isEmpty() || values == null || onSelectCustom == null) {
+            return ZmanimMethodPicker(title = title, options = namedOptions)
+        }
+        val customRow = ZmanimMethodOption(
+            label = text("Custom", "מותאם אישית"),
+            selected = selected in customs,
+            onSelect = {
+                activeCustomPrompt = CustomMethodPrompt(
+                    title = title,
+                    values = values,
+                    // The unit it is already on, so reopening the dialog shows what is in effect
+                    // rather than starting over at the top of the list.
+                    initialIndex = customs.indexOf(selected).coerceAtLeast(0),
+                    choices = customs.map { option ->
+                        val unit = requireNotNull(customUnit?.invoke(option))
+                        CustomMethodChoice(
+                            label = label(option),
+                            unit = unit,
+                            onConfirm = { entered -> onSelectCustom(option, unit, entered) },
+                        )
+                    },
+                )
+            },
+        )
+        return ZmanimMethodPicker(title = title, options = namedOptions + customRow)
+    }
 
-    SettingsSwitchRow(
-        label = text("Use Elevation", "שימוש בגובה המקום"),
-        description = text("Apply elevation adjustments to GRA-based calculations. Default: sea level.", "תיקון גובה המקום לחישובי גר״א. ברירת מחדל: מישור."),
-        checked = settings.useElevation,
-        onCheckedChange = { viewModel.setUseElevation(it) },
-        dense = true,
-    )
-    SettingsDivider()
-    MethodChoiceRow(text("Alot Hashachar", "עלות השחר"), text("Dawn start used for Magen Avraham and fast days.", "תחילת היום למג״א ולתעניות."), settings.alotHashacharMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Alot Hashachar", "עלות השחר"), AlotHashacharMethod.entries, settings.alotHashacharMethod, defaults.alotHashacharMethod, { it.localizedLabel(useHebrew) }, viewModel::setAlotHashacharMethod)
+    MethodChoiceRow(text("Alot Hashachar", "עלות השחר"), text("Dawn start used for Magen Avraham and fast days.", "תחילת היום למג״א ולתעניות."), settings.alotHashacharMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Alot Hashachar", "עלות השחר"),
+            options = AlotHashacharMethod.entries,
+            selected = settings.alotHashacharMethod,
+            default = defaults.alotHashacharMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setAlotHashacharMethod,
+            customUnit = { it.customUnit },
+            values = settings.alotHashacharCustom,
+            onSelectCustom = viewModel::setAlotHashacharCustomValue,
+        )
     }
     SettingsDivider()
-    MethodChoiceRow(text("Tallit & Tefillin", "זמן טלית ותפילין"), text("Earliest tallit and tefillin time (misheyakir).", "הזמן המוקדם לטלית ותפילין (משיכיר)."), settings.misheyakirMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Tallit & Tefillin", "זמן טלית ותפילין"), MisheyakirMethod.entries, settings.misheyakirMethod, defaults.misheyakirMethod, { it.localizedLabel(useHebrew) }, viewModel::setMisheyakirMethod)
+    MethodChoiceRow(text("Tallit & Tefillin", "זמן טלית ותפילין"), text("Earliest tallit and tefillin time (misheyakir).", "הזמן המוקדם לטלית ותפילין (משיכיר)."), settings.misheyakirMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Tallit & Tefillin", "זמן טלית ותפילין"),
+            options = MisheyakirMethod.entries,
+            selected = settings.misheyakirMethod,
+            default = defaults.misheyakirMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setMisheyakirMethod,
+            customUnit = { it.customUnit },
+            values = settings.misheyakirCustom,
+            onSelectCustom = viewModel::setMisheyakirCustomValue,
+        )
     }
     SettingsDivider()
     MethodChoiceRow(text("Sunrise", "הנץ החמה"), text("Sea level is the common zmanim base; observed uses elevation.", "מישור הוא בסיס נפוץ לזמנים; נראית משתמשת בגובה."), settings.sunriseMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Sunrise", "הנץ החמה"), SunriseMethod.entries, settings.sunriseMethod, defaults.sunriseMethod, { it.localizedLabel(useHebrew) }, viewModel::setSunriseMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)"), text("Method for the GRA Shema row.", "השיטה לשורת ק״ש של הגר״א."), settings.sofZmanShemaGraMethod.localizedLabel(useHebrew)) {
+    MethodChoiceRow(text("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)"), text("Method for the GRA Shema row.", "השיטה לשורת ק״ש של הגר״א."), settings.sofZmanShemaGraMethod.caption(settings, useHebrew)) {
         activePicker = picker(text("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)"), SofZmanShemaMethod.entries.filter { it.family == ZmanOpinionFamily.Gra }, settings.sofZmanShemaGraMethod, defaults.sofZmanShemaGraMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanShemaGraMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"), text("Method for the Magen Avraham Shema row.", "השיטה לשורת ק״ש של מג״א."), settings.sofZmanShemaMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"), SofZmanShemaMethod.entries.filter { it.family == ZmanOpinionFamily.MagenAvraham }, settings.sofZmanShemaMethod, defaults.sofZmanShemaMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanShemaMethod)
+    MethodChoiceRow(text("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"), text("Method for the Magen Avraham Shema row.", "השיטה לשורת ק״ש של מג״א."), settings.sofZmanShemaMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"),
+            options = SofZmanShemaMethod.entries.filter { it.family == ZmanOpinionFamily.MagenAvraham },
+            selected = settings.sofZmanShemaMethod,
+            default = defaults.sofZmanShemaMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setSofZmanShemaMethod,
+            customUnit = { it.customUnit },
+            values = settings.sofZmanShemaCustom,
+            onSelectCustom = viewModel::setSofZmanShemaCustomValue,
+        )
     }
     SettingsDivider()
-    MethodChoiceRow(text("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)"), text("Method for the GRA Tefillah row.", "השיטה לשורת תפילה של הגר״א."), settings.sofZmanTefillahGraMethod.localizedLabel(useHebrew)) {
+    MethodChoiceRow(text("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)"), text("Method for the GRA Tefillah row.", "השיטה לשורת תפילה של הגר״א."), settings.sofZmanTefillahGraMethod.caption(settings, useHebrew)) {
         activePicker = picker(text("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)"), SofZmanTefillahMethod.entries.filter { it.family == ZmanOpinionFamily.Gra }, settings.sofZmanTefillahGraMethod, defaults.sofZmanTefillahGraMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanTefillahGraMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מג״א)"), text("Method for the Magen Avraham Tefillah row.", "השיטה לשורת תפילה של מג״א."), settings.sofZmanTefillahMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מג״א)"), SofZmanTefillahMethod.entries.filter { it.family == ZmanOpinionFamily.MagenAvraham }, settings.sofZmanTefillahMethod, defaults.sofZmanTefillahMethod, { it.localizedLabel(useHebrew) }, viewModel::setSofZmanTefillahMethod)
+    MethodChoiceRow(text("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מג״א)"), text("Method for the Magen Avraham Tefillah row.", "השיטה לשורת תפילה של מג״א."), settings.sofZmanTefillahMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מג״א)"),
+            options = SofZmanTefillahMethod.entries.filter { it.family == ZmanOpinionFamily.MagenAvraham },
+            selected = settings.sofZmanTefillahMethod,
+            default = defaults.sofZmanTefillahMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setSofZmanTefillahMethod,
+            customUnit = { it.customUnit },
+            values = settings.sofZmanTefillahCustom,
+            onSelectCustom = viewModel::setSofZmanTefillahCustomValue,
+        )
     }
     SettingsDivider()
     MethodChoiceRow(text("Chatzot HaYom", "חצות היום"), text("Solar or fixed-local midday.", "חצות היום: שמשי או מקומי קבוע."), settings.chatzotMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Chatzot HaYom", "חצות היום"), ChatzotMethod.entries, settings.chatzotMethod, defaults.chatzotMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Mincha Gedola", "מנחה גדולה"), text("Earliest regular Mincha.", "הזמן המוקדם למנחה."), settings.minchaGedolaMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Mincha Gedola", "מנחה גדולה"), MinchaGedolaMethod.entries, settings.minchaGedolaMethod, defaults.minchaGedolaMethod, { it.localizedLabel(useHebrew) }, viewModel::setMinchaGedolaMethod)
+    MethodChoiceRow(text("Mincha Gedola", "מנחה גדולה"), text("Earliest regular Mincha.", "הזמן המוקדם למנחה."), settings.minchaGedolaMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Mincha Gedola", "מנחה גדולה"),
+            options = MinchaGedolaMethod.entries,
+            selected = settings.minchaGedolaMethod,
+            default = defaults.minchaGedolaMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setMinchaGedolaMethod,
+            customUnit = { it.customUnit },
+            values = settings.minchaGedolaCustom,
+            onSelectCustom = viewModel::setMinchaGedolaCustomValue,
+        )
     }
     SettingsDivider()
-    MethodChoiceRow(text("Mincha Ketana", "מנחה קטנה"), text("Preferred later Mincha window.", "תחילת זמן מנחה קטן."), settings.minchaKetanaMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Mincha Ketana", "מנחה קטנה"), MinchaKetanaMethod.entries, settings.minchaKetanaMethod, defaults.minchaKetanaMethod, { it.localizedLabel(useHebrew) }, viewModel::setMinchaKetanaMethod)
+    MethodChoiceRow(text("Mincha Ketana", "מנחה קטנה"), text("Preferred later Mincha window.", "תחילת זמן מנחה קטן."), settings.minchaKetanaMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Mincha Ketana", "מנחה קטנה"),
+            options = MinchaKetanaMethod.entries,
+            selected = settings.minchaKetanaMethod,
+            default = defaults.minchaKetanaMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setMinchaKetanaMethod,
+            customUnit = { it.customUnit },
+            values = settings.minchaKetanaCustom,
+            onSelectCustom = viewModel::setMinchaKetanaCustomValue,
+        )
     }
     SettingsDivider()
-    MethodChoiceRow(text("Plag Hamincha", "פלג המנחה"), text("Earliest Shabbat or Maariv boundary.", "גבול מוקדם לקבלת שבת או מעריב."), settings.plagHaminchaMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Plag Hamincha", "פלג המנחה"), PlagHaminchaMethod.entries, settings.plagHaminchaMethod, defaults.plagHaminchaMethod, { it.localizedLabel(useHebrew) }, viewModel::setPlagHaminchaMethod)
+    MethodChoiceRow(text("Plag Hamincha", "פלג המנחה"), text("Earliest Shabbat or Maariv boundary.", "גבול מוקדם לקבלת שבת או מעריב."), settings.plagHaminchaMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Plag Hamincha", "פלג המנחה"),
+            options = PlagHaminchaMethod.entries,
+            selected = settings.plagHaminchaMethod,
+            default = defaults.plagHaminchaMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setPlagHaminchaMethod,
+            customUnit = { it.customUnit },
+            values = settings.plagHaminchaCustom,
+            onSelectCustom = viewModel::setPlagHaminchaCustomValue,
+        )
     }
     SettingsDivider()
     MethodChoiceRow(text("Sunset", "שקיעה"), text("Sea level or elevation-adjusted sunset.", "שקיעה במישור או מתוקנת לפי גובה."), settings.sunsetMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Sunset", "שקיעה"), SunsetMethod.entries, settings.sunsetMethod, defaults.sunsetMethod, { it.localizedLabel(useHebrew) }, viewModel::setSunsetMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Tzeit Hakochavim", "צאת הכוכבים"), text("Nightfall used for the app's Hebrew-date rollover.", "צאת הכוכבים שמשמש גם להחלפת תאריך עברי באפליקציה."), settings.tzeitHakochavimMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Tzeit Hakochavim", "צאת הכוכבים"), TzeitHakochavimMethod.entries, settings.tzeitHakochavimMethod, defaults.tzeitHakochavimMethod, { it.localizedLabel(useHebrew) }, viewModel::setTzeitHakochavimMethod)
+    MethodChoiceRow(text("Tzeit Hakochavim", "צאת הכוכבים"), text("Nightfall used for the app's Hebrew-date rollover.", "צאת הכוכבים שמשמש גם להחלפת תאריך עברי באפליקציה."), settings.tzeitHakochavimMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Tzeit Hakochavim", "צאת הכוכבים"),
+            options = TzeitHakochavimMethod.entries,
+            selected = settings.tzeitHakochavimMethod,
+            default = defaults.tzeitHakochavimMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setTzeitHakochavimMethod,
+            customUnit = { it.customUnit },
+            values = settings.tzeitHakochavimCustom,
+            onSelectCustom = viewModel::setTzeitHakochavimCustomValue,
+        )
     }
     SettingsDivider()
     MethodChoiceRow(text("Chatzot HaLaila", "חצות הלילה"), text("Solar or fixed-local midnight.", "חצות הלילה: שמשי או מקומי קבוע."), settings.chatzotHaLailaMethod.localizedLabel(useHebrew)) {
         activePicker = picker(text("Chatzot HaLaila", "חצות הלילה"), ChatzotMethod.entries, settings.chatzotHaLailaMethod, defaults.chatzotHaLailaMethod, { it.localizedLabel(useHebrew) }, viewModel::setChatzotHaLailaMethod)
     }
     SettingsDivider()
-    MethodChoiceRow(text("Candle Lighting", "הדלקת נרות"), text("Minutes before sunset for candle lighting.", "דקות לפני שקיעה להדלקת נרות."), settings.candleLightingMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Candle Lighting", "הדלקת נרות"), CandleLightingMethod.entries, settings.candleLightingMethod, candleLightingDefault ?: defaults.candleLightingMethod, { it.localizedLabel(useHebrew) }, viewModel::setCandleLightingMethod)
+    // Candle lighting is the one picker whose fixed options are minhagim rather than rungs of a
+    // calculation ladder — they are what the first-launch prompt offers — so all four stay, with a
+    // typed-in value beside them.
+    MethodChoiceRow(text("Candle Lighting", "הדלקת נרות"), text("Minutes before sunset for candle lighting.", "דקות לפני שקיעה להדלקת נרות."), settings.candleLightingMethod.caption(settings, useHebrew)) {
+        activePicker = ZmanimMethodPicker(
+            title = text("Candle Lighting", "הדלקת נרות"),
+            options = CandleLightingMethod.entries.map { option ->
+                val default = candleLightingDefault ?: defaults.candleLightingMethod
+                val optionLabel = option.localizedLabel(useHebrew)
+                ZmanimMethodOption(
+                    label = when {
+                        // Nothing to ask about the unit here — every option is a minute count — so
+                        // the custom row leads straight to a number.
+                        option.offsetMinutes == null -> text("Custom", "מותאם אישית")
+                        option == default -> text("$optionLabel (default)", "$optionLabel (ברירת מחדל)")
+                        else -> optionLabel
+                    },
+                    selected = option == settings.candleLightingMethod,
+                    onSelect = {
+                        if (option.offsetMinutes == null) {
+                            showCandleLightingDialog = true
+                        } else {
+                            viewModel.setCandleLightingMethod(option)
+                        }
+                    },
+                )
+            },
+        )
     }
     SettingsDivider()
-    MethodChoiceRow(text("Motzei Shabbat", "צאת שבת"), text("Main end-of-Shabbat time.", "זמן צאת שבת הראשי."), settings.motzeiShabbatMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Motzei Shabbat", "צאת שבת"), MotzeiShabbatMethod.entries, settings.motzeiShabbatMethod, defaults.motzeiShabbatMethod, { it.localizedLabel(useHebrew) }, viewModel::setMotzeiShabbatMethod)
+    MethodChoiceRow(text("Motzei Shabbat", "צאת שבת"), text("Main end-of-Shabbat time.", "זמן צאת שבת הראשי."), settings.motzeiShabbatMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Motzei Shabbat", "צאת שבת"),
+            options = MotzeiShabbatMethod.entries,
+            selected = settings.motzeiShabbatMethod,
+            default = defaults.motzeiShabbatMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setMotzeiShabbatMethod,
+            customUnit = { it.customUnit },
+            values = settings.motzeiShabbatCustom,
+            onSelectCustom = viewModel::setMotzeiShabbatCustomValue,
+        )
     }
     SettingsDivider()
     MethodChoiceRow(
@@ -664,12 +815,48 @@ private fun AdvancedZmanimChoices(
         showTosefetDialog = true
     }
     SettingsDivider()
-    MethodChoiceRow(text("Rabbeinu Tam", "רבינו תם"), text("Separate Rabbeinu Tam Shabbat opinion.", "שיטת רבינו תם נפרדת לשבת."), settings.rabbeinuTamMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Rabbeinu Tam", "רבינו תם"), RabbeinuTamMethod.entries, settings.rabbeinuTamMethod, defaults.rabbeinuTamMethod, { it.localizedLabel(useHebrew) }, viewModel::setRabbeinuTamMethod)
+    MethodChoiceRow(text("Rabbeinu Tam", "רבינו תם"), text("Separate Rabbeinu Tam Shabbat opinion.", "שיטת רבינו תם נפרדת לשבת."), settings.rabbeinuTamMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Rabbeinu Tam", "רבינו תם"),
+            options = RabbeinuTamMethod.entries,
+            selected = settings.rabbeinuTamMethod,
+            default = defaults.rabbeinuTamMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setRabbeinuTamMethod,
+            customUnit = { it.customUnit },
+            values = settings.rabbeinuTamCustom,
+            onSelectCustom = viewModel::setRabbeinuTamCustomValue,
+        )
+    }
+    // Ateret Torah measures its whole day to a fixed number of minutes after sunset, and that number
+    // is the method: Chacham Harari-Raful gave 25 minutes for Israel where KosherJava defaults to 40.
+    // Shown only once one of his opinions is in use, since it changes nothing otherwise.
+    if (usesAteretTorah) {
+        SettingsDivider()
+        MethodChoiceRow(
+            text("Ateret Torah — minutes after sunset", "עטרת תורה — דקות אחרי שקיעה"),
+            text(
+                "The end of the day every Ateret Torah opinion is measured to. 25 minutes in Israel, 40 elsewhere.",
+                "סוף היום שאליו נמדדות כל שיטות עטרת תורה. 25 דקות בארץ, 40 בחו״ל.",
+            ),
+            text("${settings.ateretTorahSunsetOffsetMinutes} minutes", "${settings.ateretTorahSunsetOffsetMinutes} דקות"),
+        ) {
+            showAteretTorahDialog = true
+        }
     }
     SettingsDivider()
-    MethodChoiceRow(text("Erev Pesach Chametz", "חמץ בערב פסח"), text("Sof zman eating and burning chametz.", "סוף זמן אכילת חמץ וביעור חמץ."), settings.chametzMethod.localizedLabel(useHebrew)) {
-        activePicker = picker(text("Erev Pesach Chametz", "חמץ בערב פסח"), ChametzMethod.entries, settings.chametzMethod, defaults.chametzMethod, { it.localizedLabel(useHebrew) }, viewModel::setChametzMethod)
+    MethodChoiceRow(text("Erev Pesach Chametz", "חמץ בערב פסח"), text("Sof zman eating and burning chametz.", "סוף זמן אכילת חמץ וביעור חמץ."), settings.chametzMethod.caption(settings, useHebrew)) {
+        activePicker = picker(
+            title = text("Erev Pesach Chametz", "חמץ בערב פסח"),
+            options = ChametzMethod.entries,
+            selected = settings.chametzMethod,
+            default = defaults.chametzMethod,
+            label = { it.localizedLabel(useHebrew) },
+            onSelect = viewModel::setChametzMethod,
+            customUnit = { it.customUnit },
+            values = settings.chametzCustom,
+            onSelectCustom = viewModel::setChametzCustomValue,
+        )
     }
 
     if (showTosefetDialog) {
@@ -690,6 +877,59 @@ private fun AdvancedZmanimChoices(
         )
     }
 
+    if (showAteretTorahDialog) {
+        MinutesInputDialog(
+            title = text("Ateret Torah", "עטרת תורה"),
+            description = text(
+                "Minutes after sunset. Chacham Harari-Raful gave 25 for Israel; 40 is used elsewhere.",
+                "דקות אחרי שקיעה. חכם הררי-רפול נתן 25 דקות לארץ ישראל; בחו״ל נוהגים 40.",
+            ),
+            initialMinutes = settings.ateretTorahSunsetOffsetMinutes,
+            confirmLabel = text("Save", "שמירה"),
+            dismissLabel = text("Cancel", "ביטול"),
+            onDismiss = { showAteretTorahDialog = false },
+            onConfirm = { minutes ->
+                viewModel.setAteretTorahSunsetOffsetMinutes(minutes)
+                showAteretTorahDialog = false
+            },
+        )
+    }
+
+    if (showCandleLightingDialog) {
+        MinutesInputDialog(
+            title = text("Candle Lighting", "הדלקת נרות"),
+            description = text(
+                "Minutes before sunset.",
+                "דקות לפני השקיעה.",
+            ),
+            initialMinutes = settings.candleLightingCustomMinutes,
+            confirmLabel = text("Save", "שמירה"),
+            dismissLabel = text("Cancel", "ביטול"),
+            onDismiss = { showCandleLightingDialog = false },
+            onConfirm = { minutes ->
+                viewModel.setCandleLightingCustomMinutes(minutes)
+                showCandleLightingDialog = false
+            },
+        )
+    }
+
+    activeCustomPrompt?.let { prompt ->
+        CustomMethodDialog(
+            prompt = prompt,
+            description = text(
+                "How this zman is measured, and the value:",
+                "איך הזמן נמדד, והערך:",
+            ),
+            confirmLabel = text("Save", "שמירה"),
+            dismissLabel = text("Cancel", "ביטול"),
+            onDismiss = { activeCustomPrompt = null },
+            onConfirm = { choice, value ->
+                choice.onConfirm(value)
+                activeCustomPrompt = null
+            },
+        )
+    }
+
     activePicker?.let { pickerConfig ->
         AlertDialog(
             onDismissRequest = { activePicker = null },
@@ -705,6 +945,8 @@ private fun AdvancedZmanimChoices(
                             label = option.label,
                             selected = option.selected,
                             onClick = {
+                                // A custom option opens its own entry field rather than selecting
+                                // outright; either way the picker has done its job.
                                 option.onSelect()
                                 activePicker = null
                             },
@@ -732,6 +974,95 @@ private data class ZmanimMethodOption(
     val selected: Boolean,
     val onSelect: () -> Unit,
 )
+
+/** One way a zman can be measured by a number, and how to store a value measured that way. */
+private data class CustomMethodChoice(
+    val label: String,
+    val unit: CustomZmanUnit,
+    val onConfirm: (Double) -> Unit,
+)
+
+/** An open "Custom" dialog: the ways this zman can be measured, and the numbers already held. */
+private data class CustomMethodPrompt(
+    val title: String,
+    val choices: List<CustomMethodChoice>,
+    val initialIndex: Int,
+    val values: CustomZmanValue,
+)
+
+/**
+ * The custom dialog: pick how the zman is measured, then enter the value. Both questions belong
+ * together — a number means nothing without its unit — and this is the only place either is asked.
+ *
+ * Switching the unit re-fills the field from that unit's own stored number, so 16.1° and 72 minutes
+ * both survive being looked at. Degrees take a decimal point (19.848° is a real opinion); the minute
+ * units are whole minutes, the only precision they are ever stated in.
+ */
+@Composable
+private fun CustomMethodDialog(
+    prompt: CustomMethodPrompt,
+    description: String,
+    confirmLabel: String,
+    dismissLabel: String,
+    onDismiss: () -> Unit,
+    onConfirm: (CustomMethodChoice, Double) -> Unit,
+) {
+    var selectedIndex by rememberSaveable(prompt.title) { mutableStateOf(prompt.initialIndex) }
+    val index = selectedIndex.coerceIn(prompt.choices.indices)
+    val choice = prompt.choices[index]
+    val decimal = choice.unit == CustomZmanUnit.Degrees
+    // Keyed on the unit as well, so choosing a different one reloads its value rather than carrying
+    // a degree figure over into a minute field.
+    var value by rememberSaveable(prompt.title, index) {
+        mutableStateOf(formatValue(prompt.values.value(choice.unit), decimal))
+    }
+    val entered = value.toDoubleOrNull()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(prompt.title) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(description, style = MaterialTheme.typography.bodyMedium)
+                // A zman measured only one way has nothing to choose, so it goes straight to the field.
+                if (prompt.choices.size > 1) {
+                    prompt.choices.forEachIndexed { choiceIndex, option ->
+                        ThemeOptionRow(
+                            label = option.label,
+                            selected = choiceIndex == index,
+                            onClick = { selectedIndex = choiceIndex },
+                        )
+                    }
+                }
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { typed ->
+                        val allowed = typed.all { it.isDigit() || (decimal && it == '.') }
+                        if (allowed && typed.count { it == '.' } <= 1 && typed.length <= 7) value = typed
+                    },
+                    singleLine = true,
+                    label = { Text(choice.label) },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = if (decimal) KeyboardType.Decimal else KeyboardType.Number,
+                    ),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { entered?.let { onConfirm(choice, it) } },
+                enabled = entered != null,
+            ) { Text(confirmLabel) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(dismissLabel) }
+        },
+    )
+}
+
+/** The stored value as the field should first show it: no trailing ".0", and no point at all in a
+ * field that only takes whole minutes. */
+private fun formatValue(value: Double, decimal: Boolean): String =
+    if (!decimal || value % 1.0 == 0.0) value.toInt().toString() else value.toString()
 
 /** A small numeric entry dialog for a minutes-valued setting. Digits only, capped at two of them. */
 @Composable

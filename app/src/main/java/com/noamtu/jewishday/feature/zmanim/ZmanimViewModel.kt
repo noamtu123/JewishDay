@@ -21,7 +21,6 @@ import com.noamtu.jewishday.model.ZmanItem
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.ZmanimDay
 import com.noamtu.jewishday.model.ZmanimGroupTitle
-import com.noamtu.jewishday.model.ZmanimPreset
 import com.noamtu.jewishday.model.ZmanimTimeOption
 import com.noamtu.jewishday.model.dateBoundaryTicker
 import com.noamtu.jewishday.model.defaultJerusalemLocation
@@ -314,7 +313,6 @@ class ZmanimViewModel @Inject constructor(
             val current = appSettingsRepository.settings.first()
             appSettingsRepository.setZmanimSettings(
                 current.zmanimSettings.copy(
-                    preset = ZmanimPreset.Custom,
                     candleLightingMethod = method,
                 ),
             )
@@ -322,6 +320,24 @@ class ZmanimViewModel @Inject constructor(
             // Remember the first-launch choice as the candle-lighting default (shown in the
             // picker and restored by Reset).
             appSettingsRepository.setCandleLightingDefault(method)
+        }
+    }
+
+    /**
+     * A typed-in answer to the same question, for the practices the three offered numbers do not
+     * cover — 18 minutes among them.
+     */
+    fun selectCandleLightingMinutes(minutes: Int) {
+        viewModelScope.launch {
+            val current = appSettingsRepository.settings.first()
+            appSettingsRepository.setZmanimSettings(
+                current.zmanimSettings.copy(
+                    candleLightingMethod = CandleLightingMethod.Custom,
+                    candleLightingCustomMinutes = minutes.coerceIn(0, 120),
+                ),
+            )
+            appSettingsRepository.setCandleLightingPromptHandled(true)
+            appSettingsRepository.setCandleLightingDefault(CandleLightingMethod.Custom)
         }
     }
 }
@@ -439,17 +455,19 @@ private fun ZmanimDay.toUiState(
             // parasha gives the card a heading without claiming Shabbat has begun.
             parshaName = holyDayInfo?.takeUnless { it.isUnderWay }?.parsha,
             parshaNameHebrew = holyDayInfo?.takeUnless { it.isUnderWay }?.parshaHebrew,
+            // The two ends of the span are named separately: a Yom Tov entering on Friday goes out
+            // on Shabbat, so "כניסת החג" is paired with "צאת שבת".
             holyDayStart = holyDayInfo?.startTime?.let {
-                observanceLine("${holyDayInfo.term} starts", it, englishTimeFormatter)
+                observanceLine("${holyDayInfo.entryTerm} starts", it, englishTimeFormatter)
             },
             holyDayStartHebrew = holyDayInfo?.startTime?.let {
-                observanceLine("כניסת ${holyDayInfo.termHebrew}", it, hebrewTimeFormatter)
+                observanceLine("כניסת ${holyDayInfo.entryTermHebrew}", it, hebrewTimeFormatter)
             },
             holyDayEnd = holyDayInfo?.endTime?.let {
-                observanceLine("${holyDayInfo.term} ends", it, englishTimeFormatter)
+                observanceLine("${holyDayInfo.exitTerm} ends", it, englishTimeFormatter)
             },
             holyDayEndHebrew = holyDayInfo?.endTime?.let {
-                observanceLine("צאת ${holyDayInfo.termHebrew}", it, hebrewTimeFormatter)
+                observanceLine("צאת ${holyDayInfo.exitTermHebrew}", it, hebrewTimeFormatter)
             },
             holyDaySequel = holyDayInfo?.sequel,
             holyDaySequelHebrew = holyDayInfo?.sequelHebrew,
