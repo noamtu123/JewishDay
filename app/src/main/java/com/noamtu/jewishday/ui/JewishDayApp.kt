@@ -502,7 +502,9 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUp
                                 onOpenDeveloperTools = { navController.navigateSecondaryTo(AppDestination.Developer.route) },
                             )
                         }
-                        composable(AppDestination.Developer.route) { DeveloperScreen() }
+                        composable(AppDestination.Developer.route) {
+                            DeveloperScreen(onExit = { navController.popBackStack() })
+                        }
                     }
                 }
             }

@@ -205,6 +205,13 @@ class DeveloperViewModel @Inject constructor(
         pendingUpdates.clear()
     }
 
+    /** Clears the overrides and locks the tools away again — see [DeveloperOverridesRepository]. */
+    fun disableDeveloperMode() = launchOverride {
+        developerOverridesRepository.disableDeveloperMode()
+        _updateCheckResult.value = null
+        pendingUpdates.clear()
+    }
+
     private fun launchOverride(block: suspend () -> Unit) {
         viewModelScope.launch {
             block()
