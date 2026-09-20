@@ -55,6 +55,7 @@ import java.time.LocalTime
 @Composable
 fun DeveloperScreen(
     modifier: Modifier = Modifier,
+    onExit: () -> Unit = {},
     viewModel: DeveloperViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -62,6 +63,7 @@ fun DeveloperScreen(
     val context = LocalContext.current
     val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
     var showSpoofedVersionDialog by rememberSaveable { mutableStateOf(false) }
+    var showDisableDialog by rememberSaveable { mutableStateOf(false) }
 
     ScreenSurface(modifier = modifier) {
         LazyColumn(
@@ -71,6 +73,23 @@ fun DeveloperScreen(
             contentPadding = ScreenPaddingValues,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            // First card on purpose: the way out of the tools sits above everything they can do.
+            item {
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    SwitchRow(
+                        label = "Developer mode",
+                        checked = true,
+                        onCheckedChange = { showDisableDialog = true },
+                    )
+                    Text(
+                        text = "Turning this off clears every override below and hides the tools " +
+                            "again — tap the version 7× on the About page to bring them back.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
                     SectionTitle("Effective state")
@@ -251,6 +270,32 @@ fun DeveloperScreen(
                 }
             }
         }
+    }
+
+    if (showDisableDialog) {
+        AlertDialog(
+            onDismissRequest = { showDisableDialog = false },
+            title = { Text("Turn off developer mode?") },
+            text = {
+                Text(
+                    "The clock, location and version overrides are all cleared, and the tools " +
+                        "disappear until the version is tapped 7× again.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDisableDialog = false
+                        viewModel.disableDeveloperMode()
+                        // The screen it is on is about to stop existing, so leave it.
+                        onExit()
+                    },
+                ) { Text("Turn off") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDisableDialog = false }) { Text("Cancel") }
+            },
+        )
     }
 
     if (showSpoofedVersionDialog) {

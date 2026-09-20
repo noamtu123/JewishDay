@@ -78,13 +78,18 @@ class AppUpdateViewModel @Inject constructor(
     private var stagedSessionId: Int? = null
     private var permissionWatch: Job? = null
 
+    /** A check is waiting on GitHub, so opening the app again meanwhile does not send a second one. */
+    private var checkInFlight = false
+
     /**
-     * Whether this session already got an answer from GitHub. The check runs from a
-     * `LaunchedEffect(Unit)`, which re-fires on every Activity recreation — so without this a
-     * rotation issued a fresh API request each time. Deliberately per *session*, not per day: a
-     * hotfix must still reach people the very next time they open the app.
+     * Whether the next time the app is shown counts as opening it. True for the first showing, and
+     * again after the app genuinely went to the background. A rotation stops and restarts the screen
+     * too, but this view model survives it and nothing was reopened, so it does not set this.
      */
-    private var checkedThisSession = false
+    private var openedSinceLastCheck = true
+
+    /** Leftover downloads are cleared once, on the first check — see [checkForUpdate]. */
+    private var clearedLeftoverDownloads = false
 
     init {
         viewModelScope.launch {
@@ -107,30 +112,53 @@ class AppUpdateViewModel @Inject constructor(
     }
 
     /**
-     * The only way an update is offered: a check on every launch that says nothing at all unless
-     * there is something to install. A failed check is not worth interrupting anyone over.
+     * The only way an update is offered: a check every time the app is opened — cold from nothing,
+     * or warm from the background — that says nothing at all unless there is something to install.
+     * A failed check is not worth interrupting anyone over, and that includes running into GitHub's
+     * limit of 60 unauthenticated requests an hour, which no ordinary use comes near.
      *
      * Finding one raises the banner and nothing else. Opening the app is not the moment to take
      * the whole screen away from someone who came to read a zman — the banner says an update is
      * there, and the dialog opens only when they ask for it.
      */
-    fun checkOnLaunch() {
-        if (checkedThisSession || pendingUpdates.pending.value != null) return
-        checkedThisSession = true
+    fun onAppShown() {
+        if (!openedSinceLastCheck) return
+        openedSinceLastCheck = false
+        checkForUpdate()
+    }
+
+    /** [changingConfigurations] is a rotation or similar, which recreates the screen without leaving. */
+    fun onAppHidden(changingConfigurations: Boolean) {
+        if (!changingConfigurations) openedSinceLastCheck = true
+    }
+
+    private fun checkForUpdate() {
+        if (pendingUpdates.pending.value != null) return
+        // Mid-download or mid-install, a check has nothing to add — and the cleanup below would
+        // pull the APK out from under the install.
+        if (_state.value != UpdateState.Idle || checkInFlight) return
+        checkInFlight = true
         viewModelScope.launch {
             // Anything still on disk belongs to a previous session that never finished installing —
-            // this view model is new, so nothing here references it. Only a successful install used
-            // to clear the cache, which left a whole APK behind after every abandoned update.
-            repository.clearDownloads()
-            when (val report = repository.check()) {
-                is UpdateCheckReport.Available ->
-                    pendingUpdates.offer(report.release, report.isDowngrade)
-                // A check that never reached GitHub answered nothing, so it does not count as this
-                // session's answer — offline at launch must not mean silence until the next one.
-                is UpdateCheckReport.Failed -> checkedThisSession = false
-                is UpdateCheckReport.UpToDate,
-                is UpdateCheckReport.NoReleases,
-                -> Unit
+            // this view model is new, so nothing here references it. Only on the first check: later
+            // ones run on returning to the app, which may be back from granting the install
+            // permission for an APK that is still needed.
+            if (!clearedLeftoverDownloads) {
+                clearedLeftoverDownloads = true
+                repository.clearDownloads()
+            }
+            try {
+                when (val report = repository.check()) {
+                    is UpdateCheckReport.Available ->
+                        pendingUpdates.offer(report.release, report.isDowngrade)
+                    // Offline, or GitHub refused: nothing to say, and the next open simply tries again.
+                    is UpdateCheckReport.Failed,
+                    is UpdateCheckReport.UpToDate,
+                    is UpdateCheckReport.NoReleases,
+                    -> Unit
+                }
+            } finally {
+                checkInFlight = false
             }
         }
     }

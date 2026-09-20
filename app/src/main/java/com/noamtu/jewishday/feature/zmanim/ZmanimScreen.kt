@@ -22,11 +22,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -75,6 +78,7 @@ fun ZmanimScreen(
         developerTimeOverrideActive = uiState.developerTimeOverrideActive,
         dayOffset = uiState.dayOffset,
         onCandleLightingSelected = viewModel::selectCandleLightingMethod,
+        onCandleLightingMinutesEntered = viewModel::selectCandleLightingMinutes,
         onStepDay = viewModel::stepDay,
         onShowToday = viewModel::showToday,
         modifier = modifier,
@@ -90,6 +94,7 @@ private fun ZmanimContent(
     developerTimeOverrideActive: Boolean,
     dayOffset: Int,
     onCandleLightingSelected: (CandleLightingMethod) -> Unit,
+    onCandleLightingMinutesEntered: (Int) -> Unit,
     onStepDay: (Int) -> Unit,
     onShowToday: () -> Unit,
     modifier: Modifier = Modifier,
@@ -193,6 +198,7 @@ private fun ZmanimContent(
             if (showCandleLightingPrompt) {
                 CandleLightingPrompt(
                     onSelected = onCandleLightingSelected,
+                    onMinutesEntered = onCandleLightingMinutesEntered,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 4.dp),
@@ -239,9 +245,12 @@ private fun ZmanimContent(
 @Composable
 private fun CandleLightingPrompt(
     onSelected: (CandleLightingMethod) -> Unit,
+    onMinutesEntered: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var showDialog by rememberSaveable { mutableStateOf(false) }
+    var showCustomEntry by rememberSaveable { mutableStateOf(false) }
+    var customMinutes by rememberSaveable { mutableStateOf("18") }
     Surface(
         modifier = modifier.clickable { showDialog = true },
         shape = MaterialTheme.shapes.large,
@@ -276,7 +285,9 @@ private fun CandleLightingPrompt(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(localizedString(R.string.zmanim_candle_prompt_body, R.string.zmanim_candle_prompt_body_hebrew))
                     Spacer(Modifier.height(4.dp))
-                    CandleLightingMethod.entries.forEach { method ->
+                    // The common minhagim only — the typed-in option belongs in Settings, not in a
+                    // first-launch question.
+                    CandleLightingMethod.PromptOptions.forEach { method ->
                         TextButton(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = {
@@ -288,16 +299,66 @@ private fun CandleLightingPrompt(
                                 localizedString(
                                     R.string.zmanim_candle_prompt_minutes,
                                     R.string.zmanim_candle_prompt_minutes_hebrew,
-                                    method.offsetMinutes,
+                                    // Non-null for every prompt option, by construction.
+                                    method.offsetMinutes ?: 18,
                                 ),
                             )
                         }
+                    }
+                    // The three numbers cover most practices but not all — 18 minutes among them —
+                    // so the same question also takes a typed-in answer.
+                    TextButton(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            showDialog = false
+                            showCustomEntry = true
+                        },
+                    ) {
+                        Text(localizedString(R.string.zmanim_candle_prompt_custom, R.string.zmanim_candle_prompt_custom_hebrew))
                     }
                 }
             },
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
+                    Text(localizedString(R.string.settings_cancel, R.string.settings_cancel_hebrew))
+                }
+            },
+        )
+    }
+    if (showCustomEntry) {
+        val minutes = customMinutes.toIntOrNull()
+        AlertDialog(
+            onDismissRequest = { showCustomEntry = false },
+            title = {
+                Text(localizedString(R.string.zmanim_candle_prompt_title, R.string.zmanim_candle_prompt_title_hebrew))
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(localizedString(R.string.zmanim_candle_prompt_body, R.string.zmanim_candle_prompt_body_hebrew))
+                    OutlinedTextField(
+                        value = customMinutes,
+                        onValueChange = { typed ->
+                            if (typed.length <= 3 && typed.all(Char::isDigit)) customMinutes = typed
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = minutes != null,
+                    onClick = {
+                        minutes?.let(onMinutesEntered)
+                        showCustomEntry = false
+                    },
+                ) {
+                    Text(localizedString(R.string.zmanim_candle_prompt_save, R.string.zmanim_candle_prompt_save_hebrew))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCustomEntry = false }) {
                     Text(localizedString(R.string.settings_cancel, R.string.settings_cancel_hebrew))
                 }
             },

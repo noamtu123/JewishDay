@@ -45,6 +45,13 @@ class MainActivity : ComponentActivity() {
 
     private var startupWindowBackgroundColor: Int? = null
 
+    /**
+     * Whether the next time this Activity is shown counts as opening the app. The very first
+     * showing does not: the composition below refreshes then, after the first frame, so the pull
+     * does not sit in front of the launch. Every later one does — see [onStart] / [onStop].
+     */
+    private var reopened = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Two things have to happen before a single setting is read, and both block:
@@ -90,6 +97,28 @@ class MainActivity : ComponentActivity() {
                 JewishDayApp(useHebrewInterface = rootSettings.useHebrewInterface)
             }
         }
+    }
+
+    /**
+     * Every opening of the app pulls the location again, so the zmanim are for where the phone is
+     * now rather than where it was when the app was last launched. Forced, because the point is to
+     * bypass the repository's own five-minute throttle on fresh fixes: coming back to the app after
+     * travelling is exactly when the cached fix is the wrong one.
+     */
+    override fun onStart() {
+        super.onStart()
+        if (!reopened) return
+        reopened = false
+        if (hasLocationPermission()) {
+            currentLocationRepository.refreshCurrentLocation(force = true)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // A rotation stops and restarts the Activity without the app ever leaving the foreground,
+        // and the recreated composition does its own refresh, so it is not a reopening.
+        if (!isChangingConfigurations) reopened = true
     }
 
     private fun setStartupWindowBackground(themeOption: AppThemeOption) {
