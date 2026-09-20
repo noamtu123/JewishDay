@@ -186,6 +186,13 @@ class DeveloperOverridesRepository @Inject constructor(
         DeveloperOverrides(unlocked = it.unlocked)
     }
 
+    /**
+     * Turns the tools off altogether: every override cleared *and* the feature locked again, so the
+     * section disappears and only another 7 taps on the version brings it back. Leaving an override
+     * behind would keep a spoofed clock or location running with nothing on screen admitting to it.
+     */
+    suspend fun disableDeveloperMode() = update { DeveloperOverrides() }
+
     private suspend fun update(transform: (DeveloperOverrides) -> DeveloperOverrides) {
         val next = transform(_state.value)
         // Update in-memory first so the clock/location seams see the change immediately,
