@@ -11,6 +11,7 @@ import com.noamtu.jewishday.model.AlotHashacharMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.ChametzMethod
 import com.noamtu.jewishday.model.ChatzotMethod
+import com.noamtu.jewishday.model.CustomZmanUnit
 import com.noamtu.jewishday.model.DailyLearningType
 import com.noamtu.jewishday.model.MinchaGedolaMethod
 import com.noamtu.jewishday.model.MinchaKetanaMethod
@@ -24,7 +25,6 @@ import com.noamtu.jewishday.model.SunriseMethod
 import com.noamtu.jewishday.model.SunsetMethod
 import com.noamtu.jewishday.model.TzeitHakochavimMethod
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.ZmanimPreset
 import com.noamtu.jewishday.model.ZmanimTimeOption
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import com.noamtu.jewishday.BuildConfig
@@ -123,7 +123,11 @@ class SettingsViewModel @Inject constructor(
             val current = appSettingsRepository.settings.first()
             val candle = current.candleLightingDefault ?: current.zmanimSettings.candleLightingMethod
             appSettingsRepository.setZmanimSettings(
-                ZmanimCalculationSettings(candleLightingMethod = candle),
+                ZmanimCalculationSettings(
+                    candleLightingMethod = candle,
+                    // Kept with it: if their choice is a typed-in offset, the number is the choice.
+                    candleLightingCustomMinutes = current.zmanimSettings.candleLightingCustomMinutes,
+                ),
             )
         }
     }
@@ -162,87 +166,203 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setUseElevation(enabled: Boolean) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, useElevation = enabled) }
-    }
-
-
     fun setAlotHashacharMethod(method: AlotHashacharMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, alotHashacharMethod = method) }
+        updateZmanimSettings { it.copy(alotHashacharMethod = method) }
     }
 
     fun setMisheyakirMethod(method: MisheyakirMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, misheyakirMethod = method) }
+        updateZmanimSettings { it.copy(misheyakirMethod = method) }
     }
 
     fun setSunriseMethod(method: SunriseMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sunriseMethod = method) }
+        updateZmanimSettings { it.copy(sunriseMethod = method) }
     }
 
     fun setSofZmanShemaGraMethod(method: SofZmanShemaMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sofZmanShemaGraMethod = method) }
+        updateZmanimSettings { it.copy(sofZmanShemaGraMethod = method) }
     }
 
     fun setSofZmanShemaMethod(method: SofZmanShemaMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sofZmanShemaMethod = method) }
+        updateZmanimSettings { it.copy(sofZmanShemaMethod = method) }
     }
 
     fun setSofZmanTefillahGraMethod(method: SofZmanTefillahMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sofZmanTefillahGraMethod = method) }
+        updateZmanimSettings { it.copy(sofZmanTefillahGraMethod = method) }
     }
 
     fun setSofZmanTefillahMethod(method: SofZmanTefillahMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sofZmanTefillahMethod = method) }
+        updateZmanimSettings { it.copy(sofZmanTefillahMethod = method) }
     }
 
     fun setChatzotMethod(method: ChatzotMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, chatzotMethod = method) }
+        updateZmanimSettings { it.copy(chatzotMethod = method) }
     }
 
     fun setChatzotHaLailaMethod(method: ChatzotMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, chatzotHaLailaMethod = method) }
+        updateZmanimSettings { it.copy(chatzotHaLailaMethod = method) }
     }
 
     fun setMinchaGedolaMethod(method: MinchaGedolaMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, minchaGedolaMethod = method) }
+        updateZmanimSettings { it.copy(minchaGedolaMethod = method) }
     }
 
     fun setMinchaKetanaMethod(method: MinchaKetanaMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, minchaKetanaMethod = method) }
+        updateZmanimSettings { it.copy(minchaKetanaMethod = method) }
     }
 
     fun setPlagHaminchaMethod(method: PlagHaminchaMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, plagHaminchaMethod = method) }
+        updateZmanimSettings { it.copy(plagHaminchaMethod = method) }
     }
 
     fun setSunsetMethod(method: SunsetMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, sunsetMethod = method) }
+        updateZmanimSettings { it.copy(sunsetMethod = method) }
     }
 
     fun setTzeitHakochavimMethod(method: TzeitHakochavimMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, tzeitHakochavimMethod = method) }
+        updateZmanimSettings { it.copy(tzeitHakochavimMethod = method) }
     }
 
     fun setCandleLightingMethod(method: CandleLightingMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, candleLightingMethod = method) }
+        updateZmanimSettings { it.copy(candleLightingMethod = method) }
     }
 
     fun setMotzeiShabbatMethod(method: MotzeiShabbatMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, motzeiShabbatMethod = method) }
+        updateZmanimSettings { it.copy(motzeiShabbatMethod = method) }
+    }
+
+    /**
+     * The end of the Ateret Torah day: minutes after sunset. Every one of his opinions is measured to
+     * it, so it is part of the method rather than a display preference.
+     */
+    fun setAteretTorahSunsetOffsetMinutes(minutes: Int) {
+        updateZmanimSettings { it.copy(ateretTorahSunsetOffsetMinutes = minutes.coerceIn(1, 120)) }
     }
 
     /** Tosefet added when leaving Shabbat or a Yom Tov, in minutes. Clamped to something sane. */
     fun setHolyDayTosefetMinutes(minutes: Int) {
         val clamped = minutes.coerceIn(0, 120)
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, holyDayTosefetMinutes = clamped) }
+        updateZmanimSettings { it.copy(holyDayTosefetMinutes = clamped) }
     }
 
     fun setRabbeinuTamMethod(method: RabbeinuTamMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, rabbeinuTamMethod = method) }
+        updateZmanimSettings { it.copy(rabbeinuTamMethod = method) }
     }
 
     fun setChametzMethod(method: ChametzMethod) {
-        updateZmanimSettings { it.copy(preset = ZmanimPreset.Custom, chametzMethod = method) }
+        updateZmanimSettings { it.copy(chametzMethod = method) }
+    }
+
+    // The custom options: each one stores the number that was typed in and selects the option that
+    // uses it in a single write, so a method can never be showing a value that was not saved with it.
+
+    fun setAlotHashacharCustomValue(method: AlotHashacharMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                alotHashacharMethod = method,
+                alotHashacharCustom = it.alotHashacharCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    fun setMisheyakirCustomValue(method: MisheyakirMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                misheyakirMethod = method,
+                misheyakirCustom = it.misheyakirCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    fun setSofZmanShemaCustomValue(method: SofZmanShemaMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                sofZmanShemaMethod = method,
+                sofZmanShemaCustom = it.sofZmanShemaCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    fun setSofZmanTefillahCustomValue(method: SofZmanTefillahMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                sofZmanTefillahMethod = method,
+                sofZmanTefillahCustom = it.sofZmanTefillahCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    fun setMinchaGedolaCustomValue(method: MinchaGedolaMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                minchaGedolaMethod = method,
+                minchaGedolaCustom = it.minchaGedolaCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    fun setMinchaKetanaCustomValue(method: MinchaKetanaMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                minchaKetanaMethod = method,
+                minchaKetanaCustom = it.minchaKetanaCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    fun setPlagHaminchaCustomValue(method: PlagHaminchaMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                plagHaminchaMethod = method,
+                plagHaminchaCustom = it.plagHaminchaCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    fun setTzeitHakochavimCustomValue(method: TzeitHakochavimMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                tzeitHakochavimMethod = method,
+                tzeitHakochavimCustom = it.tzeitHakochavimCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    fun setMotzeiShabbatCustomValue(method: MotzeiShabbatMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                motzeiShabbatMethod = method,
+                motzeiShabbatCustom = it.motzeiShabbatCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    fun setRabbeinuTamCustomValue(method: RabbeinuTamMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                rabbeinuTamMethod = method,
+                rabbeinuTamCustom = it.rabbeinuTamCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    fun setChametzCustomValue(method: ChametzMethod, unit: CustomZmanUnit, value: Double) {
+        updateZmanimSettings {
+            it.copy(
+                chametzMethod = method,
+                chametzCustom = it.chametzCustom.withValue(unit, value),
+            )
+        }
+    }
+
+    /** A typed-in candle-lighting offset, which also selects the custom option that uses it. */
+    fun setCandleLightingCustomMinutes(minutes: Int) {
+        val clamped = minutes.coerceIn(0, 120)
+        updateZmanimSettings {
+            it.copy(
+                candleLightingMethod = CandleLightingMethod.Custom,
+                candleLightingCustomMinutes = clamped,
+            )
+        }
     }
 
     private fun updateZmanimSettings(transform: (ZmanimCalculationSettings) -> ZmanimCalculationSettings) {

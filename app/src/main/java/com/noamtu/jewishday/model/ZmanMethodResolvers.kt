@@ -6,58 +6,108 @@ import com.kosherjava.zmanim.AstronomicalCalendar
 import com.kosherjava.zmanim.ComplexZmanimCalendar
 import java.util.Date
 
+// ---------------------------------------------------------------------------------------------
+// Custom-value primitives
+//
+// The method pickers no longer offer a ladder of degrees, minutes and zmaniyot minutes: the user
+// types the number. KosherJava has a named getter per rung of the old ladders and nothing for an
+// arbitrary value, so these four build the same things from first principles — the identical
+// arithmetic the library's own getters do, with the number coming from settings.
+// ---------------------------------------------------------------------------------------------
+
+private const val MinuteMillis = 60_000L
+
+/** A degree-based dawn: how long before sunrise the sun sits [degrees] below the horizon. */
+private fun ComplexZmanimCalendar.sunriseByDegrees(degrees: Double): Date? =
+    getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + degrees)
+
+/** The same after sunset, for nightfall opinions. */
+private fun ComplexZmanimCalendar.sunsetByDegrees(degrees: Double): Date? =
+    getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + degrees)
+
+/**
+ * A number of *zmaniyot* minutes as a duration in millis: sixtieths of this day's GRA halachic hour,
+ * so 72 of them run longer than 72 clock minutes in summer and shorter in winter. Null where the day
+ * has no length to divide — inside the arctic circle the library reports [Long.MIN_VALUE].
+ */
+private fun ComplexZmanimCalendar.zmaniyotOffsetMillis(minutes: Int): Long? {
+    val shaahZmanis = shaahZmanisGra
+    if (shaahZmanis == Long.MIN_VALUE) return null
+    return shaahZmanis * minutes / 60L
+}
+
+private fun ComplexZmanimCalendar.zmaniyotBeforeSunrise(minutes: Int): Date? =
+    zmaniyotOffsetMillis(minutes)?.let { AstronomicalCalendar.getTimeOffset(seaLevelSunrise, -it) }
+
+private fun ComplexZmanimCalendar.zmaniyotAfterSunset(minutes: Int): Date? =
+    zmaniyotOffsetMillis(minutes)?.let { AstronomicalCalendar.getTimeOffset(seaLevelSunset, it) }
+
+private fun ComplexZmanimCalendar.minutesBeforeSunrise(minutes: Int): Date? =
+    AstronomicalCalendar.getTimeOffset(seaLevelSunrise, -minutes.toLong() * MinuteMillis)
+
+private fun ComplexZmanimCalendar.minutesAfterSunset(minutes: Int): Date? =
+    AstronomicalCalendar.getTimeOffset(seaLevelSunset, minutes.toLong() * MinuteMillis)
+
+/**
+ * The dawn a custom [unit]/[values] pair defines, which is the start of the halachic day for every
+ * Magen Avraham-style opinion below.
+ */
+private fun ComplexZmanimCalendar.customDayStart(unit: CustomZmanUnit, values: CustomZmanValue): Date? =
+    when (unit) {
+        CustomZmanUnit.Degrees -> sunriseByDegrees(values.degrees)
+        CustomZmanUnit.Minutes -> minutesBeforeSunrise(values.minutes)
+        CustomZmanUnit.ZmaniyotMinutes -> zmaniyotBeforeSunrise(values.zmaniyotMinutes)
+    }
+
+/** Its mirror image at the other end of the day: the nightfall the same opinion ends at. */
+private fun ComplexZmanimCalendar.customDayEnd(unit: CustomZmanUnit, values: CustomZmanValue): Date? =
+    when (unit) {
+        CustomZmanUnit.Degrees -> sunsetByDegrees(values.degrees)
+        CustomZmanUnit.Minutes -> minutesAfterSunset(values.minutes)
+        CustomZmanUnit.ZmaniyotMinutes -> zmaniyotAfterSunset(values.zmaniyotMinutes)
+    }
+
+/**
+ * A zman of the GRA's day, which runs from sunrise to sunset — the very sunrise and sunset the user
+ * picked, so the one elevation choice in the app reaches these rows too. [zman] is the library's own
+ * (startOfDay, endOfDay) arithmetic; only the endpoints are ours.
+ */
+private inline fun ComplexZmanimCalendar.graDay(
+    settings: ZmanimCalculationSettings,
+    zman: (Date, Date) -> Date?,
+): Date? {
+    val start = sunrise(settings.sunriseMethod) ?: return null
+    val end = sunset(settings.sunsetMethod) ?: return null
+    return zman(start, end)
+}
+
+/** Of two times, the later — or whichever one exists. */
+private fun laterOf(first: Date?, second: Date?): Date? = when {
+    first == null -> second
+    second == null -> first
+    else -> if (first.after(second)) first else second
+}
+
 internal fun ComplexZmanimCalendar.alotHashachar(settings: ZmanimCalculationSettings): Date? =
     when (settings.alotHashacharMethod) {
-        AlotHashacharMethod.Minutes60 -> alos60
-        AlotHashacharMethod.Minutes72 -> alos72
-        AlotHashacharMethod.Minutes90 -> alos90
-        AlotHashacharMethod.Minutes96 -> alos96
-        AlotHashacharMethod.Minutes120 -> alos120
-        AlotHashacharMethod.Zmanis72 -> alos72Zmanis
-        AlotHashacharMethod.Zmanis90 -> alos90Zmanis
-        AlotHashacharMethod.Zmanis96 -> alos96Zmanis
-        AlotHashacharMethod.Zmanis120 -> alos120Zmanis
-        AlotHashacharMethod.Degrees12 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 12.0) ?: alos60
-        AlotHashacharMethod.Degrees14 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 14.0) ?: alos60
-        AlotHashacharMethod.Degrees16 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 16.0) ?: alos72
-        AlotHashacharMethod.Degrees16Point013 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 16.013) ?: alos72
-        AlotHashacharMethod.Degrees16Point04 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 16.04) ?: alos72
-        AlotHashacharMethod.Degrees16Point08 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 16.08) ?: alos72
         AlotHashacharMethod.Degrees16Point1 -> alos16Point1Degrees ?: alos72
-        AlotHashacharMethod.Degrees17Point5 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 17.5) ?: alos72
-        AlotHashacharMethod.Degrees18 -> alos18Degrees ?: alos90
-        AlotHashacharMethod.Degrees19 -> alos19Degrees ?: alos90
-        AlotHashacharMethod.Degrees19Point75 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 19.75) ?: alos96
-        AlotHashacharMethod.Degrees19Point784 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 19.784) ?: alos96
-        AlotHashacharMethod.Degrees19Point8 -> alos19Point8Degrees ?: alos96
-        AlotHashacharMethod.Degrees19Point848 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 19.848) ?: alos96
-        AlotHashacharMethod.Degrees20 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 20.0) ?: alos96
-        AlotHashacharMethod.Degrees26 -> alos26Degrees ?: alos120
-        AlotHashacharMethod.BaalHatanya -> alosBaalHatanya ?: alos72
+        AlotHashacharMethod.CustomDegrees -> sunriseByDegrees(settings.alotHashacharCustom.degrees)
+        AlotHashacharMethod.CustomMinutes -> minutesBeforeSunrise(settings.alotHashacharCustom.minutes)
+        AlotHashacharMethod.CustomZmaniyotMinutes -> zmaniyotBeforeSunrise(settings.alotHashacharCustom.zmaniyotMinutes)
     }
 
 internal fun ComplexZmanimCalendar.misheyakir(settings: ZmanimCalculationSettings): Date? {
-    fun minutesBeforeSunrise(minutes: Long): Date? =
-        sunrise(settings.sunriseMethod)?.let { AstronomicalCalendar.getTimeOffset(it, -minutes * 60_000L) }
+    val custom = settings.misheyakirCustom
     return when (settings.misheyakirMethod) {
-        MisheyakirMethod.Degrees12Point85 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 12.85)
-        MisheyakirMethod.Degrees12 -> getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 12.0)
-        MisheyakirMethod.Degrees11Point5 -> misheyakir11Point5Degrees
         MisheyakirMethod.Degrees11 -> misheyakir11Degrees
-        MisheyakirMethod.Degrees10Point2 -> misheyakir10Point2Degrees
-        MisheyakirMethod.Degrees9Point5 -> misheyakir9Point5Degrees
-        MisheyakirMethod.Degrees7Point65 -> misheyakir7Point65Degrees
-        MisheyakirMethod.Minutes35BeforeSunrise -> minutesBeforeSunrise(35)
-        MisheyakirMethod.Minutes36BeforeSunrise -> minutesBeforeSunrise(36)
-        MisheyakirMethod.Minutes40BeforeSunrise -> minutesBeforeSunrise(40)
-        MisheyakirMethod.Minutes42BeforeSunrise -> minutesBeforeSunrise(42)
-        MisheyakirMethod.Minutes45BeforeSunrise -> minutesBeforeSunrise(45)
-        MisheyakirMethod.Minutes48BeforeSunrise -> minutesBeforeSunrise(48)
-        MisheyakirMethod.Minutes50BeforeSunrise -> minutesBeforeSunrise(50)
-        MisheyakirMethod.Minutes52BeforeSunrise -> minutesBeforeSunrise(52)
-        MisheyakirMethod.Minutes57BeforeSunrise -> minutesBeforeSunrise(57)
-        MisheyakirMethod.Minutes60BeforeSunrise -> minutesBeforeSunrise(60)
-        MisheyakirMethod.Minutes6AfterAlos -> alotHashachar(settings)?.let { AstronomicalCalendar.getTimeOffset(it, 6 * 60_000L) }
+        MisheyakirMethod.CustomDegrees -> sunriseByDegrees(custom.degrees)
+        // Measured from the sunrise the user chose, since this is the one option stated as an offset
+        // from sunrise itself rather than as a position of the sun.
+        MisheyakirMethod.CustomMinutesBeforeSunrise -> sunrise(settings.sunriseMethod)
+            ?.let { AstronomicalCalendar.getTimeOffset(it, -custom.minutes.toLong() * MinuteMillis) }
+        MisheyakirMethod.CustomZmaniyotMinutesBeforeSunrise -> zmaniyotBeforeSunrise(custom.zmaniyotMinutes)
+        MisheyakirMethod.Minutes6AfterAlos -> alotHashachar(settings)
+            ?.let { AstronomicalCalendar.getTimeOffset(it, 6 * MinuteMillis) }
     }
 }
 
@@ -74,75 +124,66 @@ internal fun ComplexZmanimCalendar.sunset(method: SunsetMethod): Date? = when (m
 internal fun ComplexZmanimCalendar.sofZmanShema(
     method: SofZmanShemaMethod,
     settings: ZmanimCalculationSettings,
-): Date? =
-    when (method) {
-        SofZmanShemaMethod.Gra -> {
-            isUseElevation = settings.useElevation
-            val result = sofZmanShmaGRA ?: sofZmanShmaMGA72Minutes
-            isUseElevation = false
-            result
-        }
-        SofZmanShemaMethod.FixedLocalGra -> {
-            isUseElevation = settings.useElevation
-            val result = sofZmanShmaGRASunriseToFixedLocalChatzos ?: sofZmanShmaMGA72Minutes
-            isUseElevation = false
-            result
-        }
-        SofZmanShemaMethod.Mga72 -> sofZmanShmaMGA72Minutes
-        SofZmanShemaMethod.Mga72Zmanis -> sofZmanShmaMGA72MinutesZmanis
-        SofZmanShemaMethod.Mga90 -> sofZmanShmaMGA90Minutes
-        SofZmanShemaMethod.Mga90Zmanis -> sofZmanShmaMGA90MinutesZmanis
-        SofZmanShemaMethod.Mga96 -> sofZmanShmaMGA96Minutes
-        SofZmanShemaMethod.Mga96Zmanis -> sofZmanShmaMGA96MinutesZmanis
-        SofZmanShemaMethod.Mga120 -> sofZmanShmaMGA120Minutes
+): Date? {
+    val custom = settings.sofZmanShemaCustom
+    /** Three of the twelve hours of a day that runs [start] to [end]. */
+    fun mga(unit: CustomZmanUnit): Date? {
+        val start = customDayStart(unit, custom) ?: return null
+        val end = customDayEnd(unit, custom) ?: return null
+        return getSofZmanShma(start, end)
+    }
+    // A day that runs from dawn to fixed-local chatzot is only half a day, so it is divided into six
+    // — which is what the library's own ...ToFixedLocalChatzos getters do.
+    fun toFixedLocalChatzot(unit: CustomZmanUnit): Date? {
+        val start = customDayStart(unit, custom) ?: return null
+        return getFixedLocalChatzosBasedZmanim(start, fixedLocalChatzos, 3.0)
+    }
+    return when (method) {
+        // The GRA's day is sunrise to sunset, so it is the sunrise and sunset the user chose — which
+        // is also the only place elevation is decided. Computed from those rather than through the
+        // library's global isUseElevation flag, which could not express one of the two being at sea
+        // level and the other observed.
+        SofZmanShemaMethod.Gra -> graDay(settings) { start, end -> getSofZmanShma(start, end) }
+        SofZmanShemaMethod.FixedLocalGra ->
+            sunrise(settings.sunriseMethod)?.let { getFixedLocalChatzosBasedZmanim(it, fixedLocalChatzos, 3.0) }
         SofZmanShemaMethod.Mga16Point1 -> sofZmanShmaMGA16Point1Degrees ?: sofZmanShmaMGA72Minutes
-        SofZmanShemaMethod.Mga18 -> sofZmanShmaMGA18Degrees ?: sofZmanShmaMGA90Minutes
-        SofZmanShemaMethod.Mga19Point8 -> sofZmanShmaMGA19Point8Degrees ?: sofZmanShmaMGA96Minutes
+        SofZmanShemaMethod.CustomDegrees -> mga(CustomZmanUnit.Degrees)
+        SofZmanShemaMethod.CustomMinutes -> mga(CustomZmanUnit.Minutes)
+        SofZmanShemaMethod.CustomZmaniyotMinutes -> mga(CustomZmanUnit.ZmaniyotMinutes)
+        SofZmanShemaMethod.CustomDegreesToFixedLocalChatzot -> toFixedLocalChatzot(CustomZmanUnit.Degrees)
+        SofZmanShemaMethod.CustomMinutesToFixedLocalChatzot -> toFixedLocalChatzot(CustomZmanUnit.Minutes)
         SofZmanShemaMethod.Alos16Point1ToSunset -> sofZmanShmaAlos16Point1ToSunset ?: sofZmanShmaMGA72Minutes
         SofZmanShemaMethod.Alos16Point1ToTzeit7Point083 -> sofZmanShmaAlos16Point1ToTzaisGeonim7Point083Degrees ?: sofZmanShmaMGA72Minutes
-        SofZmanShemaMethod.Mga18ToFixedLocalChatzot -> sofZmanShmaMGA18DegreesToFixedLocalChatzos ?: sofZmanShmaMGA90Minutes
-        SofZmanShemaMethod.Mga16Point1ToFixedLocalChatzot -> sofZmanShmaMGA16Point1DegreesToFixedLocalChatzos ?: sofZmanShmaMGA72Minutes
-        SofZmanShemaMethod.Mga90ToFixedLocalChatzot -> sofZmanShmaMGA90MinutesToFixedLocalChatzos
-        SofZmanShemaMethod.Mga72ToFixedLocalChatzot -> sofZmanShmaMGA72MinutesToFixedLocalChatzos
         SofZmanShemaMethod.AteretTorah -> sofZmanShmaAteretTorah
     }
+}
 
 internal fun ComplexZmanimCalendar.sofZmanTefillah(
     method: SofZmanTefillahMethod,
     settings: ZmanimCalculationSettings,
 ): Date? {
-    fun mga(alos: Date?, tzais: Date?): Date? {
+    val custom = settings.sofZmanTefillahCustom
+    /** Four of the twelve hours of the day the custom [unit] defines. */
+    fun mga(unit: CustomZmanUnit): Date? {
+        val start = customDayStart(unit, custom) ?: return null
+        val end = customDayEnd(unit, custom) ?: return null
+        return getSofZmanTfila(start, end)
+    }
+    fun mgaFrom(alos: Date?, tzais: Date?): Date? {
         if (alos == null || tzais == null) return null
-        return AstronomicalCalendar.getTimeOffset(alos, 4L * (tzais.time - alos.time) / 12)
+        return getSofZmanTfila(alos, tzais)
     }
     return when (method) {
-        SofZmanTefillahMethod.Gra -> {
-            isUseElevation = settings.useElevation
-            val result = sofZmanTfilaGRA
-            isUseElevation = false
-            result
-        }
-        SofZmanTefillahMethod.FixedLocalGra -> {
-            isUseElevation = settings.useElevation
-            val result = sofZmanTfilaGRASunriseToFixedLocalChatzos ?: sofZmanTfilaGRA
-            isUseElevation = false
-            result
-        }
-        SofZmanTefillahMethod.Mga72 -> sofZmanTfilaMGA72Minutes
-        SofZmanTefillahMethod.Mga72Zmanis -> sofZmanTfilaMGA72MinutesZmanis
-        SofZmanTefillahMethod.Mga90 -> sofZmanTfilaMGA90Minutes
-        SofZmanTefillahMethod.Mga90Zmanis -> sofZmanTfilaMGA90MinutesZmanis
-        SofZmanTefillahMethod.Mga96 -> sofZmanTfilaMGA96Minutes
-        SofZmanTefillahMethod.Mga96Zmanis -> sofZmanTfilaMGA96MinutesZmanis
-        SofZmanTefillahMethod.Mga120 -> sofZmanTfilaMGA120Minutes
+        SofZmanTefillahMethod.Gra -> graDay(settings) { start, end -> getSofZmanTfila(start, end) }
+        SofZmanTefillahMethod.FixedLocalGra ->
+            sunrise(settings.sunriseMethod)?.let { getFixedLocalChatzosBasedZmanim(it, fixedLocalChatzos, 4.0) }
         SofZmanTefillahMethod.Mga16Point1 -> sofZmanTfilaMGA16Point1Degrees ?: sofZmanTfilaMGA72Minutes
-        SofZmanTefillahMethod.Mga18 -> sofZmanTfilaMGA18Degrees ?: sofZmanTfilaMGA90Minutes
-        SofZmanTefillahMethod.Mga19Point8 -> sofZmanTfilaMGA19Point8Degrees ?: sofZmanTfilaMGA96Minutes
-        SofZmanTefillahMethod.Mga60 -> mga(alos60, tzais60) ?: sofZmanTfilaMGA72Minutes
-        SofZmanTefillahMethod.Mga120Zmanis -> mga(alos120Zmanis, tzais120Zmanis) ?: sofZmanTfilaMGA120Minutes
-        SofZmanTefillahMethod.Mga26 -> mga(alos26Degrees, tzais26Degrees) ?: sofZmanTfilaMGA120Minutes
-        SofZmanTefillahMethod.Alos16Point1ToSunset -> mga(alos16Point1Degrees, seaLevelSunset) ?: sofZmanTfilaMGA72Minutes
-        SofZmanTefillahMethod.Alos16Point1ToTzeit7Point083 -> mga(alos16Point1Degrees, tzaisGeonim7Point083Degrees) ?: sofZmanTfilaMGA72Minutes
+        SofZmanTefillahMethod.CustomDegrees -> mga(CustomZmanUnit.Degrees)
+        SofZmanTefillahMethod.CustomMinutes -> mga(CustomZmanUnit.Minutes)
+        SofZmanTefillahMethod.CustomZmaniyotMinutes -> mga(CustomZmanUnit.ZmaniyotMinutes)
+        SofZmanTefillahMethod.Alos16Point1ToSunset -> mgaFrom(alos16Point1Degrees, seaLevelSunset) ?: sofZmanTfilaMGA72Minutes
+        SofZmanTefillahMethod.Alos16Point1ToTzeit7Point083 -> mgaFrom(alos16Point1Degrees, tzaisGeonim7Point083Degrees) ?: sofZmanTfilaMGA72Minutes
+        SofZmanTefillahMethod.AteretTorah -> sofZmanTfilahAteretTorah
     }
 }
 
@@ -157,100 +198,85 @@ internal fun ComplexZmanimCalendar.chatzotHaLaila(method: ChatzotMethod): Date? 
     ChatzotMethod.FixedLocal -> AstronomicalCalendar.getTimeOffset(fixedLocalChatzos, 12L * 60 * 60 * 1000)
 }
 
-internal fun ComplexZmanimCalendar.minchaGedola(settings: ZmanimCalculationSettings): Date? = when (settings.minchaGedolaMethod) {
-    MinchaGedolaMethod.Standard -> {
-        isUseElevation = settings.useElevation
-        val result = minchaGedola
-        isUseElevation = false
-        result
+internal fun ComplexZmanimCalendar.minchaGedola(settings: ZmanimCalculationSettings): Date? {
+    val values = settings.minchaGedolaCustom
+    fun custom(unit: CustomZmanUnit): Date? {
+        val start = customDayStart(unit, values) ?: return null
+        val end = customDayEnd(unit, values) ?: return null
+        return getMinchaGedola(start, end)
     }
-    MinchaGedolaMethod.ThirtyMinutes -> minchaGedola30Minutes
-    MinchaGedolaMethod.GreaterThan30 -> minchaGedolaGreaterThan30
-    MinchaGedolaMethod.Mga72 -> minchaGedola72Minutes
-    MinchaGedolaMethod.Degrees16Point1 -> minchaGedola16Point1Degrees
-    MinchaGedolaMethod.FixedLocal -> minchaGedolaGRAFixedLocalChatzos30Minutes
-    MinchaGedolaMethod.BaalHatanya -> minchaGedolaBaalHatanya
-    MinchaGedolaMethod.BaalHatanyaGreaterThan30 -> minchaGedolaBaalHatanyaGreaterThan30
-    MinchaGedolaMethod.AteretTorah -> minchaGedolaAteretTorah
-    MinchaGedolaMethod.AhavatShalom -> minchaGedolaAhavatShalom
+    return when (settings.minchaGedolaMethod) {
+        MinchaGedolaMethod.Standard -> graDay(settings) { start, end -> getMinchaGedola(start, end) }
+        MinchaGedolaMethod.CustomDegrees -> custom(CustomZmanUnit.Degrees)
+        MinchaGedolaMethod.CustomMinutes -> custom(CustomZmanUnit.Minutes)
+        MinchaGedolaMethod.CustomZmaniyotMinutes -> custom(CustomZmanUnit.ZmaniyotMinutes)
+        MinchaGedolaMethod.ThirtyMinutes -> minchaGedola30Minutes
+        // In winter half a shaah zmanis is under 30 clock minutes, and this opinion takes whichever
+        // is later. Computed here so the GRA half of it uses the chosen sunrise and sunset.
+        MinchaGedolaMethod.GreaterThan30 -> laterOf(
+            graDay(settings) { start, end -> getMinchaGedola(start, end) },
+            minchaGedola30Minutes,
+        )
+        MinchaGedolaMethod.FixedLocal -> minchaGedolaGRAFixedLocalChatzos30Minutes
+        MinchaGedolaMethod.BaalHatanya -> minchaGedolaBaalHatanya
+        MinchaGedolaMethod.BaalHatanyaGreaterThan30 -> minchaGedolaBaalHatanyaGreaterThan30
+        MinchaGedolaMethod.AteretTorah -> minchaGedolaAteretTorah
+        MinchaGedolaMethod.AhavatShalom -> minchaGedolaAhavatShalom
+    }
 }
 
-internal fun ComplexZmanimCalendar.minchaKetana(settings: ZmanimCalculationSettings): Date? = when (settings.minchaKetanaMethod) {
-    MinchaKetanaMethod.Standard -> {
-        isUseElevation = settings.useElevation
-        val result = minchaKetana
-        isUseElevation = false
-        result
+internal fun ComplexZmanimCalendar.minchaKetana(settings: ZmanimCalculationSettings): Date? {
+    val values = settings.minchaKetanaCustom
+    fun custom(unit: CustomZmanUnit): Date? {
+        val start = customDayStart(unit, values) ?: return null
+        val end = customDayEnd(unit, values) ?: return null
+        return getMinchaKetana(start, end)
     }
-    MinchaKetanaMethod.Mga72 -> minchaKetana72Minutes
-    MinchaKetanaMethod.Degrees16Point1 -> minchaKetana16Point1Degrees
-    MinchaKetanaMethod.FixedLocal -> minchaKetanaGRAFixedLocalChatzosToSunset
-    MinchaKetanaMethod.BaalHatanya -> minchaKetanaBaalHatanya
-    MinchaKetanaMethod.AteretTorah -> minchaKetanaAteretTorah
-    MinchaKetanaMethod.AhavatShalom -> minchaKetanaAhavatShalom
+    return when (settings.minchaKetanaMethod) {
+        MinchaKetanaMethod.Standard -> graDay(settings) { start, end -> getMinchaKetana(start, end) }
+        MinchaKetanaMethod.CustomDegrees -> custom(CustomZmanUnit.Degrees)
+        MinchaKetanaMethod.CustomMinutes -> custom(CustomZmanUnit.Minutes)
+        MinchaKetanaMethod.CustomZmaniyotMinutes -> custom(CustomZmanUnit.ZmaniyotMinutes)
+        MinchaKetanaMethod.FixedLocal -> sunset(settings.sunsetMethod)
+            ?.let { getFixedLocalChatzosBasedZmanim(fixedLocalChatzos, it, 3.5) }
+        MinchaKetanaMethod.BaalHatanya -> minchaKetanaBaalHatanya
+        MinchaKetanaMethod.AteretTorah -> minchaKetanaAteretTorah
+        MinchaKetanaMethod.AhavatShalom -> minchaKetanaAhavatShalom
+    }
 }
 
-internal fun ComplexZmanimCalendar.plagHamincha(settings: ZmanimCalculationSettings): Date? = when (settings.plagHaminchaMethod) {
-    PlagHaminchaMethod.Gra -> {
-        isUseElevation = settings.useElevation
-        val result = plagHamincha
-        isUseElevation = false
-        result
+internal fun ComplexZmanimCalendar.plagHamincha(settings: ZmanimCalculationSettings): Date? {
+    val values = settings.plagHaminchaCustom
+    fun custom(unit: CustomZmanUnit): Date? {
+        val start = customDayStart(unit, values) ?: return null
+        val end = customDayEnd(unit, values) ?: return null
+        return getPlagHamincha(start, end)
     }
-    PlagHaminchaMethod.Mga60 -> plagHamincha60Minutes
-    PlagHaminchaMethod.Mga72 -> plagHamincha72Minutes
-    PlagHaminchaMethod.Mga72Zmanis -> plagHamincha72MinutesZmanis
-    PlagHaminchaMethod.Mga90 -> plagHamincha90Minutes
-    PlagHaminchaMethod.Mga90Zmanis -> plagHamincha90MinutesZmanis
-    PlagHaminchaMethod.Mga96 -> plagHamincha96Minutes
-    PlagHaminchaMethod.Mga96Zmanis -> plagHamincha96MinutesZmanis
-    PlagHaminchaMethod.Mga120 -> plagHamincha120Minutes
-    PlagHaminchaMethod.Mga120Zmanis -> plagHamincha120MinutesZmanis
-    PlagHaminchaMethod.Degrees16Point1 -> plagHamincha16Point1Degrees
-    PlagHaminchaMethod.Degrees18 -> plagHamincha18Degrees
-    PlagHaminchaMethod.Degrees19Point8 -> plagHamincha19Point8Degrees
-    PlagHaminchaMethod.Degrees26 -> plagHamincha26Degrees
-    PlagHaminchaMethod.AlotToSunset -> plagAlosToSunset
-    PlagHaminchaMethod.Alot16Point1ToTzeit7Point083 -> plagAlos16Point1ToTzaisGeonim7Point083Degrees
-    PlagHaminchaMethod.FixedLocal -> plagHaminchaGRAFixedLocalChatzosToSunset
-    PlagHaminchaMethod.BaalHatanya -> plagHaminchaBaalHatanya
-    PlagHaminchaMethod.AteretTorah -> plagHaminchaAteretTorah
-    PlagHaminchaMethod.AhavatShalom -> plagAhavatShalom
+    return when (settings.plagHaminchaMethod) {
+        PlagHaminchaMethod.Gra -> graDay(settings) { start, end -> getPlagHamincha(start, end) }
+        PlagHaminchaMethod.CustomDegrees -> custom(CustomZmanUnit.Degrees)
+        PlagHaminchaMethod.CustomMinutes -> custom(CustomZmanUnit.Minutes)
+        PlagHaminchaMethod.CustomZmaniyotMinutes -> custom(CustomZmanUnit.ZmaniyotMinutes)
+        PlagHaminchaMethod.Alot16Point1ToTzeit7Point083 -> plagAlos16Point1ToTzaisGeonim7Point083Degrees
+        PlagHaminchaMethod.FixedLocal -> sunset(settings.sunsetMethod)
+            ?.let { getFixedLocalChatzosBasedZmanim(fixedLocalChatzos, it, 4.75) }
+        PlagHaminchaMethod.BaalHatanya -> plagHaminchaBaalHatanya
+        PlagHaminchaMethod.AteretTorah -> plagHaminchaAteretTorah
+        PlagHaminchaMethod.AhavatShalom -> plagAhavatShalom
+    }
 }
 
 internal fun ComplexZmanimCalendar.tzeit(settings: ZmanimCalculationSettings): Date? =
-    tzeit(settings.tzeitHakochavimMethod)
+    tzeit(settings.tzeitHakochavimMethod, settings.tzeitHakochavimCustom)
 
-internal fun ComplexZmanimCalendar.tzeit(method: TzeitHakochavimMethod): Date? = when (method) {
-    TzeitHakochavimMethod.Degrees6Point2 -> getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 6.2) ?: tzais50
-    TzeitHakochavimMethod.Geonim3Point7 -> tzaisGeonim3Point7Degrees ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 18L * 60_000)
-    TzeitHakochavimMethod.Geonim3Point8 -> tzaisGeonim3Point8Degrees ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 18L * 60_000)
-    TzeitHakochavimMethod.Geonim4Point42 -> getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 4.42) ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 20L * 60_000)
-    TzeitHakochavimMethod.Geonim4Point66 -> getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 4.66) ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 20L * 60_000)
-    TzeitHakochavimMethod.Geonim4Point8 -> tzaisGeonim4Point8Degrees ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 20L * 60_000)
-    TzeitHakochavimMethod.Geonim5Point95 -> tzaisGeonim5Point95Degrees ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 24L * 60_000)
-    TzeitHakochavimMethod.Geonim6Point45 -> tzaisGeonim6Point45Degrees ?: tzais50
-    TzeitHakochavimMethod.Geonim7Point083 -> tzaisGeonim7Point083Degrees ?: tzais50
-    TzeitHakochavimMethod.Geonim7Point67 -> tzaisGeonim7Point67Degrees ?: tzais50
-    TzeitHakochavimMethod.Geonim8Point5 -> tzaisGeonim8Point5Degrees ?: tzais50
-    TzeitHakochavimMethod.Geonim9Point3 -> tzaisGeonim9Point3Degrees ?: tzais60
-    TzeitHakochavimMethod.Geonim9Point75 -> tzaisGeonim9Point75Degrees ?: tzais60
-    TzeitHakochavimMethod.Minutes50 -> tzais50
-    TzeitHakochavimMethod.Minutes60 -> tzais60
-    TzeitHakochavimMethod.Minutes72 -> tzais72
-    TzeitHakochavimMethod.Minutes90 -> tzais90
-    TzeitHakochavimMethod.Minutes96 -> tzais96
-    TzeitHakochavimMethod.Minutes120 -> tzais120
-    TzeitHakochavimMethod.Zmanis72 -> tzais72Zmanis
-    TzeitHakochavimMethod.Zmanis90 -> tzais90Zmanis
-    TzeitHakochavimMethod.Zmanis96 -> tzais96Zmanis
-    TzeitHakochavimMethod.Zmanis120 -> tzais120Zmanis
-    TzeitHakochavimMethod.Degrees16Point1 -> tzais16Point1Degrees ?: tzais72
-    TzeitHakochavimMethod.Degrees18 -> tzais18Degrees ?: tzais90
-    TzeitHakochavimMethod.Degrees19Point8 -> tzais19Point8Degrees ?: tzais96
-    TzeitHakochavimMethod.Degrees26 -> tzais26Degrees ?: tzais120
-    TzeitHakochavimMethod.AteretTorah -> tzaisAteretTorah
-    TzeitHakochavimMethod.BaalHatanya -> tzaisBaalHatanya ?: tzais72
+internal fun ComplexZmanimCalendar.tzeit(
+    method: TzeitHakochavimMethod,
+    custom: CustomZmanValue,
+): Date? = when (method) {
+    TzeitHakochavimMethod.Degrees6Point2 -> sunsetByDegrees(6.2) ?: tzais50
+    TzeitHakochavimMethod.CustomDegrees -> sunsetByDegrees(custom.degrees)
+    TzeitHakochavimMethod.CustomMinutes -> minutesAfterSunset(custom.minutes)
+    TzeitHakochavimMethod.CustomZmaniyotMinutes -> zmaniyotAfterSunset(custom.zmaniyotMinutes)
 }
 
 /**
@@ -259,73 +285,48 @@ internal fun ComplexZmanimCalendar.tzeit(method: TzeitHakochavimMethod): Date? =
  */
 internal fun ComplexZmanimCalendar.holyDayExit(settings: ZmanimCalculationSettings): Date? =
     motzeiShabbat(settings)?.let {
-        AstronomicalCalendar.getTimeOffset(it, settings.holyDayTosefetMinutes.toLong() * 60_000)
+        AstronomicalCalendar.getTimeOffset(it, settings.holyDayTosefetMinutes.toLong() * MinuteMillis)
     }
 
-internal fun ComplexZmanimCalendar.motzeiShabbat(settings: ZmanimCalculationSettings): Date? = when (settings.motzeiShabbatMethod) {
-    MotzeiShabbatMethod.Degrees6Point2 -> getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 6.2) ?: tzais50
-    MotzeiShabbatMethod.Geonim3Point7 -> tzaisGeonim3Point7Degrees ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 18L * 60_000)
-    MotzeiShabbatMethod.Geonim3Point8 -> tzaisGeonim3Point8Degrees ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 18L * 60_000)
-    MotzeiShabbatMethod.Geonim4Point42 -> getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 4.42) ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 20L * 60_000)
-    MotzeiShabbatMethod.Geonim4Point66 -> getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + 4.66) ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 20L * 60_000)
-    MotzeiShabbatMethod.Geonim4Point8 -> tzaisGeonim4Point8Degrees ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 20L * 60_000)
-    MotzeiShabbatMethod.Geonim5Point95 -> tzaisGeonim5Point95Degrees ?: AstronomicalCalendar.getTimeOffset(seaLevelSunset, 24L * 60_000)
-    MotzeiShabbatMethod.Geonim6Point45 -> tzaisGeonim6Point45Degrees ?: tzais50
-    MotzeiShabbatMethod.Geonim7Point083 -> tzaisGeonim7Point083Degrees ?: tzais50
-    MotzeiShabbatMethod.Geonim7Point67 -> tzaisGeonim7Point67Degrees ?: tzais50
-    MotzeiShabbatMethod.Geonim8Point5 -> tzaisGeonim8Point5Degrees ?: tzais50
-    MotzeiShabbatMethod.Geonim9Point3 -> tzaisGeonim9Point3Degrees ?: tzais60
-    MotzeiShabbatMethod.Geonim9Point75 -> tzaisGeonim9Point75Degrees ?: tzais60
-    MotzeiShabbatMethod.Minutes50 -> tzais50
-    MotzeiShabbatMethod.Minutes60 -> tzais60
-    MotzeiShabbatMethod.Minutes72 -> tzais72
-    MotzeiShabbatMethod.Minutes90 -> tzais90
-    MotzeiShabbatMethod.Minutes96 -> tzais96
-    MotzeiShabbatMethod.Minutes120 -> tzais120
-    MotzeiShabbatMethod.Zmanis72 -> tzais72Zmanis
-    MotzeiShabbatMethod.Zmanis90 -> tzais90Zmanis
-    MotzeiShabbatMethod.Zmanis96 -> tzais96Zmanis
-    MotzeiShabbatMethod.Zmanis120 -> tzais120Zmanis
-    MotzeiShabbatMethod.Degrees16Point1 -> tzais16Point1Degrees ?: tzais72
-    MotzeiShabbatMethod.Degrees18 -> tzais18Degrees ?: tzais90
-    MotzeiShabbatMethod.Degrees19Point8 -> tzais19Point8Degrees ?: tzais96
-    MotzeiShabbatMethod.Degrees26 -> tzais26Degrees ?: tzais120
-    MotzeiShabbatMethod.AteretTorah -> tzaisAteretTorah
-    MotzeiShabbatMethod.BaalHatanya -> tzaisBaalHatanya ?: tzais72
-}
-
-internal fun ComplexZmanimCalendar.rabbeinuTam(method: RabbeinuTamMethod): Date? = when (method) {
-    RabbeinuTamMethod.Minutes72 -> tzais72
-    RabbeinuTamMethod.Minutes90 -> tzais90
-    RabbeinuTamMethod.Minutes120 -> tzais120
-    RabbeinuTamMethod.Zmanis72 -> tzais72Zmanis
-    RabbeinuTamMethod.Degrees16Point1 -> tzais16Point1Degrees
-    RabbeinuTamMethod.Degrees18 -> tzais18Degrees
-    RabbeinuTamMethod.Degrees19Point8 -> tzais19Point8Degrees
-    RabbeinuTamMethod.Degrees26 -> tzais26Degrees
-    RabbeinuTamMethod.BainHashmashot13Point24 -> bainHashmashosRT13Point24Degrees
-    RabbeinuTamMethod.BainHashmashot58Point5 -> bainHashmashosRT58Point5Minutes
-    RabbeinuTamMethod.BainHashmashot13Point5Before7Point083 -> bainHashmashosRT13Point5MinutesBefore7Point083Degrees
-    RabbeinuTamMethod.BainHashmashot2Stars -> bainHashmashosRT2Stars
-}
-
-internal fun ComplexZmanimCalendar.chametzTimes(method: ChametzMethod): Pair<Date?, Date?> = when (method) {
-    ChametzMethod.Gra -> sofZmanAchilasChametzGRA to sofZmanBiurChametzGRA
-    ChametzMethod.Mga72 -> sofZmanAchilasChametzMGA72Minutes to sofZmanBiurChametzMGA72Minutes
-    ChametzMethod.Mga72Zmanis -> {
-        val alos = alos72Zmanis
-        val shaahZmanis = shaahZmanis72MinutesZmanis
-        // KosherJava signals "no such time at this latitude" with Long.MIN_VALUE, and getTimeOffset
-        // only rejects that sentinel unmultiplied: shaahZmanis * 4 overflows to exactly 0, which
-        // would render the eating deadline as alot itself — a plausible-looking wrong time rather
-        // than an honest blank. Check before doing any arithmetic on it.
-        if (alos == null || shaahZmanis == Long.MIN_VALUE) {
-            null to null
-        } else {
-            AstronomicalCalendar.getTimeOffset(alos, shaahZmanis * 4) to
-                AstronomicalCalendar.getTimeOffset(alos, shaahZmanis * 5)
-        }
+internal fun ComplexZmanimCalendar.motzeiShabbat(settings: ZmanimCalculationSettings): Date? {
+    val custom = settings.motzeiShabbatCustom
+    return when (settings.motzeiShabbatMethod) {
+        MotzeiShabbatMethod.Degrees6Point2 -> sunsetByDegrees(6.2) ?: tzais50
+        MotzeiShabbatMethod.CustomDegrees -> sunsetByDegrees(custom.degrees)
+        MotzeiShabbatMethod.CustomMinutes -> minutesAfterSunset(custom.minutes)
+        MotzeiShabbatMethod.CustomZmaniyotMinutes -> zmaniyotAfterSunset(custom.zmaniyotMinutes)
     }
-    ChametzMethod.Mga16Point1 -> sofZmanAchilasChametzMGA16Point1Degrees to sofZmanBiurChametzMGA16Point1Degrees
-    ChametzMethod.BaalHatanya -> sofZmanAchilasChametzBaalHatanya to sofZmanBiurChametzBaalHatanya
+}
+
+internal fun ComplexZmanimCalendar.rabbeinuTam(settings: ZmanimCalculationSettings): Date? {
+    val custom = settings.rabbeinuTamCustom
+    return when (settings.rabbeinuTamMethod) {
+        RabbeinuTamMethod.Minutes72 -> tzais72
+        RabbeinuTamMethod.CustomDegrees -> sunsetByDegrees(custom.degrees)
+        RabbeinuTamMethod.CustomMinutes -> minutesAfterSunset(custom.minutes)
+        RabbeinuTamMethod.CustomZmaniyotMinutes -> zmaniyotAfterSunset(custom.zmaniyotMinutes)
+        RabbeinuTamMethod.BainHashmashot58Point5 -> bainHashmashosRT58Point5Minutes
+        RabbeinuTamMethod.BainHashmashot13Point5Before7Point083 -> bainHashmashosRT13Point5MinutesBefore7Point083Degrees
+        RabbeinuTamMethod.BainHashmashot2Stars -> bainHashmashosRT2Stars
+    }
+}
+
+internal fun ComplexZmanimCalendar.chametzTimes(settings: ZmanimCalculationSettings): Pair<Date?, Date?> {
+    val values = settings.chametzCustom
+    /**
+     * Four and five halachic hours into the day the custom [unit] defines: the last moment chametz
+     * may be eaten, and the last it may be owned.
+     */
+    fun custom(unit: CustomZmanUnit): Pair<Date?, Date?> {
+        val start = customDayStart(unit, values) ?: return null to null
+        val end = customDayEnd(unit, values) ?: return null to null
+        return getShaahZmanisBasedZman(start, end, 4.0) to getShaahZmanisBasedZman(start, end, 5.0)
+    }
+    return when (settings.chametzMethod) {
+        ChametzMethod.Gra -> sofZmanAchilasChametzGRA to sofZmanBiurChametzGRA
+        ChametzMethod.CustomDegrees -> custom(CustomZmanUnit.Degrees)
+        ChametzMethod.CustomMinutes -> custom(CustomZmanUnit.Minutes)
+        ChametzMethod.CustomZmaniyotMinutes -> custom(CustomZmanUnit.ZmaniyotMinutes)
+        ChametzMethod.BaalHatanya -> sofZmanAchilasChametzBaalHatanya to sofZmanBiurChametzBaalHatanya
+    }
 }

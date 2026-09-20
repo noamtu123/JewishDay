@@ -2,104 +2,71 @@
 
 package com.noamtu.jewishday.model
 
+/**
+ * How a custom option reads once its number is filled in — "16.4 degrees", "74 minutes", "74
+ * zmaniyot". This is what the zmanim row's caption shows, so the row says which opinion produced the
+ * time it is displaying, exactly as it does for a named one.
+ */
+fun customZmanLabel(unit: CustomZmanUnit, values: CustomZmanValue, hebrew: Boolean): String = when (unit) {
+    CustomZmanUnit.Degrees ->
+        if (hebrew) "${formatDegrees(values.degrees)} מעלות" else "${formatDegrees(values.degrees)} degrees"
+    CustomZmanUnit.Minutes ->
+        if (hebrew) "${values.minutes} דקות" else "${values.minutes} minutes"
+    CustomZmanUnit.ZmaniyotMinutes ->
+        if (hebrew) "${values.zmaniyotMinutes} דקות זמניות" else "${values.zmaniyotMinutes} zmaniyot"
+}
+
+/** Three decimals at most, and no trailing zeros: 19.848°, 16.1°, 18°. */
+private fun formatDegrees(value: Double): String {
+    val rounded = Math.round(value * 1000.0) / 1000.0
+    return if (rounded % 1.0 == 0.0) rounded.toInt().toString() else rounded.toString()
+}
+
 val AlotHashacharMethod.label: String get() = when (this) {
-    AlotHashacharMethod.Minutes60 -> "60 minutes"
-    AlotHashacharMethod.Minutes72 -> "72 minutes"
-    AlotHashacharMethod.Minutes90 -> "90 minutes"
-    AlotHashacharMethod.Minutes96 -> "96 minutes"
-    AlotHashacharMethod.Minutes120 -> "120 minutes"
-    AlotHashacharMethod.Zmanis72 -> "72 zmaniyot"
-    AlotHashacharMethod.Zmanis90 -> "90 zmaniyot"
-    AlotHashacharMethod.Zmanis96 -> "96 zmaniyot"
-    AlotHashacharMethod.Zmanis120 -> "120 zmaniyot"
-    AlotHashacharMethod.Degrees12 -> "12 degrees"
-    AlotHashacharMethod.Degrees14 -> "14 degrees"
-    AlotHashacharMethod.Degrees16 -> "16 degrees"
-    AlotHashacharMethod.Degrees16Point013 -> "16.013 degrees"
-    AlotHashacharMethod.Degrees16Point04 -> "16.04 degrees"
-    AlotHashacharMethod.Degrees16Point08 -> "16.08 degrees"
     AlotHashacharMethod.Degrees16Point1 -> "16.1 degrees"
-    AlotHashacharMethod.Degrees17Point5 -> "17.5 degrees"
-    AlotHashacharMethod.Degrees18 -> "18 degrees"
-    AlotHashacharMethod.Degrees19 -> "19 degrees"
-    AlotHashacharMethod.Degrees19Point75 -> "19.75 degrees"
-    AlotHashacharMethod.Degrees19Point784 -> "19.784 degrees"
-    AlotHashacharMethod.Degrees19Point8 -> "19.8 degrees"
-    AlotHashacharMethod.Degrees19Point848 -> "19.848 degrees"
-    AlotHashacharMethod.Degrees20 -> "20 degrees"
-    AlotHashacharMethod.Degrees26 -> "26 degrees"
-    AlotHashacharMethod.BaalHatanya -> "16.9 degrees (Baal Hatanya)"
+    AlotHashacharMethod.CustomDegrees -> "Degrees"
+    AlotHashacharMethod.CustomMinutes -> "Minutes"
+    AlotHashacharMethod.CustomZmaniyotMinutes -> "Zmaniyot minutes"
 }
 
 val AlotHashacharMethod.labelHebrew: String get() = when (this) {
-    AlotHashacharMethod.Minutes60 -> "60 דקות"
-    AlotHashacharMethod.Minutes72 -> "72 דקות"
-    AlotHashacharMethod.Minutes90 -> "90 דקות"
-    AlotHashacharMethod.Minutes96 -> "96 דקות"
-    AlotHashacharMethod.Minutes120 -> "120 דקות"
-    AlotHashacharMethod.Zmanis72 -> "72 דקות זמניות"
-    AlotHashacharMethod.Zmanis90 -> "90 דקות זמניות"
-    AlotHashacharMethod.Zmanis96 -> "96 דקות זמניות"
-    AlotHashacharMethod.Zmanis120 -> "120 דקות זמניות"
-    AlotHashacharMethod.Degrees12 -> "12 מעלות"
-    AlotHashacharMethod.Degrees14 -> "14 מעלות"
-    AlotHashacharMethod.Degrees16 -> "16 מעלות"
-    AlotHashacharMethod.Degrees16Point013 -> "16.013 מעלות"
-    AlotHashacharMethod.Degrees16Point04 -> "16.04 מעלות"
-    AlotHashacharMethod.Degrees16Point08 -> "16.08 מעלות"
     AlotHashacharMethod.Degrees16Point1 -> "16.1 מעלות"
-    AlotHashacharMethod.Degrees17Point5 -> "17.5 מעלות"
-    AlotHashacharMethod.Degrees18 -> "18 מעלות"
-    AlotHashacharMethod.Degrees19 -> "19 מעלות"
-    AlotHashacharMethod.Degrees19Point75 -> "19.75 מעלות"
-    AlotHashacharMethod.Degrees19Point784 -> "19.784 מעלות"
-    AlotHashacharMethod.Degrees19Point8 -> "19.8 מעלות"
-    AlotHashacharMethod.Degrees19Point848 -> "19.848 מעלות"
-    AlotHashacharMethod.Degrees20 -> "20 מעלות"
-    AlotHashacharMethod.Degrees26 -> "26 מעלות"
-    AlotHashacharMethod.BaalHatanya -> "16.9 מעלות / בעל התניא"
+    AlotHashacharMethod.CustomDegrees -> "מעלות"
+    AlotHashacharMethod.CustomMinutes -> "דקות"
+    AlotHashacharMethod.CustomZmaniyotMinutes -> "דקות זמניות"
+}
+
+/** Which unit this option is entered in, or null when it is a fixed or named opinion. */
+val AlotHashacharMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    AlotHashacharMethod.CustomDegrees -> CustomZmanUnit.Degrees
+    AlotHashacharMethod.CustomMinutes -> CustomZmanUnit.Minutes
+    AlotHashacharMethod.CustomZmaniyotMinutes -> CustomZmanUnit.ZmaniyotMinutes
+    AlotHashacharMethod.Degrees16Point1 -> null
 }
 
 val MisheyakirMethod.label: String get() = when (this) {
-    MisheyakirMethod.Degrees12Point85 -> "12.85 degrees"
-    MisheyakirMethod.Degrees12 -> "12 degrees"
-    MisheyakirMethod.Degrees11Point5 -> "11.5 degrees"
     MisheyakirMethod.Degrees11 -> "11 degrees"
-    MisheyakirMethod.Degrees10Point2 -> "10.2 degrees"
-    MisheyakirMethod.Degrees9Point5 -> "9.5 degrees"
-    MisheyakirMethod.Degrees7Point65 -> "7.65 degrees"
-    MisheyakirMethod.Minutes35BeforeSunrise -> "35 min before sunrise"
-    MisheyakirMethod.Minutes36BeforeSunrise -> "36 min before sunrise"
-    MisheyakirMethod.Minutes40BeforeSunrise -> "40 min before sunrise"
-    MisheyakirMethod.Minutes42BeforeSunrise -> "42 min before sunrise"
-    MisheyakirMethod.Minutes45BeforeSunrise -> "45 min before sunrise"
-    MisheyakirMethod.Minutes48BeforeSunrise -> "48 min before sunrise"
-    MisheyakirMethod.Minutes50BeforeSunrise -> "50 min before sunrise"
-    MisheyakirMethod.Minutes52BeforeSunrise -> "52 min before sunrise"
-    MisheyakirMethod.Minutes57BeforeSunrise -> "57 min before sunrise"
-    MisheyakirMethod.Minutes60BeforeSunrise -> "60 min before sunrise"
+    MisheyakirMethod.CustomDegrees -> "Degrees"
+    MisheyakirMethod.CustomMinutesBeforeSunrise -> "Minutes before sunrise"
+    MisheyakirMethod.CustomZmaniyotMinutesBeforeSunrise -> "Zmaniyot minutes before sunrise"
     MisheyakirMethod.Minutes6AfterAlos -> "6 min after alot hashachar"
 }
 
 val MisheyakirMethod.labelHebrew: String get() = when (this) {
-    MisheyakirMethod.Degrees12Point85 -> "12.85 מעלות"
-    MisheyakirMethod.Degrees12 -> "12 מעלות"
-    MisheyakirMethod.Degrees11Point5 -> "11.5 מעלות"
     MisheyakirMethod.Degrees11 -> "11 מעלות"
-    MisheyakirMethod.Degrees10Point2 -> "10.2 מעלות"
-    MisheyakirMethod.Degrees9Point5 -> "9.5 מעלות"
-    MisheyakirMethod.Degrees7Point65 -> "7.65 מעלות"
-    MisheyakirMethod.Minutes35BeforeSunrise -> "35 דקות לפני הנץ"
-    MisheyakirMethod.Minutes36BeforeSunrise -> "36 דקות לפני הנץ"
-    MisheyakirMethod.Minutes40BeforeSunrise -> "40 דקות לפני הנץ"
-    MisheyakirMethod.Minutes42BeforeSunrise -> "42 דקות לפני הנץ"
-    MisheyakirMethod.Minutes45BeforeSunrise -> "45 דקות לפני הנץ"
-    MisheyakirMethod.Minutes48BeforeSunrise -> "48 דקות לפני הנץ"
-    MisheyakirMethod.Minutes50BeforeSunrise -> "50 דקות לפני הנץ"
-    MisheyakirMethod.Minutes52BeforeSunrise -> "52 דקות לפני הנץ"
-    MisheyakirMethod.Minutes57BeforeSunrise -> "57 דקות לפני הנץ"
-    MisheyakirMethod.Minutes60BeforeSunrise -> "60 דקות לפני הנץ"
+    MisheyakirMethod.CustomDegrees -> "מעלות"
+    MisheyakirMethod.CustomMinutesBeforeSunrise -> "דקות לפני הנץ"
+    MisheyakirMethod.CustomZmaniyotMinutesBeforeSunrise -> "דקות זמניות לפני הנץ"
     MisheyakirMethod.Minutes6AfterAlos -> "6 דקות אחרי עלות השחר"
+}
+
+val MisheyakirMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    MisheyakirMethod.CustomDegrees -> CustomZmanUnit.Degrees
+    MisheyakirMethod.CustomMinutesBeforeSunrise -> CustomZmanUnit.Minutes
+    MisheyakirMethod.CustomZmaniyotMinutesBeforeSunrise -> CustomZmanUnit.ZmaniyotMinutes
+    MisheyakirMethod.Degrees11,
+    MisheyakirMethod.Minutes6AfterAlos,
+    -> null
 }
 
 val SunriseMethod.label: String get() = when (this) {
@@ -114,21 +81,13 @@ val SunriseMethod.labelHebrew: String get() = when (this) {
 
 val SofZmanShemaMethod.label: String get() = when (this) {
     SofZmanShemaMethod.Gra -> "GRA"
-    SofZmanShemaMethod.FixedLocalGra -> "Fixed local Chatzot"
-    SofZmanShemaMethod.Mga72 -> "72 minutes"
-    SofZmanShemaMethod.Mga72Zmanis -> "72 zmaniyot"
-    SofZmanShemaMethod.Mga90 -> "90 minutes"
-    SofZmanShemaMethod.Mga90Zmanis -> "90 zmaniyot"
-    SofZmanShemaMethod.Mga96 -> "96 minutes"
-    SofZmanShemaMethod.Mga96Zmanis -> "96 zmaniyot"
-    SofZmanShemaMethod.Mga120 -> "120 minutes"
+    SofZmanShemaMethod.FixedLocalGra -> "Rav Moshe Feinstein (fixed local Chatzot)"
     SofZmanShemaMethod.Mga16Point1 -> "16.1 degrees"
-    SofZmanShemaMethod.Mga18 -> "18 degrees"
-    SofZmanShemaMethod.Mga19Point8 -> "19.8 degrees"
-    SofZmanShemaMethod.Mga72ToFixedLocalChatzot -> "72 min to fixed local Chatzot"
-    SofZmanShemaMethod.Mga90ToFixedLocalChatzot -> "90 min to fixed local Chatzot"
-    SofZmanShemaMethod.Mga16Point1ToFixedLocalChatzot -> "16.1° to fixed local Chatzot"
-    SofZmanShemaMethod.Mga18ToFixedLocalChatzot -> "18° to fixed local Chatzot"
+    SofZmanShemaMethod.CustomDegrees -> "Degrees"
+    SofZmanShemaMethod.CustomMinutes -> "Minutes"
+    SofZmanShemaMethod.CustomZmaniyotMinutes -> "Zmaniyot minutes"
+    SofZmanShemaMethod.CustomDegreesToFixedLocalChatzot -> "Degrees to fixed local Chatzot"
+    SofZmanShemaMethod.CustomMinutesToFixedLocalChatzot -> "Minutes to fixed local Chatzot"
     SofZmanShemaMethod.Alos16Point1ToSunset -> "Alot 16.1° to sunset"
     SofZmanShemaMethod.Alos16Point1ToTzeit7Point083 -> "Alot 16.1° to Tzeit 7.083°"
     SofZmanShemaMethod.AteretTorah -> "Ateret Torah"
@@ -136,64 +95,70 @@ val SofZmanShemaMethod.label: String get() = when (this) {
 
 val SofZmanShemaMethod.labelHebrew: String get() = when (this) {
     SofZmanShemaMethod.Gra -> "גר״א"
-    SofZmanShemaMethod.FixedLocalGra -> "חצות מקומי קבוע"
-    SofZmanShemaMethod.Mga72 -> "72 דקות"
-    SofZmanShemaMethod.Mga72Zmanis -> "72 דקות זמניות"
-    SofZmanShemaMethod.Mga90 -> "90 דקות"
-    SofZmanShemaMethod.Mga90Zmanis -> "90 דקות זמניות"
-    SofZmanShemaMethod.Mga96 -> "96 דקות"
-    SofZmanShemaMethod.Mga96Zmanis -> "96 דקות זמניות"
-    SofZmanShemaMethod.Mga120 -> "120 דקות"
+    SofZmanShemaMethod.FixedLocalGra -> "רב משה פיינשטיין (חצות מקומי קבוע)"
     SofZmanShemaMethod.Mga16Point1 -> "16.1 מעלות"
-    SofZmanShemaMethod.Mga18 -> "18 מעלות"
-    SofZmanShemaMethod.Mga19Point8 -> "19.8 מעלות"
-    SofZmanShemaMethod.Mga72ToFixedLocalChatzot -> "72 דקות עד חצות מקומי קבוע"
-    SofZmanShemaMethod.Mga90ToFixedLocalChatzot -> "90 דקות עד חצות מקומי קבוע"
-    SofZmanShemaMethod.Mga16Point1ToFixedLocalChatzot -> "16.1 מעלות עד חצות מקומי קבוע"
-    SofZmanShemaMethod.Mga18ToFixedLocalChatzot -> "18 מעלות עד חצות מקומי קבוע"
+    SofZmanShemaMethod.CustomDegrees -> "מעלות"
+    SofZmanShemaMethod.CustomMinutes -> "דקות"
+    SofZmanShemaMethod.CustomZmaniyotMinutes -> "דקות זמניות"
+    SofZmanShemaMethod.CustomDegreesToFixedLocalChatzot -> "מעלות עד חצות מקומי קבוע"
+    SofZmanShemaMethod.CustomMinutesToFixedLocalChatzot -> "דקות עד חצות מקומי קבוע"
     SofZmanShemaMethod.Alos16Point1ToSunset -> "עלות 16.1 מעלות עד שקיעה"
     SofZmanShemaMethod.Alos16Point1ToTzeit7Point083 -> "עלות 16.1 מעלות עד צאת 7.083 מעלות"
     SofZmanShemaMethod.AteretTorah -> "עטרת תורה"
 }
 
+val SofZmanShemaMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    SofZmanShemaMethod.CustomDegrees,
+    SofZmanShemaMethod.CustomDegreesToFixedLocalChatzot,
+    -> CustomZmanUnit.Degrees
+    SofZmanShemaMethod.CustomMinutes,
+    SofZmanShemaMethod.CustomMinutesToFixedLocalChatzot,
+    -> CustomZmanUnit.Minutes
+    SofZmanShemaMethod.CustomZmaniyotMinutes -> CustomZmanUnit.ZmaniyotMinutes
+    SofZmanShemaMethod.Gra,
+    SofZmanShemaMethod.FixedLocalGra,
+    SofZmanShemaMethod.Mga16Point1,
+    SofZmanShemaMethod.Alos16Point1ToSunset,
+    SofZmanShemaMethod.Alos16Point1ToTzeit7Point083,
+    SofZmanShemaMethod.AteretTorah,
+    -> null
+}
+
 val SofZmanTefillahMethod.label: String get() = when (this) {
     SofZmanTefillahMethod.Gra -> "GRA"
-    SofZmanTefillahMethod.FixedLocalGra -> "Fixed local Chatzot"
-    SofZmanTefillahMethod.Mga72 -> "72 minutes"
-    SofZmanTefillahMethod.Mga72Zmanis -> "72 zmaniyot"
-    SofZmanTefillahMethod.Mga90 -> "90 minutes"
-    SofZmanTefillahMethod.Mga90Zmanis -> "90 zmaniyot"
-    SofZmanTefillahMethod.Mga96 -> "96 minutes"
-    SofZmanTefillahMethod.Mga96Zmanis -> "96 zmaniyot"
-    SofZmanTefillahMethod.Mga120 -> "120 minutes"
+    SofZmanTefillahMethod.FixedLocalGra -> "Rav Moshe Feinstein (fixed local Chatzot)"
     SofZmanTefillahMethod.Mga16Point1 -> "16.1 degrees"
-    SofZmanTefillahMethod.Mga18 -> "18 degrees"
-    SofZmanTefillahMethod.Mga19Point8 -> "19.8 degrees"
-    SofZmanTefillahMethod.Mga60 -> "60 minutes"
-    SofZmanTefillahMethod.Mga120Zmanis -> "120 zmaniyot"
-    SofZmanTefillahMethod.Mga26 -> "26 degrees"
+    SofZmanTefillahMethod.CustomDegrees -> "Degrees"
+    SofZmanTefillahMethod.CustomMinutes -> "Minutes"
+    SofZmanTefillahMethod.CustomZmaniyotMinutes -> "Zmaniyot minutes"
     SofZmanTefillahMethod.Alos16Point1ToSunset -> "Alot 16.1° to sunset"
     SofZmanTefillahMethod.Alos16Point1ToTzeit7Point083 -> "Alot 16.1° to Tzeit 7.083°"
+    SofZmanTefillahMethod.AteretTorah -> "Ateret Torah"
 }
 
 val SofZmanTefillahMethod.labelHebrew: String get() = when (this) {
     SofZmanTefillahMethod.Gra -> "גר״א"
-    SofZmanTefillahMethod.FixedLocalGra -> "חצות מקומי קבוע"
-    SofZmanTefillahMethod.Mga72 -> "72 דקות"
-    SofZmanTefillahMethod.Mga72Zmanis -> "72 דקות זמניות"
-    SofZmanTefillahMethod.Mga90 -> "90 דקות"
-    SofZmanTefillahMethod.Mga90Zmanis -> "90 דקות זמניות"
-    SofZmanTefillahMethod.Mga96 -> "96 דקות"
-    SofZmanTefillahMethod.Mga96Zmanis -> "96 דקות זמניות"
-    SofZmanTefillahMethod.Mga120 -> "120 דקות"
+    SofZmanTefillahMethod.FixedLocalGra -> "רב משה פיינשטיין (חצות מקומי קבוע)"
     SofZmanTefillahMethod.Mga16Point1 -> "16.1 מעלות"
-    SofZmanTefillahMethod.Mga18 -> "18 מעלות"
-    SofZmanTefillahMethod.Mga19Point8 -> "19.8 מעלות"
-    SofZmanTefillahMethod.Mga60 -> "60 דקות"
-    SofZmanTefillahMethod.Mga120Zmanis -> "120 דקות זמניות"
-    SofZmanTefillahMethod.Mga26 -> "26 מעלות"
+    SofZmanTefillahMethod.CustomDegrees -> "מעלות"
+    SofZmanTefillahMethod.CustomMinutes -> "דקות"
+    SofZmanTefillahMethod.CustomZmaniyotMinutes -> "דקות זמניות"
     SofZmanTefillahMethod.Alos16Point1ToSunset -> "עלות 16.1° עד שקיעה"
     SofZmanTefillahMethod.Alos16Point1ToTzeit7Point083 -> "עלות 16.1° עד צאת 7.083°"
+    SofZmanTefillahMethod.AteretTorah -> "עטרת תורה"
+}
+
+val SofZmanTefillahMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    SofZmanTefillahMethod.CustomDegrees -> CustomZmanUnit.Degrees
+    SofZmanTefillahMethod.CustomMinutes -> CustomZmanUnit.Minutes
+    SofZmanTefillahMethod.CustomZmaniyotMinutes -> CustomZmanUnit.ZmaniyotMinutes
+    SofZmanTefillahMethod.Gra,
+    SofZmanTefillahMethod.FixedLocalGra,
+    SofZmanTefillahMethod.Mga16Point1,
+    SofZmanTefillahMethod.Alos16Point1ToSunset,
+    SofZmanTefillahMethod.Alos16Point1ToTzeit7Point083,
+    SofZmanTefillahMethod.AteretTorah,
+    -> null
 }
 
 val ChatzotMethod.label: String get() = when (this) {
@@ -208,11 +173,12 @@ val ChatzotMethod.labelHebrew: String get() = when (this) {
 
 val MinchaGedolaMethod.label: String get() = when (this) {
     MinchaGedolaMethod.Standard -> "GRA"
+    MinchaGedolaMethod.CustomDegrees -> "Degrees"
+    MinchaGedolaMethod.CustomMinutes -> "Minutes"
+    MinchaGedolaMethod.CustomZmaniyotMinutes -> "Zmaniyot minutes"
     MinchaGedolaMethod.ThirtyMinutes -> "30 minutes after Chatzot"
     MinchaGedolaMethod.GreaterThan30 -> "Later of GRA and 30 min after Chatzot"
-    MinchaGedolaMethod.Mga72 -> "72 minutes"
-    MinchaGedolaMethod.Degrees16Point1 -> "16.1 degrees"
-    MinchaGedolaMethod.FixedLocal -> "30 min after fixed local Chatzot"
+    MinchaGedolaMethod.FixedLocal -> "Rav Moshe Feinstein (30 min after fixed local Chatzot)"
     MinchaGedolaMethod.BaalHatanya -> "Baal Hatanya"
     MinchaGedolaMethod.BaalHatanyaGreaterThan30 -> "Later of Baal Hatanya and 30 min after Chatzot"
     MinchaGedolaMethod.AteretTorah -> "Ateret Torah"
@@ -221,22 +187,39 @@ val MinchaGedolaMethod.label: String get() = when (this) {
 
 val MinchaGedolaMethod.labelHebrew: String get() = when (this) {
     MinchaGedolaMethod.Standard -> "גר״א"
+    MinchaGedolaMethod.CustomDegrees -> "מעלות"
+    MinchaGedolaMethod.CustomMinutes -> "דקות"
+    MinchaGedolaMethod.CustomZmaniyotMinutes -> "דקות זמניות"
     MinchaGedolaMethod.ThirtyMinutes -> "30 דקות אחרי חצות"
     MinchaGedolaMethod.GreaterThan30 -> "המאוחר מבין גר״א ו־30 דקות אחרי חצות"
-    MinchaGedolaMethod.Mga72 -> "72 דקות"
-    MinchaGedolaMethod.Degrees16Point1 -> "16.1 מעלות"
-    MinchaGedolaMethod.FixedLocal -> "30 דקות אחרי חצות מקומי קבוע"
+    MinchaGedolaMethod.FixedLocal -> "רב משה פיינשטיין (30 דקות אחרי חצות מקומי קבוע)"
     MinchaGedolaMethod.BaalHatanya -> "בעל התניא"
     MinchaGedolaMethod.BaalHatanyaGreaterThan30 -> "המאוחר מבין בעל התניא ו־30 דקות אחרי חצות"
     MinchaGedolaMethod.AteretTorah -> "עטרת תורה"
     MinchaGedolaMethod.AhavatShalom -> "אהבת שלום"
 }
 
+val MinchaGedolaMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    MinchaGedolaMethod.CustomDegrees -> CustomZmanUnit.Degrees
+    MinchaGedolaMethod.CustomMinutes -> CustomZmanUnit.Minutes
+    MinchaGedolaMethod.CustomZmaniyotMinutes -> CustomZmanUnit.ZmaniyotMinutes
+    MinchaGedolaMethod.Standard,
+    MinchaGedolaMethod.ThirtyMinutes,
+    MinchaGedolaMethod.GreaterThan30,
+    MinchaGedolaMethod.FixedLocal,
+    MinchaGedolaMethod.BaalHatanya,
+    MinchaGedolaMethod.BaalHatanyaGreaterThan30,
+    MinchaGedolaMethod.AteretTorah,
+    MinchaGedolaMethod.AhavatShalom,
+    -> null
+}
+
 val MinchaKetanaMethod.label: String get() = when (this) {
     MinchaKetanaMethod.Standard -> "GRA"
-    MinchaKetanaMethod.Mga72 -> "72 minutes"
-    MinchaKetanaMethod.Degrees16Point1 -> "16.1 degrees"
-    MinchaKetanaMethod.FixedLocal -> "Fixed local Chatzot to sunset"
+    MinchaKetanaMethod.CustomDegrees -> "Degrees"
+    MinchaKetanaMethod.CustomMinutes -> "Minutes"
+    MinchaKetanaMethod.CustomZmaniyotMinutes -> "Zmaniyot minutes"
+    MinchaKetanaMethod.FixedLocal -> "Rav Moshe Feinstein (fixed local Chatzot)"
     MinchaKetanaMethod.BaalHatanya -> "Baal Hatanya"
     MinchaKetanaMethod.AteretTorah -> "Ateret Torah"
     MinchaKetanaMethod.AhavatShalom -> "Ahavat Shalom"
@@ -244,32 +227,34 @@ val MinchaKetanaMethod.label: String get() = when (this) {
 
 val MinchaKetanaMethod.labelHebrew: String get() = when (this) {
     MinchaKetanaMethod.Standard -> "גר״א"
-    MinchaKetanaMethod.Mga72 -> "72 דקות"
-    MinchaKetanaMethod.Degrees16Point1 -> "16.1 מעלות"
-    MinchaKetanaMethod.FixedLocal -> "מחצות מקומי קבוע עד שקיעה"
+    MinchaKetanaMethod.CustomDegrees -> "מעלות"
+    MinchaKetanaMethod.CustomMinutes -> "דקות"
+    MinchaKetanaMethod.CustomZmaniyotMinutes -> "דקות זמניות"
+    MinchaKetanaMethod.FixedLocal -> "רב משה פיינשטיין (חצות מקומי קבוע)"
     MinchaKetanaMethod.BaalHatanya -> "בעל התניא"
     MinchaKetanaMethod.AteretTorah -> "עטרת תורה"
     MinchaKetanaMethod.AhavatShalom -> "אהבת שלום"
 }
 
+val MinchaKetanaMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    MinchaKetanaMethod.CustomDegrees -> CustomZmanUnit.Degrees
+    MinchaKetanaMethod.CustomMinutes -> CustomZmanUnit.Minutes
+    MinchaKetanaMethod.CustomZmaniyotMinutes -> CustomZmanUnit.ZmaniyotMinutes
+    MinchaKetanaMethod.Standard,
+    MinchaKetanaMethod.FixedLocal,
+    MinchaKetanaMethod.BaalHatanya,
+    MinchaKetanaMethod.AteretTorah,
+    MinchaKetanaMethod.AhavatShalom,
+    -> null
+}
+
 val PlagHaminchaMethod.label: String get() = when (this) {
     PlagHaminchaMethod.Gra -> "GRA"
-    PlagHaminchaMethod.Mga60 -> "60 minutes"
-    PlagHaminchaMethod.Mga72 -> "72 minutes"
-    PlagHaminchaMethod.Mga72Zmanis -> "72 zmaniyot"
-    PlagHaminchaMethod.Mga90 -> "90 minutes"
-    PlagHaminchaMethod.Mga90Zmanis -> "90 zmaniyot"
-    PlagHaminchaMethod.Mga96 -> "96 minutes"
-    PlagHaminchaMethod.Mga96Zmanis -> "96 zmaniyot"
-    PlagHaminchaMethod.Mga120 -> "120 minutes"
-    PlagHaminchaMethod.Mga120Zmanis -> "120 zmaniyot"
-    PlagHaminchaMethod.Degrees16Point1 -> "16.1 degrees"
-    PlagHaminchaMethod.Degrees18 -> "18 degrees"
-    PlagHaminchaMethod.Degrees19Point8 -> "19.8 degrees"
-    PlagHaminchaMethod.Degrees26 -> "26 degrees"
-    PlagHaminchaMethod.AlotToSunset -> "Alot 16.1° to sunset"
+    PlagHaminchaMethod.CustomDegrees -> "Degrees"
+    PlagHaminchaMethod.CustomMinutes -> "Minutes"
+    PlagHaminchaMethod.CustomZmaniyotMinutes -> "Zmaniyot minutes"
     PlagHaminchaMethod.Alot16Point1ToTzeit7Point083 -> "Alot 16.1° to Tzeit 7.083°"
-    PlagHaminchaMethod.FixedLocal -> "Fixed local Chatzot"
+    PlagHaminchaMethod.FixedLocal -> "Rav Moshe Feinstein (fixed local Chatzot)"
     PlagHaminchaMethod.BaalHatanya -> "Baal Hatanya"
     PlagHaminchaMethod.AteretTorah -> "Ateret Torah"
     PlagHaminchaMethod.AhavatShalom -> "Ahavat Shalom"
@@ -277,25 +262,27 @@ val PlagHaminchaMethod.label: String get() = when (this) {
 
 val PlagHaminchaMethod.labelHebrew: String get() = when (this) {
     PlagHaminchaMethod.Gra -> "גר״א"
-    PlagHaminchaMethod.Mga60 -> "60 דקות"
-    PlagHaminchaMethod.Mga72 -> "72 דקות"
-    PlagHaminchaMethod.Mga72Zmanis -> "72 דקות זמניות"
-    PlagHaminchaMethod.Mga90 -> "90 דקות"
-    PlagHaminchaMethod.Mga90Zmanis -> "90 דקות זמניות"
-    PlagHaminchaMethod.Mga96 -> "96 דקות"
-    PlagHaminchaMethod.Mga96Zmanis -> "96 דקות זמניות"
-    PlagHaminchaMethod.Mga120 -> "120 דקות"
-    PlagHaminchaMethod.Mga120Zmanis -> "120 דקות זמניות"
-    PlagHaminchaMethod.Degrees16Point1 -> "16.1 מעלות"
-    PlagHaminchaMethod.Degrees18 -> "18 מעלות"
-    PlagHaminchaMethod.Degrees19Point8 -> "19.8 מעלות"
-    PlagHaminchaMethod.Degrees26 -> "26 מעלות"
-    PlagHaminchaMethod.AlotToSunset -> "עלות 16.1° עד שקיעה"
+    PlagHaminchaMethod.CustomDegrees -> "מעלות"
+    PlagHaminchaMethod.CustomMinutes -> "דקות"
+    PlagHaminchaMethod.CustomZmaniyotMinutes -> "דקות זמניות"
     PlagHaminchaMethod.Alot16Point1ToTzeit7Point083 -> "עלות 16.1° עד צאת 7.083°"
-    PlagHaminchaMethod.FixedLocal -> "חצות מקומי קבוע"
+    PlagHaminchaMethod.FixedLocal -> "רב משה פיינשטיין (חצות מקומי קבוע)"
     PlagHaminchaMethod.BaalHatanya -> "בעל התניא"
     PlagHaminchaMethod.AteretTorah -> "עטרת תורה"
     PlagHaminchaMethod.AhavatShalom -> "אהבת שלום"
+}
+
+val PlagHaminchaMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    PlagHaminchaMethod.CustomDegrees -> CustomZmanUnit.Degrees
+    PlagHaminchaMethod.CustomMinutes -> CustomZmanUnit.Minutes
+    PlagHaminchaMethod.CustomZmaniyotMinutes -> CustomZmanUnit.ZmaniyotMinutes
+    PlagHaminchaMethod.Gra,
+    PlagHaminchaMethod.Alot16Point1ToTzeit7Point083,
+    PlagHaminchaMethod.FixedLocal,
+    PlagHaminchaMethod.BaalHatanya,
+    PlagHaminchaMethod.AteretTorah,
+    PlagHaminchaMethod.AhavatShalom,
+    -> null
 }
 
 val SunsetMethod.label: String get() = when (this) {
@@ -310,145 +297,54 @@ val SunsetMethod.labelHebrew: String get() = when (this) {
 
 val TzeitHakochavimMethod.label: String get() = when (this) {
     TzeitHakochavimMethod.Degrees6Point2 -> "6.2°"
-    TzeitHakochavimMethod.Geonim3Point7 -> "3.7°"
-    TzeitHakochavimMethod.Geonim3Point8 -> "3.8°"
-    TzeitHakochavimMethod.Geonim4Point42 -> "4.42°"
-    TzeitHakochavimMethod.Geonim4Point66 -> "4.66°"
-    TzeitHakochavimMethod.Geonim4Point8 -> "4.8°"
-    TzeitHakochavimMethod.Geonim5Point95 -> "5.95°"
-    TzeitHakochavimMethod.Geonim6Point45 -> "6.45°"
-    TzeitHakochavimMethod.Geonim7Point083 -> "7.083° / 7°5′"
-    TzeitHakochavimMethod.Geonim7Point67 -> "7.67°"
-    TzeitHakochavimMethod.Geonim8Point5 -> "8.5°"
-    TzeitHakochavimMethod.Geonim9Point3 -> "9.3°"
-    TzeitHakochavimMethod.Geonim9Point75 -> "9.75°"
-    TzeitHakochavimMethod.Minutes50 -> "50 minutes"
-    TzeitHakochavimMethod.Minutes60 -> "60 minutes"
-    TzeitHakochavimMethod.Minutes72 -> "72 minutes"
-    TzeitHakochavimMethod.Minutes90 -> "90 minutes"
-    TzeitHakochavimMethod.Minutes96 -> "96 minutes"
-    TzeitHakochavimMethod.Minutes120 -> "120 minutes"
-    TzeitHakochavimMethod.Zmanis72 -> "72 zmaniyot"
-    TzeitHakochavimMethod.Zmanis90 -> "90 zmaniyot"
-    TzeitHakochavimMethod.Zmanis96 -> "96 zmaniyot"
-    TzeitHakochavimMethod.Zmanis120 -> "120 zmaniyot"
-    TzeitHakochavimMethod.Degrees16Point1 -> "16.1°"
-    TzeitHakochavimMethod.Degrees18 -> "18°"
-    TzeitHakochavimMethod.Degrees19Point8 -> "19.8°"
-    TzeitHakochavimMethod.Degrees26 -> "26°"
-    TzeitHakochavimMethod.AteretTorah -> "Ateret Torah"
-    TzeitHakochavimMethod.BaalHatanya -> "Baal Hatanya"
+    TzeitHakochavimMethod.CustomDegrees -> "Degrees"
+    TzeitHakochavimMethod.CustomMinutes -> "Minutes"
+    TzeitHakochavimMethod.CustomZmaniyotMinutes -> "Zmaniyot minutes"
 }
 
 val TzeitHakochavimMethod.labelHebrew: String get() = when (this) {
     TzeitHakochavimMethod.Degrees6Point2 -> "צאת 6.2°"
-    TzeitHakochavimMethod.Geonim3Point7 -> "צאת 3.7°"
-    TzeitHakochavimMethod.Geonim3Point8 -> "צאת 3.8°"
-    TzeitHakochavimMethod.Geonim4Point42 -> "צאת 4.42°"
-    TzeitHakochavimMethod.Geonim4Point66 -> "צאת 4.66°"
-    TzeitHakochavimMethod.Geonim4Point8 -> "צאת 4.8°"
-    TzeitHakochavimMethod.Geonim5Point95 -> "צאת 5.95°"
-    TzeitHakochavimMethod.Geonim6Point45 -> "צאת 6.45°"
-    TzeitHakochavimMethod.Geonim7Point083 -> "צאת 7.083° / 7°5′"
-    TzeitHakochavimMethod.Geonim7Point67 -> "צאת 7.67°"
-    TzeitHakochavimMethod.Geonim8Point5 -> "צאת 8.5°"
-    TzeitHakochavimMethod.Geonim9Point3 -> "צאת 9.3°"
-    TzeitHakochavimMethod.Geonim9Point75 -> "צאת 9.75°"
-    TzeitHakochavimMethod.Minutes50 -> "צאת 50 דקות"
-    TzeitHakochavimMethod.Minutes60 -> "צאת 60 דקות"
-    TzeitHakochavimMethod.Minutes72 -> "צאת 72 דקות"
-    TzeitHakochavimMethod.Minutes90 -> "צאת 90 דקות"
-    TzeitHakochavimMethod.Minutes96 -> "צאת 96 דקות"
-    TzeitHakochavimMethod.Minutes120 -> "צאת 120 דקות"
-    TzeitHakochavimMethod.Zmanis72 -> "צאת 72 דקות זמניות"
-    TzeitHakochavimMethod.Zmanis90 -> "צאת 90 דקות זמניות"
-    TzeitHakochavimMethod.Zmanis96 -> "צאת 96 דקות זמניות"
-    TzeitHakochavimMethod.Zmanis120 -> "צאת 120 דקות זמניות"
-    TzeitHakochavimMethod.Degrees16Point1 -> "צאת 16.1°"
-    TzeitHakochavimMethod.Degrees18 -> "צאת 18°"
-    TzeitHakochavimMethod.Degrees19Point8 -> "צאת 19.8°"
-    TzeitHakochavimMethod.Degrees26 -> "צאת 26°"
-    TzeitHakochavimMethod.AteretTorah -> "צאת עטרת תורה"
-    TzeitHakochavimMethod.BaalHatanya -> "צאת בעל התניא"
+    TzeitHakochavimMethod.CustomDegrees -> "מעלות"
+    TzeitHakochavimMethod.CustomMinutes -> "דקות"
+    TzeitHakochavimMethod.CustomZmaniyotMinutes -> "דקות זמניות"
 }
 
-val CandleLightingMethod.label: String get() = "${offsetMinutes} minutes"
-val CandleLightingMethod.labelHebrew: String get() = "$offsetMinutes דקות"
+val TzeitHakochavimMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    TzeitHakochavimMethod.CustomDegrees -> CustomZmanUnit.Degrees
+    TzeitHakochavimMethod.CustomMinutes -> CustomZmanUnit.Minutes
+    TzeitHakochavimMethod.CustomZmaniyotMinutes -> CustomZmanUnit.ZmaniyotMinutes
+    TzeitHakochavimMethod.Degrees6Point2 -> null
+}
+
+val CandleLightingMethod.label: String get() = offsetMinutes?.let { "$it minutes" } ?: "Minutes"
+val CandleLightingMethod.labelHebrew: String get() = offsetMinutes?.let { "$it דקות" } ?: "דקות"
 
 val MotzeiShabbatMethod.label: String get() = when (this) {
     MotzeiShabbatMethod.Degrees6Point2 -> "6.2°"
-    MotzeiShabbatMethod.Geonim3Point7 -> "3.7°"
-    MotzeiShabbatMethod.Geonim3Point8 -> "3.8°"
-    MotzeiShabbatMethod.Geonim4Point42 -> "4.42°"
-    MotzeiShabbatMethod.Geonim4Point66 -> "4.66°"
-    MotzeiShabbatMethod.Geonim4Point8 -> "4.8°"
-    MotzeiShabbatMethod.Geonim5Point95 -> "5.95°"
-    MotzeiShabbatMethod.Geonim6Point45 -> "6.45°"
-    MotzeiShabbatMethod.Geonim7Point083 -> "7.083° / 7°5′"
-    MotzeiShabbatMethod.Geonim7Point67 -> "7.67°"
-    MotzeiShabbatMethod.Geonim8Point5 -> "8.5°"
-    MotzeiShabbatMethod.Geonim9Point3 -> "9.3°"
-    MotzeiShabbatMethod.Geonim9Point75 -> "9.75°"
-    MotzeiShabbatMethod.Minutes50 -> "50 minutes"
-    MotzeiShabbatMethod.Minutes60 -> "60 minutes"
-    MotzeiShabbatMethod.Minutes72 -> "72 minutes"
-    MotzeiShabbatMethod.Minutes90 -> "90 minutes"
-    MotzeiShabbatMethod.Minutes96 -> "96 minutes"
-    MotzeiShabbatMethod.Minutes120 -> "120 minutes"
-    MotzeiShabbatMethod.Zmanis72 -> "72 zmaniyot"
-    MotzeiShabbatMethod.Zmanis90 -> "90 zmaniyot"
-    MotzeiShabbatMethod.Zmanis96 -> "96 zmaniyot"
-    MotzeiShabbatMethod.Zmanis120 -> "120 zmaniyot"
-    MotzeiShabbatMethod.Degrees16Point1 -> "16.1°"
-    MotzeiShabbatMethod.Degrees18 -> "18°"
-    MotzeiShabbatMethod.Degrees19Point8 -> "19.8°"
-    MotzeiShabbatMethod.Degrees26 -> "26°"
-    MotzeiShabbatMethod.AteretTorah -> "Ateret Torah"
-    MotzeiShabbatMethod.BaalHatanya -> "Baal Hatanya"
+    MotzeiShabbatMethod.CustomDegrees -> "Degrees"
+    MotzeiShabbatMethod.CustomMinutes -> "Minutes"
+    MotzeiShabbatMethod.CustomZmaniyotMinutes -> "Zmaniyot minutes"
 }
 
 val MotzeiShabbatMethod.labelHebrew: String get() = when (this) {
     MotzeiShabbatMethod.Degrees6Point2 -> "צאת 6.2°"
-    MotzeiShabbatMethod.Geonim3Point7 -> "צאת 3.7°"
-    MotzeiShabbatMethod.Geonim3Point8 -> "צאת 3.8°"
-    MotzeiShabbatMethod.Geonim4Point42 -> "צאת 4.42°"
-    MotzeiShabbatMethod.Geonim4Point66 -> "צאת 4.66°"
-    MotzeiShabbatMethod.Geonim4Point8 -> "צאת 4.8°"
-    MotzeiShabbatMethod.Geonim5Point95 -> "צאת 5.95°"
-    MotzeiShabbatMethod.Geonim6Point45 -> "צאת 6.45°"
-    MotzeiShabbatMethod.Geonim7Point083 -> "צאת 7.083° / 7°5′"
-    MotzeiShabbatMethod.Geonim7Point67 -> "צאת 7.67°"
-    MotzeiShabbatMethod.Geonim8Point5 -> "צאת 8.5°"
-    MotzeiShabbatMethod.Geonim9Point3 -> "צאת 9.3°"
-    MotzeiShabbatMethod.Geonim9Point75 -> "צאת 9.75°"
-    MotzeiShabbatMethod.Minutes50 -> "צאת 50 דקות"
-    MotzeiShabbatMethod.Minutes60 -> "צאת 60 דקות"
-    MotzeiShabbatMethod.Minutes72 -> "צאת 72 דקות"
-    MotzeiShabbatMethod.Minutes90 -> "צאת 90 דקות"
-    MotzeiShabbatMethod.Minutes96 -> "צאת 96 דקות"
-    MotzeiShabbatMethod.Minutes120 -> "צאת 120 דקות"
-    MotzeiShabbatMethod.Zmanis72 -> "צאת 72 דקות זמניות"
-    MotzeiShabbatMethod.Zmanis90 -> "צאת 90 דקות זמניות"
-    MotzeiShabbatMethod.Zmanis96 -> "צאת 96 דקות זמניות"
-    MotzeiShabbatMethod.Zmanis120 -> "צאת 120 דקות זמניות"
-    MotzeiShabbatMethod.Degrees16Point1 -> "צאת 16.1°"
-    MotzeiShabbatMethod.Degrees18 -> "צאת 18°"
-    MotzeiShabbatMethod.Degrees19Point8 -> "צאת 19.8°"
-    MotzeiShabbatMethod.Degrees26 -> "צאת 26°"
-    MotzeiShabbatMethod.AteretTorah -> "צאת עטרת תורה"
-    MotzeiShabbatMethod.BaalHatanya -> "צאת בעל התניא"
+    MotzeiShabbatMethod.CustomDegrees -> "מעלות"
+    MotzeiShabbatMethod.CustomMinutes -> "דקות"
+    MotzeiShabbatMethod.CustomZmaniyotMinutes -> "דקות זמניות"
+}
+
+val MotzeiShabbatMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    MotzeiShabbatMethod.CustomDegrees -> CustomZmanUnit.Degrees
+    MotzeiShabbatMethod.CustomMinutes -> CustomZmanUnit.Minutes
+    MotzeiShabbatMethod.CustomZmaniyotMinutes -> CustomZmanUnit.ZmaniyotMinutes
+    MotzeiShabbatMethod.Degrees6Point2 -> null
 }
 
 val RabbeinuTamMethod.label: String get() = when (this) {
     RabbeinuTamMethod.Minutes72 -> "72 minutes"
-    RabbeinuTamMethod.Minutes90 -> "90 minutes"
-    RabbeinuTamMethod.Minutes120 -> "120 minutes"
-    RabbeinuTamMethod.Zmanis72 -> "72 zmaniyot"
-    RabbeinuTamMethod.Degrees16Point1 -> "16.1 degrees"
-    RabbeinuTamMethod.Degrees18 -> "18 degrees"
-    RabbeinuTamMethod.Degrees19Point8 -> "19.8 degrees"
-    RabbeinuTamMethod.Degrees26 -> "26 degrees"
-    RabbeinuTamMethod.BainHashmashot13Point24 -> "Bein Hashmashot 13.24°"
+    RabbeinuTamMethod.CustomDegrees -> "Degrees"
+    RabbeinuTamMethod.CustomMinutes -> "Minutes"
+    RabbeinuTamMethod.CustomZmaniyotMinutes -> "Zmaniyot minutes"
     RabbeinuTamMethod.BainHashmashot58Point5 -> "Bein Hashmashot 58.5 min"
     RabbeinuTamMethod.BainHashmashot13Point5Before7Point083 -> "Bein Hashmashot 13.5 min before 7.083°"
     RabbeinuTamMethod.BainHashmashot2Stars -> "Bein Hashmashot 2 stars"
@@ -456,31 +352,113 @@ val RabbeinuTamMethod.label: String get() = when (this) {
 
 val RabbeinuTamMethod.labelHebrew: String get() = when (this) {
     RabbeinuTamMethod.Minutes72 -> "72 דקות"
-    RabbeinuTamMethod.Minutes90 -> "90 דקות"
-    RabbeinuTamMethod.Minutes120 -> "120 דקות"
-    RabbeinuTamMethod.Zmanis72 -> "72 זמניות"
-    RabbeinuTamMethod.Degrees16Point1 -> "16.1 מעלות"
-    RabbeinuTamMethod.Degrees18 -> "18 מעלות"
-    RabbeinuTamMethod.Degrees19Point8 -> "19.8 מעלות"
-    RabbeinuTamMethod.Degrees26 -> "26 מעלות"
-    RabbeinuTamMethod.BainHashmashot13Point24 -> "בין השמשות 13.24°"
+    RabbeinuTamMethod.CustomDegrees -> "מעלות"
+    RabbeinuTamMethod.CustomMinutes -> "דקות"
+    RabbeinuTamMethod.CustomZmaniyotMinutes -> "דקות זמניות"
     RabbeinuTamMethod.BainHashmashot58Point5 -> "בין השמשות 58.5 דקות"
     RabbeinuTamMethod.BainHashmashot13Point5Before7Point083 -> "בין השמשות 13.5 דקות לפני 7.083°"
     RabbeinuTamMethod.BainHashmashot2Stars -> "בין השמשות שני כוכבים"
 }
 
+val RabbeinuTamMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    RabbeinuTamMethod.CustomDegrees -> CustomZmanUnit.Degrees
+    RabbeinuTamMethod.CustomMinutes -> CustomZmanUnit.Minutes
+    RabbeinuTamMethod.CustomZmaniyotMinutes -> CustomZmanUnit.ZmaniyotMinutes
+    RabbeinuTamMethod.Minutes72,
+    RabbeinuTamMethod.BainHashmashot58Point5,
+    RabbeinuTamMethod.BainHashmashot13Point5Before7Point083,
+    RabbeinuTamMethod.BainHashmashot2Stars,
+    -> null
+}
+
 val ChametzMethod.label: String get() = when (this) {
     ChametzMethod.Gra -> "GRA"
-    ChametzMethod.Mga72 -> "72 minutes"
-    ChametzMethod.Mga72Zmanis -> "72 zmaniyot"
-    ChametzMethod.Mga16Point1 -> "16.1 degrees"
+    ChametzMethod.CustomDegrees -> "Degrees"
+    ChametzMethod.CustomMinutes -> "Minutes"
+    ChametzMethod.CustomZmaniyotMinutes -> "Zmaniyot minutes"
     ChametzMethod.BaalHatanya -> "Baal Hatanya"
 }
 
 val ChametzMethod.labelHebrew: String get() = when (this) {
     ChametzMethod.Gra -> "גר״א"
-    ChametzMethod.Mga72 -> "72 דקות"
-    ChametzMethod.Mga72Zmanis -> "72 דקות זמניות"
-    ChametzMethod.Mga16Point1 -> "16.1 מעלות"
+    ChametzMethod.CustomDegrees -> "מעלות"
+    ChametzMethod.CustomMinutes -> "דקות"
+    ChametzMethod.CustomZmaniyotMinutes -> "דקות זמניות"
     ChametzMethod.BaalHatanya -> "בעל התניא"
+}
+
+val ChametzMethod.customUnit: CustomZmanUnit? get() = when (this) {
+    ChametzMethod.CustomDegrees -> CustomZmanUnit.Degrees
+    ChametzMethod.CustomMinutes -> CustomZmanUnit.Minutes
+    ChametzMethod.CustomZmaniyotMinutes -> CustomZmanUnit.ZmaniyotMinutes
+    ChametzMethod.Gra,
+    ChametzMethod.BaalHatanya,
+    -> null
+}
+
+// ---------------------------------------------------------------------------------------------
+// Captions
+//
+// What a zmanim row says underneath the time, and what the settings row shows as its value. A named
+// option reads as its name; a custom one reads as the number that was typed in, since "Custom
+// degrees" alone would not tell anyone which opinion produced the time above it.
+// ---------------------------------------------------------------------------------------------
+
+private fun captionOf(unit: CustomZmanUnit?, values: CustomZmanValue, fixed: String, hebrew: Boolean): String =
+    if (unit == null) fixed else customZmanLabel(unit, values, hebrew)
+
+fun AlotHashacharMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String =
+    captionOf(customUnit, settings.alotHashacharCustom, if (hebrew) labelHebrew else label, hebrew)
+
+fun MisheyakirMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String {
+    val unit = customUnit ?: return if (hebrew) labelHebrew else label
+    val value = customZmanLabel(unit, settings.misheyakirCustom, hebrew)
+    // Every option here but the degree one is an offset from something, and which something is the
+    // whole point, so the caption says it: "45 דקות לפני הנץ", not "45 דקות".
+    return when (this) {
+        MisheyakirMethod.CustomMinutesBeforeSunrise,
+        MisheyakirMethod.CustomZmaniyotMinutesBeforeSunrise,
+        -> if (hebrew) "$value לפני הנץ" else "$value before sunrise"
+        else -> value
+    }
+}
+
+fun SofZmanShemaMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String {
+    val unit = customUnit ?: return if (hebrew) labelHebrew else label
+    val value = customZmanLabel(unit, settings.sofZmanShemaCustom, hebrew)
+    return when (this) {
+        SofZmanShemaMethod.CustomDegreesToFixedLocalChatzot,
+        SofZmanShemaMethod.CustomMinutesToFixedLocalChatzot,
+        -> if (hebrew) "$value עד חצות מקומי קבוע" else "$value to fixed local Chatzot"
+        else -> value
+    }
+}
+
+fun SofZmanTefillahMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String =
+    captionOf(customUnit, settings.sofZmanTefillahCustom, if (hebrew) labelHebrew else label, hebrew)
+
+fun MinchaGedolaMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String =
+    captionOf(customUnit, settings.minchaGedolaCustom, if (hebrew) labelHebrew else label, hebrew)
+
+fun MinchaKetanaMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String =
+    captionOf(customUnit, settings.minchaKetanaCustom, if (hebrew) labelHebrew else label, hebrew)
+
+fun PlagHaminchaMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String =
+    captionOf(customUnit, settings.plagHaminchaCustom, if (hebrew) labelHebrew else label, hebrew)
+
+fun TzeitHakochavimMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String =
+    captionOf(customUnit, settings.tzeitHakochavimCustom, if (hebrew) labelHebrew else label, hebrew)
+
+fun MotzeiShabbatMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String =
+    captionOf(customUnit, settings.motzeiShabbatCustom, if (hebrew) labelHebrew else label, hebrew)
+
+fun RabbeinuTamMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String =
+    captionOf(customUnit, settings.rabbeinuTamCustom, if (hebrew) labelHebrew else label, hebrew)
+
+fun ChametzMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String =
+    captionOf(customUnit, settings.chametzCustom, if (hebrew) labelHebrew else label, hebrew)
+
+fun CandleLightingMethod.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String {
+    val minutes = offsetMinutes ?: settings.candleLightingCustomMinutes
+    return if (hebrew) "$minutes דקות" else "$minutes minutes"
 }

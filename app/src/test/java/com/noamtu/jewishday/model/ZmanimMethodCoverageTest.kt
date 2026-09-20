@@ -10,12 +10,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Every configurable option, not just the defaults.
+ * Every configurable option, not just the defaults — including the custom ones, which resolve
+ * against the numbers a fresh install starts with.
  *
- * `ZmanMethodResolversTest` covers the default of each zman, which leaves roughly 150 selectable
- * options unexercised. A resolver wired to the wrong KosherJava getter, or to one that returns null,
- * does not fail loudly — the row simply renders "--", or worse, a plausible time from the wrong
- * opinion. These walk every entry of every enum.
+ * `ZmanMethodResolversTest` covers the default of each zman. A resolver wired to the wrong KosherJava
+ * getter, or to one that returns null, does not fail loudly — the row simply renders "--", or worse, a
+ * plausible time from the wrong opinion. These walk every entry of every enum.
  *
  * Bounds are deliberately generous. The point is to catch a null or a wildly wrong getter, not to
  * assert a halachic ordering between opinions that legitimately disagree by hours.
@@ -113,7 +113,8 @@ class ZmanimMethodCoverageTest {
     @Test
     fun everyNightfallOptionResolves() {
         TzeitHakochavimMethod.entries.forEach { method ->
-            val time = calendar().tzeit(method)
+            val settings = defaults.copy(tzeitHakochavimMethod = method)
+            val time = calendar(settings = settings).tzeit(settings)
             assertWithinTheDay("Tzeit $method", time)
             assertTrue("Tzeit $method is not after sunset", time!!.after(sunset))
         }
@@ -124,7 +125,8 @@ class ZmanimMethodCoverageTest {
             assertTrue("Motzei $method is not after sunset", time!!.after(sunset))
         }
         RabbeinuTamMethod.entries.forEach { method ->
-            val time = calendar().rabbeinuTam(method)
+            val settings = defaults.copy(rabbeinuTamMethod = method)
+            val time = calendar(settings = settings).rabbeinuTam(settings)
             assertWithinTheDay("Rabbeinu Tam $method", time)
             assertTrue("Rabbeinu Tam $method is not after sunset", time!!.after(sunset))
         }
@@ -133,7 +135,8 @@ class ZmanimMethodCoverageTest {
     @Test
     fun everyChametzOptionResolvesInOrder() {
         ChametzMethod.entries.forEach { method ->
-            val (eating, burning) = calendar().chametzTimes(method)
+            val settings = defaults.copy(chametzMethod = method)
+            val (eating, burning) = calendar(settings = settings).chametzTimes(settings)
             assertWithinTheDay("Sof zman achilat chametz $method", eating)
             assertWithinTheDay("Sof zman biur chametz $method", burning)
             assertTrue("$method: eating deadline must precede burning", eating!!.before(burning!!))
@@ -148,8 +151,63 @@ class ZmanimMethodCoverageTest {
                 "Candle lighting $method resolved to null"
             }
             val minutesBefore = (sunset.time - lighting.time) / 60_000L
-            assertTrue("$method reported $minutesBefore min before sunset", minutesBefore == method.offsetMinutes.toLong())
+            // The custom option takes its offset from the settings rather than from the enum.
+            val expected = settings.candleLightingOffsetMinutes.toLong()
+            assertTrue("$method reported $minutesBefore min before sunset", minutesBefore == expected)
         }
+    }
+
+    /**
+     * Every custom option, in each of its three units, against a value that is not the default one —
+     * the resolvers build these by hand rather than calling a KosherJava getter, so a unit wired to
+     * the wrong end of the day would otherwise go unnoticed.
+     */
+    @Test
+    fun everyCustomOptionHonoursTheValueItIsGiven() {
+        val dawnUnits = mapOf(
+            CustomZmanUnit.Degrees to 17.3,
+            CustomZmanUnit.Minutes to 84.0,
+            CustomZmanUnit.ZmaniyotMinutes to 84.0,
+        )
+        dawnUnits.forEach { (unit, value) ->
+            val alot = defaults.copy(
+                alotHashacharMethod = when (unit) {
+                    CustomZmanUnit.Degrees -> AlotHashacharMethod.CustomDegrees
+                    CustomZmanUnit.Minutes -> AlotHashacharMethod.CustomMinutes
+                    CustomZmanUnit.ZmaniyotMinutes -> AlotHashacharMethod.CustomZmaniyotMinutes
+                },
+                alotHashacharCustom = defaults.alotHashacharCustom.withValue(unit, value),
+            )
+            val time = calendar(settings = alot).alotHashachar(alot)
+            assertWithinTheDay("Custom alot $unit", time)
+            assertTrue("Custom alot $unit is not before sunrise", time!!.before(sunrise))
+
+            val nightfall = defaults.copy(
+                tzeitHakochavimMethod = when (unit) {
+                    CustomZmanUnit.Degrees -> TzeitHakochavimMethod.CustomDegrees
+                    CustomZmanUnit.Minutes -> TzeitHakochavimMethod.CustomMinutes
+                    CustomZmanUnit.ZmaniyotMinutes -> TzeitHakochavimMethod.CustomZmaniyotMinutes
+                },
+                tzeitHakochavimCustom = defaults.tzeitHakochavimCustom.withValue(unit, value),
+            )
+            val tzeit = calendar(settings = nightfall).tzeit(nightfall)
+            assertWithinTheDay("Custom tzeit $unit", tzeit)
+            assertTrue("Custom tzeit $unit is not after sunset", tzeit!!.after(sunset))
+        }
+
+        // A larger degree value is a lower sun, so dawn moves earlier and nightfall later.
+        val shallow = defaults.copy(
+            alotHashacharMethod = AlotHashacharMethod.CustomDegrees,
+            alotHashacharCustom = defaults.alotHashacharCustom.withValue(CustomZmanUnit.Degrees, 14.0),
+        )
+        val deep = shallow.copy(
+            alotHashacharCustom = shallow.alotHashacharCustom.withValue(CustomZmanUnit.Degrees, 20.0),
+        )
+        assertTrue(
+            "20° dawn should precede 14° dawn",
+            requireNotNull(calendar(settings = deep).alotHashachar(deep))
+                .before(requireNotNull(calendar(settings = shallow).alotHashachar(shallow))),
+        )
     }
 
     @Test
@@ -175,13 +233,16 @@ class ZmanimMethodCoverageTest {
             complexZmanimCalendar(stockholm, midsummer, defaults).sofZmanTefillah(method, defaults)
         }
         TzeitHakochavimMethod.entries.forEach { method ->
-            complexZmanimCalendar(stockholm, midsummer, defaults).tzeit(method)
+            val settings = defaults.copy(tzeitHakochavimMethod = method)
+            complexZmanimCalendar(stockholm, midsummer, settings).tzeit(settings)
         }
         RabbeinuTamMethod.entries.forEach { method ->
-            complexZmanimCalendar(stockholm, midsummer, defaults).rabbeinuTam(method)
+            val settings = defaults.copy(rabbeinuTamMethod = method)
+            complexZmanimCalendar(stockholm, midsummer, settings).rabbeinuTam(settings)
         }
         ChametzMethod.entries.forEach { method ->
-            complexZmanimCalendar(stockholm, midsummer, defaults).chametzTimes(method)
+            val settings = defaults.copy(chametzMethod = method)
+            complexZmanimCalendar(stockholm, midsummer, settings).chametzTimes(settings)
         }
         MinchaGedolaMethod.entries.forEach { method ->
             val settings = defaults.copy(minchaGedolaMethod = method)
