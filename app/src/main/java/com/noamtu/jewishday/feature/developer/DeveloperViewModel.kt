@@ -7,10 +7,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
+import com.noamtu.jewishday.data.AppSettingsRepository
+import com.noamtu.jewishday.data.AppThemeOption
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
+import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.isInIsrael
+import com.noamtu.jewishday.model.jewishDayCivilDate
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import com.noamtu.jewishday.update.AppUpdateRepository
 import com.noamtu.jewishday.update.PendingUpdateStore
@@ -29,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -72,6 +77,7 @@ data class DeveloperUiState(
 class DeveloperViewModel @Inject constructor(
     private val developerOverridesRepository: DeveloperOverridesRepository,
     private val currentLocationRepository: CurrentLocationRepository,
+    private val appSettingsRepository: AppSettingsRepository,
     @ApplicationContext private val context: Context,
     private val clock: Clock,
     private val appUpdateRepository: AppUpdateRepository,
@@ -82,8 +88,9 @@ class DeveloperViewModel @Inject constructor(
     val uiState: StateFlow<DeveloperUiState> = combine(
         developerOverridesRepository.state,
         currentLocationRepository.currentLocation,
-    ) { overrides, _ ->
-        buildUiState(overrides)
+        appSettingsRepository.settings,
+    ) { overrides, _, settings ->
+        buildUiState(overrides, settings.zmanimSettings)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DeveloperUiState())
 
     private val _updateCheckResult = MutableStateFlow<String?>(null)
@@ -199,8 +206,24 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setCompassMonitoringEnabled(enabled)
     }
 
+    fun setGlassThemeAvailable(enabled: Boolean) = launchOverride {
+        developerOverridesRepository.setGlassThemeAvailable(enabled)
+        if (!enabled) leaveGlassTheme()
+    }
+
+    /**
+     * Glass is only offered while developer mode lists it. Once it is hidden, someone still on it
+     * would be stuck on a theme they cannot see or choose, so they go back to the default.
+     */
+    private suspend fun leaveGlassTheme() {
+        if (appSettingsRepository.settings.first().themeOption == AppThemeOption.Glass) {
+            appSettingsRepository.setThemeOption(AppThemeOption.Default)
+        }
+    }
+
     fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()
+        leaveGlassTheme()
         _updateCheckResult.value = null
         pendingUpdates.clear()
     }
@@ -208,6 +231,7 @@ class DeveloperViewModel @Inject constructor(
     /** Clears the overrides and locks the tools away again — see [DeveloperOverridesRepository]. */
     fun disableDeveloperMode() = launchOverride {
         developerOverridesRepository.disableDeveloperMode()
+        leaveGlassTheme()
         _updateCheckResult.value = null
         pendingUpdates.clear()
     }
@@ -221,14 +245,19 @@ class DeveloperViewModel @Inject constructor(
         }
     }
 
-    private fun buildUiState(overrides: DeveloperOverrides): DeveloperUiState {
+    private fun buildUiState(
+        overrides: DeveloperOverrides,
+        zmanimSettings: ZmanimCalculationSettings,
+    ): DeveloperUiState {
         val location = currentLocationRepository.currentLocationOrDefault()
         val inIsrael = location.isInIsrael
         val instant = clock.instant()
         val zoned = instant.atZone(location.zoneId)
         val localDate = zoned.toLocalDate()
 
-        val jewishCalendar = JewishCalendar(localDate).apply {
+        // The readout names the Hebrew date the app is showing, which rolls at tzeit like the main
+        // screen's header — shifting the clock past nightfall must move it to the next date.
+        val jewishCalendar = JewishCalendar(jewishDayCivilDate(location, zmanimSettings, instant)).apply {
             isUseModernHolidays = true
             setInIsrael(inIsrael)
         }

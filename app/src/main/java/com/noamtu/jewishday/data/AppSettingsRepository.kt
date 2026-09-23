@@ -58,6 +58,7 @@ enum class AppThemeOption(val storageValue: String) {
     Midnight("midnight"),
     Slate("slate"),
     AmoledBlack("amoled_black"),
+    Glass("glass"),
     ;
 
     companion object {

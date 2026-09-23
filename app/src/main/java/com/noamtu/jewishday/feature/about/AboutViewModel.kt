@@ -5,6 +5,7 @@ package com.noamtu.jewishday.feature.about
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.noamtu.jewishday.BuildConfig
+import com.noamtu.jewishday.update.AppVersion
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -37,12 +38,16 @@ class AboutViewModel @Inject constructor(
             overrides.spoofedVersionName
                 .takeIf { it.isNotBlank() }
                 ?.let { spoofed -> "$spoofed (spoofed)" }
-                ?: BuildConfig.VERSION_NAME
+                ?: RealVersionLabel
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BuildConfig.VERSION_NAME)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RealVersionLabel)
 
     fun unlockDeveloperMode() {
         viewModelScope.launch { developerOverridesRepository.setUnlocked(true) }
     }
 
 }
+
+/** This build's version as people see it — `pre-1.1.1` rather than `1.1.1-pre.1`. */
+private val RealVersionLabel: String =
+    AppVersion.parse(BuildConfig.VERSION_NAME)?.displayName ?: BuildConfig.VERSION_NAME

@@ -69,9 +69,12 @@ class DefaultJewishDayRepository @Inject constructor(
         return if (dayOffset == 0) {
             zmanimForDate(location, today, settings, now)
         } else {
-            // Carry today's tzeit roll over, so each step moves the Hebrew date by exactly one.
-            val hebrewDateRolled = jewishDayCivilDate(location, settings, now) != today
-            zmanimForDate(location, today.plusDays(dayOffset.toLong()), settings, null, hebrewDateRolled)
+            // Step from the Hebrew day on screen, not the civil one: after tzeit that is already
+            // tomorrow. A stepped day is shown whole and unrolled, so its header, times and holy-day
+            // entry/exit all belong to the same day — carrying the roll instead labelled each civil
+            // day with the next day's Hebrew date (erev Yom Kippur read "י׳ תשרי").
+            val shownDay = jewishDayCivilDate(location, settings, now)
+            zmanimForDate(location, shownDay.plusDays(dayOffset.toLong()), settings, null, false)
         }
     }
 

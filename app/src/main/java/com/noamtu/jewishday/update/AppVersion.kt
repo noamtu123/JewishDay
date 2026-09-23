@@ -25,6 +25,17 @@ data class AppVersion(
 
     val isPreRelease: Boolean get() = preRelease != null
 
+    /**
+     * How the version is shown to people: `1.1.1`, and a test build of it as `pre-1.1.1`, then
+     * `pre2-1.1.1`, … — "a preview of 1.1.1", with the count only once there is more than one.
+     * Tags and version names keep the standard `1.1.1-pre.N` ([toString]); this is display only.
+     */
+    val displayName: String get() = when (preRelease) {
+        null -> "$major.$minor.$patch"
+        1 -> "pre-$major.$minor.$patch"
+        else -> "pre$preRelease-$major.$minor.$patch"
+    }
+
     override fun toString(): String =
         if (preRelease == null) "$major.$minor.$patch" else "$major.$minor.$patch-pre.$preRelease"
 
