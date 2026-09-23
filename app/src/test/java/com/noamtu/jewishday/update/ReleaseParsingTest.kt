@@ -37,6 +37,11 @@ class ReleaseParsingTest {
 
         assertEquals("1.0.0-pre.3", AppVersion.parse("v1.0.0-pre.3").toString())
         assertEquals("1.0.0", AppVersion.parse("v1.0.0").toString())
+
+        // Shown to people as "a preview of 1.1.1", counted only from the second one.
+        assertEquals("1.1.1", AppVersion(1, 1, 1).displayName)
+        assertEquals("pre-1.1.1", AppVersion(1, 1, 1, preRelease = 1).displayName)
+        assertEquals("pre2-1.1.1", AppVersion(1, 1, 1, preRelease = 2).displayName)
     }
 
     @Test

@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.noamtu.jewishday.data.AppLanguage
 import com.noamtu.jewishday.data.AppThemeOption
 import com.noamtu.jewishday.data.AppSettingsRepository
+import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.model.AlotHashacharMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.ChametzMethod
@@ -28,11 +29,15 @@ import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.ZmanimTimeOption
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import com.noamtu.jewishday.BuildConfig
+import com.noamtu.jewishday.update.AppUpdateRepository
 import com.noamtu.jewishday.update.AppVersion
+import com.noamtu.jewishday.update.PendingUpdateStore
+import com.noamtu.jewishday.update.UpdateCheckReport
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -48,6 +53,8 @@ data class SettingsUiState(
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
     val candleLightingDefault: CandleLightingMethod? = null,
     val includePreReleases: Boolean = false,
+    /** The themes the picker lists: every one, less Glass unless developer mode offers it. */
+    val availableThemes: List<AppThemeOption> = AppThemeOption.entries - AppThemeOption.Glass,
     /** This build is itself a pre-release, which changes what turning the switch off can do. */
     val installedPreReleaseName: String? = null,
 )
@@ -56,9 +63,14 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val appSettingsRepository: AppSettingsRepository,
     private val dateStatusIconScheduler: DateStatusIconScheduler,
+    private val appUpdateRepository: AppUpdateRepository,
+    private val pendingUpdates: PendingUpdateStore,
+    developerOverridesRepository: DeveloperOverridesRepository,
 ) : ViewModel() {
-    val uiState: StateFlow<SettingsUiState> = appSettingsRepository.settings
-        .map { settings ->
+    val uiState: StateFlow<SettingsUiState> = combine(
+        appSettingsRepository.settings,
+        developerOverridesRepository.state,
+    ) { settings, overrides ->
             SettingsUiState(
                 hebrewDateStatusIconEnabled = settings.hebrewDateStatusIconEnabled,
                 language = settings.language,
@@ -70,6 +82,11 @@ class SettingsViewModel @Inject constructor(
                 candleLightingDefault = settings.candleLightingDefault,
                 includePreReleases = settings.includePreReleases,
                 installedPreReleaseName = InstalledPreReleaseName,
+                availableThemes = if (overrides.glassThemeAvailable) {
+                    AppThemeOption.entries
+                } else {
+                    AppThemeOption.entries - AppThemeOption.Glass
+                },
             )
         }
         .stateIn(
@@ -105,12 +122,23 @@ class SettingsViewModel @Inject constructor(
          * and is right even offline.
          */
         val InstalledPreReleaseName: String? =
-            BuildConfig.VERSION_NAME.takeIf { AppVersion.parse(it)?.isPreRelease == true }
+            AppVersion.parse(BuildConfig.VERSION_NAME)?.takeIf { it.isPreRelease }?.displayName
     }
 
     fun setIncludePreReleases(enabled: Boolean) {
         viewModelScope.launch {
             appSettingsRepository.setIncludePreReleases(enabled)
+            // The channel just changed, so what is worth offering did too: turning it on may find a
+            // test version, turning it off the stable one to go back to. Check now rather than on
+            // the next open, and let the result replace whatever the old channel had offered.
+            when (val report = appUpdateRepository.check()) {
+                is UpdateCheckReport.Available -> pendingUpdates.offer(report.release, report.isDowngrade)
+                is UpdateCheckReport.UpToDate,
+                is UpdateCheckReport.NoReleases,
+                -> pendingUpdates.clear()
+                // Never reached GitHub: nothing learned, so leave any existing offer alone.
+                is UpdateCheckReport.Failed -> Unit
+            }
         }
     }
 
