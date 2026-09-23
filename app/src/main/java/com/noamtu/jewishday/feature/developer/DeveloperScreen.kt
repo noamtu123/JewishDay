@@ -247,6 +247,23 @@ fun DeveloperScreen(
 
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("Appearance")
+                    SwitchRow(
+                        label = "Offer the Glass theme",
+                        checked = overrides.glassThemeAvailable,
+                        onCheckedChange = viewModel::setGlassThemeAvailable,
+                    )
+                    Text(
+                        text = "Lists the in-development Glass theme under Settings → Theme. " +
+                            "Turning this off hides it again and moves you back to the default theme.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+
+            item {
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
                     SectionTitle("English overrides")
                     SwitchRow(
                         label = "Show About page in English",
