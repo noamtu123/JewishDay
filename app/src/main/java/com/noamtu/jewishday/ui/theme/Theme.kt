@@ -10,6 +10,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
@@ -224,6 +225,38 @@ private val JerusalemStoneColors = lightColorScheme(
     onErrorContainer = Color(0xFF410001),
 )
 
+// Glass: light text over a deep sky, so every phase of the day's gradient keeps its contrast. The
+// solid colours here are what dialogs, menus and the window behind the app use; the see-through
+// ones are applied where the glass is drawn (see GlassTheme.kt).
+private val GlassColors = darkColorScheme(
+    primary = Color(0xFFA8D4FF),
+    onPrimary = Color(0xFF00315B),
+    primaryContainer = Color(0xFF2B4F7A),
+    onPrimaryContainer = Color(0xFFD6E9FF),
+    secondary = Color(0xFFC9C3F0),
+    onSecondary = Color(0xFF2C2650),
+    secondaryContainer = Color(0xFF433C6B),
+    onSecondaryContainer = Color(0xFFE6E0FF),
+    tertiary = Color(0xFFFFC9A8),
+    onTertiary = Color(0xFF4A2508),
+    tertiaryContainer = Color(0xFF6A3E22),
+    onTertiaryContainer = Color(0xFFFFE3D2),
+    background = Color(0xFF0E1530),
+    onBackground = Color(0xFFF1F4FF),
+    surface = Color(0xFF18203F),
+    onSurface = Color(0xFFF1F4FF),
+    surfaceVariant = Color(0xFF28304F),
+    onSurfaceVariant = Color(0xFFCBD2EA),
+    surfaceContainerHigh = Color(0xFF222A4A),
+    surfaceContainerHighest = Color(0xFF2A3354),
+    outline = Color(0xFF9AA3C2),
+    outlineVariant = Color(0xFF3A4366),
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005),
+    errorContainer = Color(0xFF8C2F2A),
+    onErrorContainer = Color(0xFFFFDAD6),
+)
+
 private val BaseTypography = Typography()
 
 private val AppTypography = Typography(
@@ -265,12 +298,14 @@ fun JewishDayTheme(
     themeOption: AppThemeOption = AppThemeOption.Default,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = staticColorScheme(themeOption),
-        typography = AppTypography,
-        shapes = AppShapes,
-        content = content,
-    )
+    CompositionLocalProvider(LocalGlassTheme provides (themeOption == AppThemeOption.Glass)) {
+        MaterialTheme(
+            colorScheme = staticColorScheme(themeOption),
+            typography = AppTypography,
+            shapes = AppShapes,
+            content = content,
+        )
+    }
 }
 
 fun appThemeBackgroundColor(themeOption: AppThemeOption): Int =
@@ -289,4 +324,5 @@ private fun staticColorScheme(themeOption: AppThemeOption): ColorScheme = when (
     AppThemeOption.Midnight -> MidnightColors
     AppThemeOption.Slate -> SlateColors
     AppThemeOption.AmoledBlack -> AmoledColors
+    AppThemeOption.Glass -> GlassColors
 }

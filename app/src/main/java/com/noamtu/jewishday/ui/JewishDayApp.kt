@@ -2,6 +2,18 @@
 
 package com.noamtu.jewishday.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import com.noamtu.jewishday.ui.theme.GlassBackdrop
+import com.noamtu.jewishday.ui.theme.LocalGlassStyle
+import com.noamtu.jewishday.ui.theme.LocalGlassTheme
 import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -425,6 +437,11 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUp
         } ?: AppDestination.Zmanim
     }
 
+    // Under the Glass theme the app's own chrome goes see-through so the sky shows behind it.
+    val glass = LocalGlassTheme.current
+    val chromeColor = if (glass) Color.Transparent else MaterialTheme.colorScheme.background
+
+    GlassBackdrop(modifier = Modifier.fillMaxSize()) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val useNavigationRail = maxWidth >= 840.dp
 
@@ -438,13 +455,13 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUp
             }
 
             Scaffold(
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = chromeColor,
                 topBar = {
                     CenterAlignedTopAppBar(
                         title = { Text(stringResource(currentAppDestination.labelRes(useHebrewInterface))) },
                         colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.background,
-                            scrolledContainerColor = MaterialTheme.colorScheme.background,
+                            containerColor = chromeColor,
+                            scrolledContainerColor = chromeColor,
                         ),
                         actions = {
                             val reportLabel = localizedString(R.string.report_issue, R.string.report_issue_hebrew)
@@ -510,6 +527,7 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUp
             }
         }
     }
+    }
 }
 
 private fun android.content.Context.openFeedbackEmail() {
@@ -526,6 +544,10 @@ private fun AppNavigationBar(
     useHebrewInterface: Boolean,
     onDestinationClick: (String) -> Unit,
 ) {
+    if (LocalGlassTheme.current) {
+        GlassNavigationPill(currentDestination, useHebrewInterface, onDestinationClick)
+        return
+    }
     NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
         AppDestination.bottomBarDestinations.forEach { destination ->
             val selected = currentDestination.isSelected(destination)
@@ -546,7 +568,7 @@ private fun AppNavigationRail(
     useHebrewInterface: Boolean,
     onDestinationClick: (String) -> Unit,
 ) {
-    NavigationRail(containerColor = MaterialTheme.colorScheme.surface) {
+    NavigationRail(containerColor = if (LocalGlassTheme.current) LocalGlassStyle.current.bar else MaterialTheme.colorScheme.surface) {
         AppDestination.bottomBarDestinations.forEach { destination ->
             val selected = currentDestination.isSelected(destination)
             val label = stringResource(destination.labelRes(useHebrewInterface))
@@ -576,5 +598,52 @@ private fun NavHostController.navigateTopLevelTo(route: String) {
 private fun NavHostController.navigateSecondaryTo(route: String) {
     navigate(route) {
         launchSingleTop = true
+    }
+}
+
+/**
+ * The Glass theme's navigation: a pill floating above the bottom edge instead of a bar across it,
+ * with the current tab picked out inside it.
+ */
+@Composable
+private fun GlassNavigationPill(
+    currentDestination: NavDestination?,
+    useHebrewInterface: Boolean,
+    onDestinationClick: (String) -> Unit,
+) {
+    val glass = LocalGlassStyle.current
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(bottom = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(CircleShape)
+                .background(glass.bar)
+                .border(1.dp, glass.edge, CircleShape)
+                .padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            AppDestination.bottomBarDestinations.forEach { destination ->
+                val selected = currentDestination.isSelected(destination)
+                val label = stringResource(destination.labelRes(useHebrewInterface))
+                val contentColor = if (selected) glass.onSelected else MaterialTheme.colorScheme.onSurface
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(if (selected) glass.selected else Color.Transparent)
+                        .clickable { onDestinationClick(destination.route) }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(destination.icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(18.dp))
+                    Text(label, color = contentColor, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
     }
 }
