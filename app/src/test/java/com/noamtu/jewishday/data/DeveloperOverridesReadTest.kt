@@ -35,10 +35,10 @@ class DeveloperOverridesReadTest {
 
         DeveloperOverridesRepository(dataStore, scope).setSpoofedVersionName("0.5.0")
 
-        // A repository built fresh, exactly as a cold launch builds one: its cached snapshot is
-        // still at the defaults, while the stored override is there to be read.
+        // A repository built fresh, exactly as a cold launch builds one. Its cached snapshot may or
+        // may not have caught up yet — the collector races this line, so the test does not assert
+        // on it — but current() must see the stored override either way.
         val reader = DeveloperOverridesRepository(dataStore, scope)
-        assertEquals("", reader.snapshot().spoofedVersionName)
         assertEquals("0.5.0", reader.current().spoofedVersionName)
 
         scope.cancel()

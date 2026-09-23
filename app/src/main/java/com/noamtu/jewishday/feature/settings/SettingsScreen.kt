@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -263,7 +264,7 @@ fun SettingsScreen(
             title = { Text(localizedString(R.string.settings_theme, R.string.settings_theme_hebrew)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AppThemeOption.entries.forEach { themeOption ->
+                    uiState.availableThemes.forEach { themeOption ->
                         ThemeOptionRow(
                             label = themeOption.localizedLabel(),
                             selected = themeOption == uiState.themeOption,
@@ -533,6 +534,7 @@ private fun AppThemeOption.localizedLabel(): String = when (this) {
     AppThemeOption.Midnight -> localizedString(R.string.theme_midnight, R.string.theme_midnight_hebrew)
     AppThemeOption.Slate -> localizedString(R.string.theme_slate, R.string.theme_slate_hebrew)
     AppThemeOption.AmoledBlack -> localizedString(R.string.theme_amoled_black, R.string.theme_amoled_black_hebrew)
+    AppThemeOption.Glass -> localizedString(R.string.theme_glass, R.string.theme_glass_hebrew)
 }
 
 private fun AlotHashacharMethod.localizedLabel(useHebrew: Boolean): String = if (useHebrew) labelHebrew else label
@@ -936,7 +938,8 @@ private fun AdvancedZmanimChoices(
             title = { Text(pickerConfig.title) },
             text = {
                 LazyColumn(
-                    modifier = Modifier.height(420.dp),
+                    // Sized to its options (most zmanim have two or three), scrolling only past the cap.
+                    modifier = Modifier.heightIn(max = 420.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(pickerConfig.options.size) { index ->

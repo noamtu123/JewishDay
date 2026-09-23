@@ -95,7 +95,7 @@ val SofZmanShemaMethod.label: String get() = when (this) {
 
 val SofZmanShemaMethod.labelHebrew: String get() = when (this) {
     SofZmanShemaMethod.Gra -> "גר״א"
-    SofZmanShemaMethod.FixedLocalGra -> "רב משה פיינשטיין (חצות מקומי קבוע)"
+    SofZmanShemaMethod.FixedLocalGra -> "הרב משה פיינשטיין (חצות מקומי קבוע)"
     SofZmanShemaMethod.Mga16Point1 -> "16.1 מעלות"
     SofZmanShemaMethod.CustomDegrees -> "מעלות"
     SofZmanShemaMethod.CustomMinutes -> "דקות"
@@ -138,7 +138,7 @@ val SofZmanTefillahMethod.label: String get() = when (this) {
 
 val SofZmanTefillahMethod.labelHebrew: String get() = when (this) {
     SofZmanTefillahMethod.Gra -> "גר״א"
-    SofZmanTefillahMethod.FixedLocalGra -> "רב משה פיינשטיין (חצות מקומי קבוע)"
+    SofZmanTefillahMethod.FixedLocalGra -> "הרב משה פיינשטיין (חצות מקומי קבוע)"
     SofZmanTefillahMethod.Mga16Point1 -> "16.1 מעלות"
     SofZmanTefillahMethod.CustomDegrees -> "מעלות"
     SofZmanTefillahMethod.CustomMinutes -> "דקות"
@@ -192,7 +192,7 @@ val MinchaGedolaMethod.labelHebrew: String get() = when (this) {
     MinchaGedolaMethod.CustomZmaniyotMinutes -> "דקות זמניות"
     MinchaGedolaMethod.ThirtyMinutes -> "30 דקות אחרי חצות"
     MinchaGedolaMethod.GreaterThan30 -> "המאוחר מבין גר״א ו־30 דקות אחרי חצות"
-    MinchaGedolaMethod.FixedLocal -> "רב משה פיינשטיין (30 דקות אחרי חצות מקומי קבוע)"
+    MinchaGedolaMethod.FixedLocal -> "הרב משה פיינשטיין (30 דקות אחרי חצות מקומי קבוע)"
     MinchaGedolaMethod.BaalHatanya -> "בעל התניא"
     MinchaGedolaMethod.BaalHatanyaGreaterThan30 -> "המאוחר מבין בעל התניא ו־30 דקות אחרי חצות"
     MinchaGedolaMethod.AteretTorah -> "עטרת תורה"
@@ -230,7 +230,7 @@ val MinchaKetanaMethod.labelHebrew: String get() = when (this) {
     MinchaKetanaMethod.CustomDegrees -> "מעלות"
     MinchaKetanaMethod.CustomMinutes -> "דקות"
     MinchaKetanaMethod.CustomZmaniyotMinutes -> "דקות זמניות"
-    MinchaKetanaMethod.FixedLocal -> "רב משה פיינשטיין (חצות מקומי קבוע)"
+    MinchaKetanaMethod.FixedLocal -> "הרב משה פיינשטיין (חצות מקומי קבוע)"
     MinchaKetanaMethod.BaalHatanya -> "בעל התניא"
     MinchaKetanaMethod.AteretTorah -> "עטרת תורה"
     MinchaKetanaMethod.AhavatShalom -> "אהבת שלום"
@@ -266,7 +266,7 @@ val PlagHaminchaMethod.labelHebrew: String get() = when (this) {
     PlagHaminchaMethod.CustomMinutes -> "דקות"
     PlagHaminchaMethod.CustomZmaniyotMinutes -> "דקות זמניות"
     PlagHaminchaMethod.Alot16Point1ToTzeit7Point083 -> "עלות 16.1° עד צאת 7.083°"
-    PlagHaminchaMethod.FixedLocal -> "רב משה פיינשטיין (חצות מקומי קבוע)"
+    PlagHaminchaMethod.FixedLocal -> "הרב משה פיינשטיין (חצות מקומי קבוע)"
     PlagHaminchaMethod.BaalHatanya -> "בעל התניא"
     PlagHaminchaMethod.AteretTorah -> "עטרת תורה"
     PlagHaminchaMethod.AhavatShalom -> "אהבת שלום"

@@ -12,8 +12,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.noamtu.jewishday.ui.theme.LocalGlassTheme
 
 val ScreenHorizontalPadding = 24.dp
 val ScreenVerticalPadding = 24.dp
@@ -35,7 +37,8 @@ fun ScreenSurface(
 ) {
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
+        // Glass: the sky behind the whole app shows through (see GlassBackdrop).
+        color = if (LocalGlassTheme.current) Color.Transparent else MaterialTheme.colorScheme.background,
     ) {
         Box(
             modifier = Modifier.fillMaxSize(),

@@ -147,13 +147,12 @@ class DefaultJewishDayRepositoryTest {
         )
 
         assertEquals(july2, repository.getZmanim(defaultJerusalemLocation).date)
-        assertEquals(july2.plusDays(1), repository.getZmanim(defaultJerusalemLocation, dayOffset = 1).date)
-        assertEquals(july2.minusDays(1), repository.getZmanim(defaultJerusalemLocation, dayOffset = -1).date)
-
-        // 21:00 is past tzeit, so today's Hebrew date has rolled. Stepped days carry the same roll,
-        // so every step moves the Hebrew date and weekday by exactly one — never ב straight to ד.
-        assertEquals(july2, repository.getZmanim(defaultJerusalemLocation, dayOffset = -1).displayedDate)
+        // 21:00 is past tzeit, so the screen already shows tomorrow's Hebrew date. Steps count from
+        // that day, and a stepped day is whole: its times and its Hebrew date are the same day's.
         assertEquals(july2.plusDays(1), repository.getZmanim(defaultJerusalemLocation).displayedDate)
+        assertEquals(july2, repository.getZmanim(defaultJerusalemLocation, dayOffset = -1).date)
+        assertEquals(july2, repository.getZmanim(defaultJerusalemLocation, dayOffset = -1).displayedDate)
+        assertEquals(july2.plusDays(2), repository.getZmanim(defaultJerusalemLocation, dayOffset = 1).date)
         assertEquals(july2.plusDays(2), repository.getZmanim(defaultJerusalemLocation, dayOffset = 1).displayedDate)
 
         // Before tzeit nothing has rolled, stepped days included.
