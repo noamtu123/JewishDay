@@ -207,8 +207,8 @@
     <string name="theme_slate_hebrew">אפור צפחה</string>
     <string name="theme_amoled_black">AMOLED black</string>
     <string name="theme_amoled_black_hebrew">שחור AMOLED</string>
-    <string name="theme_glass">Glass</string>
-    <string name="theme_glass_hebrew">זכוכית</string>
+    <string name="theme_glass">Glassy sky</string>
+    <string name="theme_glass_hebrew">שמי זכוכית</string>
     <string name="settings_language_hebrew">שפה</string>
     <string name="settings_language_description_hebrew">שפת הממשק לניווט ולתוויות האפליקציה.</string>
     <string name="about_tagline">A modern Jewish companion app.</string>

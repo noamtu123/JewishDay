@@ -3,6 +3,7 @@
 package com.noamtu.jewishday.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
@@ -13,6 +14,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -41,7 +43,10 @@ fun InfoCard(
             border = BorderStroke(1.dp, glass.edge),
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                // A faint sheen down from the top edge, the way light catches the top of real glass.
+                modifier = Modifier
+                    .background(Brush.verticalGradient(listOf(glass.edge.copy(alpha = 0.10f), Color.Transparent)))
+                    .padding(20.dp),
                 content = content,
             )
         }
