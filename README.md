@@ -13,7 +13,7 @@ app was: fully open source and free.
 - Shabbat and fast times — candle lighting, Motzei Shabbat, and Rabbeinu Tam
 - Daily learning (Daf Yomi, the daily Rambam, and more)
 - A compass that points toward Jerusalem for prayer
-- Full Hebrew and English interfaces, with light and dark themes
+- Full Hebrew and English interfaces, with many beautiful themes
 
 **Always-on Hebrew date.** An optional notification puts today's Hebrew day in your status bar
 and quietly rolls it over each day, so the date is always one glance away — no need to open the app.
