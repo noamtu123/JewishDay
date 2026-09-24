@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The home-screen widget's frame. updatePeriodMillis is 0 because the app schedules its own
+  refreshes: the sun has to move along its arc far more often than the system's half-hour minimum
+  would allow, and the app already knows when the sky changes. There is no previewImage or
+  previewLayout yet, so the picker shows the app icon until one is drawn.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:description="@string/widget_day_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minWidth="100dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="100dp"
+    android:minResizeHeight="40dp"
+    android:resizeMode="horizontal|vertical"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen"
+    tools:targetApi="s" />

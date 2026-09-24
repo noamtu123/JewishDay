@@ -13,6 +13,7 @@ app was: fully open source and free.
 - Shabbat and fast times — candle lighting, Motzei Shabbat, and Rabbeinu Tam
 - Daily learning (Daf Yomi, the daily Rambam, and more)
 - A compass that points toward Jerusalem for prayer
+- A home-screen widget with the day's Hebrew date, times and learning, under a sky that follows the sun and moon
 - Full Hebrew and English interfaces, with many beautiful themes
 
 **Always-on Hebrew date.** An optional notification puts today's Hebrew day in your status bar
@@ -34,6 +35,7 @@ in the same spirit of openness: every release still goes through tests, lint, an
 - [KosherJava](https://github.com/KosherJava/zmanim) for the Hebrew calendar and zmanim
 - The Hebcal API for daily-learning schedules
 - A foreground service that keeps the always-on Hebrew-date notification current
+- Jetpack Glance for the home-screen widget
 - Gradle build; single release variant, tested and linted on each build
 
 ## Building
