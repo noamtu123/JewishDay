@@ -2,6 +2,8 @@
 
 package com.noamtu.jewishday.feature.mizrach
 
+import androidx.compose.ui.graphics.luminance
+import com.noamtu.jewishday.ui.theme.LocalCelestialLight
 import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
@@ -595,6 +597,14 @@ private fun CompassFace(
     val outline = MaterialTheme.colorScheme.outlineVariant
     val primary = MaterialTheme.colorScheme.primary
     val alignedColor = MaterialTheme.colorScheme.tertiary
+    // Glass: once aligned the needle is the sun (or moon) in the sky right now — its colours and a
+    // soft halo like its own — rather than a flat accent.
+    val celestial = LocalCelestialLight.current
+    // On a dark face the needle is the light's bright centre; on a light face, the deeper shade
+    // it is seen as, so it stays readable there.
+    val onDarkFace = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    // The needle and the temple marker it points at are always the same colour.
+    val alignedMark = celestial?.let { if (onDarkFace) it.core else it.seen } ?: alignedColor
     val textColor = MaterialTheme.colorScheme.onSecondaryContainer
     val isAligned = alignment?.isAligned == true
 
@@ -648,7 +658,7 @@ private fun CompassFace(
             )
             if (showNeedle) {
                 drawNeedle(
-                    color = needleColor,
+                    color = if (isAligned) alignedMark else needleColor,
                     alpha = needleAlpha,
                     center = center,
                     tip = needleEnd,
@@ -659,7 +669,7 @@ private fun CompassFace(
             }
             drawTempleMarker(
                 center = Offset(center.x, center.y - radius + 32.dp.toPx()),
-                color = if (isAligned) alignedColor else primary,
+                color = if (isAligned) alignedMark else primary,
                 cutoutColor = surface,
             )
         }

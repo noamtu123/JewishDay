@@ -8,7 +8,10 @@ import androidx.lifecycle.viewModelScope
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
 import com.noamtu.jewishday.data.AppSettingsRepository
-import com.noamtu.jewishday.data.AppThemeOption
+import com.noamtu.jewishday.data.SkyPreview
+import com.noamtu.jewishday.model.skyDayFor
+import com.noamtu.jewishday.ui.theme.SkyPhase
+import com.noamtu.jewishday.ui.theme.skyPhases
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
@@ -33,7 +36,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -71,6 +73,10 @@ data class DeveloperUiState(
     // the moment the real state is built.
     val effectiveDate: LocalDate = LocalDate.of(1970, 1, 1),
     val effectiveTime: LocalTime = LocalTime.MIDNIGHT,
+    /** Today's pinned moments of the Sky theme, where each of its looks is at its fullest. */
+    val skyPhases: List<SkyPhase> = emptyList(),
+    /** The location's zone, in which those moments are shown. */
+    val skyZone: java.time.ZoneId = java.time.ZoneOffset.UTC,
 )
 
 @HiltViewModel
@@ -78,6 +84,7 @@ class DeveloperViewModel @Inject constructor(
     private val developerOverridesRepository: DeveloperOverridesRepository,
     private val currentLocationRepository: CurrentLocationRepository,
     private val appSettingsRepository: AppSettingsRepository,
+    private val skyPreview: SkyPreview,
     @ApplicationContext private val context: Context,
     private val clock: Clock,
     private val appUpdateRepository: AppUpdateRepository,
@@ -206,24 +213,22 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setCompassMonitoringEnabled(enabled)
     }
 
-    fun setGlassThemeAvailable(enabled: Boolean) = launchOverride {
-        developerOverridesRepository.setGlassThemeAvailable(enabled)
-        if (!enabled) leaveGlassTheme()
+    fun setHideTimeOverrideBanner(hidden: Boolean) = launchOverride {
+        developerOverridesRepository.setHideTimeOverrideBanner(hidden)
     }
 
-    /**
-     * Glass is only offered while developer mode lists it. Once it is hidden, someone still on it
-     * would be stuck on a theme they cannot see or choose, so they go back to the default.
-     */
-    private suspend fun leaveGlassTheme() {
-        if (appSettingsRepository.settings.first().themeOption == AppThemeOption.Glass) {
-            appSettingsRepository.setThemeOption(AppThemeOption.Default)
-        }
-    }
+    /** The Sky theme's time of day, for the backdrop alone — see [SkyPreview]. */
+    val skyPreviewTime: StateFlow<LocalTime?> = skyPreview.time
+    val skyPreviewPlaying: StateFlow<Boolean> = skyPreview.playing
+
+    fun showSkyAt(time: LocalTime) = skyPreview.show(time)
+    fun playSkyDay() = skyPreview.play()
+    fun stopSkyDay() = skyPreview.stop()
+    fun followClockWithSky() = skyPreview.clear()
 
     fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()
-        leaveGlassTheme()
+        skyPreview.clear()
         _updateCheckResult.value = null
         pendingUpdates.clear()
     }
@@ -231,7 +236,7 @@ class DeveloperViewModel @Inject constructor(
     /** Clears the overrides and locks the tools away again — see [DeveloperOverridesRepository]. */
     fun disableDeveloperMode() = launchOverride {
         developerOverridesRepository.disableDeveloperMode()
-        leaveGlassTheme()
+        skyPreview.clear()
         _updateCheckResult.value = null
         pendingUpdates.clear()
     }
@@ -272,6 +277,8 @@ class DeveloperViewModel @Inject constructor(
             dayInfo = describeDay(jewishCalendar),
             effectiveDate = localDate,
             effectiveTime = zoned.toLocalTime(),
+            skyZone = location.zoneId,
+            skyPhases = skyPhases(skyDayFor(location, localDate, zmanimSettings), localDate, location.zoneId),
         )
     }
 
