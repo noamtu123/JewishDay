@@ -4,7 +4,7 @@ A modern Jewish companion app — free and open source.
 
 JewishDay shows the Hebrew date, the day's zmanim, and your daily learning, and can keep
 today's Hebrew date on your phone at all times. It's built to be the kind of app I wish every
-app was: fully free and open source.
+app was: fully open source and free. 
 
 ## Features
 
@@ -13,7 +13,7 @@ app was: fully free and open source.
 - Shabbat and fast times — candle lighting, Motzei Shabbat, and Rabbeinu Tam
 - Daily learning (Daf Yomi, the daily Rambam, and more)
 - A compass that points toward Jerusalem for prayer
-- Full Hebrew and English interfaces, with light and dark themes
+- Full Hebrew and English interfaces, with many beautiful themes
 
 **Always-on Hebrew date.** An optional notification puts today's Hebrew day in your status bar
 and quietly rolls it over each day, so the date is always one glance away — no need to open the app.
