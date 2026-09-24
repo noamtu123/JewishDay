@@ -2,6 +2,10 @@
 
 package com.noamtu.jewishday.feature.zmanim
 
+import com.noamtu.jewishday.ui.theme.LocalGlassTheme
+import com.noamtu.jewishday.ui.theme.glassBorder
+import com.noamtu.jewishday.ui.theme.glassOr
+import com.noamtu.jewishday.ui.theme.glassTint
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -204,6 +208,7 @@ private fun ZmanimContent(
                         .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 4.dp),
                 )
             }
+            val glassTheme = LocalGlassTheme.current
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 // Whatever sits last above the list — a card, the warning line, or the day stepper
@@ -216,11 +221,21 @@ private fun ZmanimContent(
                     bottom = ScreenVerticalPadding,
                 ),
             ) {
+                val glass = glassTheme
                 groups.forEach { group ->
                     val title = if (useHebrew) group.titleHebrew else group.title
                     if (title.isNotBlank()) {
-                        stickyHeader(key = group.key, contentType = "group-header") {
-                            ZmanimGroupHeader(group = group, useHebrew = useHebrew)
+                        // Pinned while its section scrolls, which needs a solid backing so the rows
+                        // do not show through it. Glass has nothing solid to give it, so there the
+                        // title scrolls away with its rows instead.
+                        if (glass) {
+                            item(key = group.key, contentType = "group-header") {
+                                ZmanimGroupHeader(group = group, useHebrew = useHebrew)
+                            }
+                        } else {
+                            stickyHeader(key = group.key, contentType = "group-header") {
+                                ZmanimGroupHeader(group = group, useHebrew = useHebrew)
+                            }
                         }
                     }
                     items(
@@ -254,7 +269,8 @@ private fun CandleLightingPrompt(
     Surface(
         modifier = modifier.clickable { showDialog = true },
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.secondaryContainer,
+        color = glassOr(MaterialTheme.colorScheme.secondaryContainer),
+        border = glassBorder(),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -485,7 +501,8 @@ private fun DateBar(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.primaryContainer,
+        color = glassOr(MaterialTheme.colorScheme.primaryContainer),
+        border = glassBorder(),
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
             val gregorianDate = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate
@@ -563,7 +580,7 @@ private fun ObservanceChip(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.tertiaryContainer,
+        color = glassTint(MaterialTheme.colorScheme.tertiaryContainer),
     ) {
         Text(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
@@ -589,7 +606,8 @@ private fun ObservanceTimesCard(
     Surface(
         modifier = modifier,
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.secondaryContainer,
+        color = glassOr(MaterialTheme.colorScheme.secondaryContainer),
+        border = glassBorder(),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
@@ -616,11 +634,13 @@ private fun ZmanimGroupHeader(
     useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    // Opaque background so rows don't bleed through while the header is pinned.
+    // Opaque background so rows don't bleed through while the header is pinned. In Glass the
+    // header is not pinned (see the list), so it is plain text straight on the sky.
+    val glass = LocalGlassTheme.current
     Text(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
+            .then(if (glass) Modifier else Modifier.background(MaterialTheme.colorScheme.background))
             .padding(top = 16.dp, bottom = 6.dp, start = 4.dp, end = 4.dp),
         text = if (useHebrew) group.titleHebrew else group.title,
         style = MaterialTheme.typography.titleMedium,
@@ -712,7 +732,7 @@ private fun ZmanimRow(
 private fun ValueBubble(text: String, valueStyle: androidx.compose.ui.text.TextStyle) {
     Surface(
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.primaryContainer,
+        color = glassTint(MaterialTheme.colorScheme.primaryContainer),
     ) {
         Text(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),

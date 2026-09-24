@@ -273,7 +273,7 @@ class ZmanimViewModel @Inject constructor(
             enabledZmanimTimes = settings.enabledZmanimTimes,
             enabledDailyLearning = settings.enabledDailyLearning,
             showCandleLightingPrompt = !settings.candleLightingPromptHandled,
-            developerTimeOverrideActive = overrides.timeOverrideEnabled,
+            developerTimeOverrideActive = overrides.timeOverrideEnabled && !overrides.hideTimeOverrideBanner,
             dayOffset = dayOffset,
         )
     }

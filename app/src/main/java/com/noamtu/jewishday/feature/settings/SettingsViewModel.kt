@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.noamtu.jewishday.data.AppLanguage
 import com.noamtu.jewishday.data.AppThemeOption
 import com.noamtu.jewishday.data.AppSettingsRepository
-import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.model.AlotHashacharMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.ChametzMethod
@@ -37,7 +36,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -53,8 +51,6 @@ data class SettingsUiState(
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
     val candleLightingDefault: CandleLightingMethod? = null,
     val includePreReleases: Boolean = false,
-    /** The themes the picker lists: every one, less Glass unless developer mode offers it. */
-    val availableThemes: List<AppThemeOption> = AppThemeOption.entries - AppThemeOption.Glass,
     /** This build is itself a pre-release, which changes what turning the switch off can do. */
     val installedPreReleaseName: String? = null,
 )
@@ -65,12 +61,9 @@ class SettingsViewModel @Inject constructor(
     private val dateStatusIconScheduler: DateStatusIconScheduler,
     private val appUpdateRepository: AppUpdateRepository,
     private val pendingUpdates: PendingUpdateStore,
-    developerOverridesRepository: DeveloperOverridesRepository,
 ) : ViewModel() {
-    val uiState: StateFlow<SettingsUiState> = combine(
-        appSettingsRepository.settings,
-        developerOverridesRepository.state,
-    ) { settings, overrides ->
+    val uiState: StateFlow<SettingsUiState> = appSettingsRepository.settings
+        .map { settings ->
             SettingsUiState(
                 hebrewDateStatusIconEnabled = settings.hebrewDateStatusIconEnabled,
                 language = settings.language,
@@ -82,11 +75,6 @@ class SettingsViewModel @Inject constructor(
                 candleLightingDefault = settings.candleLightingDefault,
                 includePreReleases = settings.includePreReleases,
                 installedPreReleaseName = InstalledPreReleaseName,
-                availableThemes = if (overrides.glassThemeAvailable) {
-                    AppThemeOption.entries
-                } else {
-                    AppThemeOption.entries - AppThemeOption.Glass
-                },
             )
         }
         .stateIn(

@@ -3,12 +3,15 @@
 package com.noamtu.jewishday.ui.theme
 
 import android.app.Activity
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -19,14 +22,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.PI
+import kotlin.math.pow
 import kotlin.math.sin
 
 /** True while the Glass theme is in use: surfaces go see-through over the sky backdrop. */
@@ -63,56 +74,92 @@ private val LightGlass = GlassStyle(
 
 val LocalGlassStyle = staticCompositionLocalOf { DarkGlass }
 
-// Glass over the night and dusk skies: light text, solid navy for dialogs and menus.
+/** In Glass a solid container becomes a pane of glass; under every other theme it is [color]. */
+@Composable
+fun glassOr(color: Color): Color = if (LocalGlassTheme.current) LocalGlassStyle.current.fill else color
+
+/** In Glass an accent container keeps its hue but lets the sky through; otherwise [color]. */
+@Composable
+fun glassTint(color: Color): Color = if (LocalGlassTheme.current) color.copy(alpha = 0.45f) else color
+
+/** The lit edge a glass pane carries, or none under the other themes. */
+@Composable
+fun glassBorder(): BorderStroke? =
+    if (LocalGlassTheme.current) BorderStroke(1.dp, LocalGlassStyle.current.edge) else null
+
+// Glass over the night and dusk skies: light text, periwinkle accents, warm gold for "good" (the
+// compass once aligned) — the sun's and candlelight's colour, so it belongs to the sky — and soft
+// coral for warnings and fasts. Every role is set — a role left out
+// falls back to Material's baseline purple, which is what made chips and the compass look foreign.
 private val GlassNightColors = darkColorScheme(
-    primary = Color(0xFFB9D6FF),
-    onPrimary = Color(0xFF00315B),
-    primaryContainer = Color(0xFF2B4F7A),
-    onPrimaryContainer = Color(0xFFD6E9FF),
-    secondary = Color(0xFFCFC8F5),
-    secondaryContainer = Color(0xFF433C6B),
-    onSecondaryContainer = Color(0xFFE6E0FF),
-    tertiary = Color(0xFFFFC9A8),
+    primary = Color(0xFFB9C8FF),
+    onPrimary = Color(0xFF1A2466),
+    primaryContainer = Color(0xFF36407F),
+    onPrimaryContainer = Color(0xFFDEE3FF),
+    secondary = Color(0xFFC8C3EE),
+    onSecondary = Color(0xFF2E2A55),
+    secondaryContainer = Color(0xFF3B3868),
+    onSecondaryContainer = Color(0xFFE4E0FF),
+    tertiary = Color(0xFFFFD68A),
+    onTertiary = Color(0xFF3D2A00),
+    tertiaryContainer = Color(0xFF5A4418),
+    onTertiaryContainer = Color(0xFFFFE9B8),
     background = Color(0xFF0E1530),
-    onBackground = Color.White,
-    surface = Color(0xFF18203F),
-    onSurface = Color.White,
-    surfaceVariant = Color(0xFF28304F),
-    onSurfaceVariant = Color(0xFFD4DAF0),
+    onBackground = Color(0xFFF4F5FF),
+    surface = Color(0xFF181E3E),
+    onSurface = Color(0xFFF4F5FF),
+    surfaceVariant = Color(0xFF282F52),
+    onSurfaceVariant = Color(0xFFCDD2EC),
+    surfaceContainerLowest = Color(0xFF0E1330),
+    surfaceContainerLow = Color(0xFF161C3A),
+    surfaceContainer = Color(0xFF1B2242),
     surfaceContainerHigh = Color(0xFF222A4A),
     surfaceContainerHighest = Color(0xFF2A3354),
+    inverseSurface = Color(0xFFE6E8F6),
+    inverseOnSurface = Color(0xFF1B1F36),
+    inversePrimary = Color(0xFF3B4FB8),
     outline = Color(0xFFA3ABC8),
     outlineVariant = Color.White.copy(alpha = 0.14f),
-    error = Color(0xFFFFB4AB),
-    onError = Color(0xFF690005),
-    errorContainer = Color(0xFF8C2F2A),
-    onErrorContainer = Color(0xFFFFDAD6),
+    error = Color(0xFFFFB3A6),
+    onError = Color(0xFF5C1408),
+    errorContainer = Color(0xFF7A2E26),
+    onErrorContainer = Color(0xFFFFDAD3),
 )
 
-// Glass over the day skies: near-black text, soft white for dialogs and menus.
+// Glass over the day skies: ink text, indigo accents, deep gold for "good", brick for warnings.
 private val GlassDayColors = lightColorScheme(
-    primary = Color(0xFF2F4FA8),
+    primary = Color(0xFF3B4FB8),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFDDE4FF),
-    onPrimaryContainer = Color(0xFF0B1A4A),
-    secondary = Color(0xFF5B5580),
-    secondaryContainer = Color(0xFFE6E1FA),
-    onSecondaryContainer = Color(0xFF1D1838),
-    tertiary = Color(0xFF9A4F24),
+    primaryContainer = Color(0xFFDCE1FF),
+    onPrimaryContainer = Color(0xFF101A55),
+    secondary = Color(0xFF5D5A85),
+    onSecondary = Color.White,
+    secondaryContainer = Color(0xFFE4E1FA),
+    onSecondaryContainer = Color(0xFF1C1A3B),
+    tertiary = Color(0xFF946300),
+    onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFFFE7B3),
+    onTertiaryContainer = Color(0xFF3A2800),
     background = Color(0xFFF1F2F8),
-    onBackground = Color(0xFF18181F),
+    onBackground = Color(0xFF15162A),
     surface = Color(0xFFFAFAFD),
-    onSurface = Color(0xFF18181F),
+    onSurface = Color(0xFF15162A),
     surfaceVariant = Color(0xFFEDEEF6),
-    onSurfaceVariant = Color(0xFF55566A),
-    surfaceContainerHigh = Color(0xFFF4F4FA),
-    surfaceContainerHighest = Color(0xFFEDEEF6),
-    outline = Color(0xFF7C7D92),
+    onSurfaceVariant = Color(0xFF52546B),
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = Color(0xFFF7F7FC),
+    surfaceContainer = Color(0xFFF4F4FA),
+    surfaceContainerHigh = Color(0xFFF0F1F8),
+    surfaceContainerHighest = Color(0xFFEAEBF4),
+    inverseSurface = Color(0xFF2A2C44),
+    inverseOnSurface = Color(0xFFF1F2FA),
+    inversePrimary = Color(0xFFB9C8FF),
+    outline = Color(0xFF7C7E94),
     outlineVariant = Color(0xFF14142A).copy(alpha = 0.08f),
-    error = Color(0xFFB3261E),
+    error = Color(0xFFC0392B),
     onError = Color.White,
-    errorContainer = Color(0xFFFFDAD6),
-    onErrorContainer = Color(0xFF410002),
+    errorContainer = Color(0xFFFFDAD3),
+    onErrorContainer = Color(0xFF410A04),
 )
 
 /**
@@ -139,14 +186,18 @@ fun GlassBackdrop(modifier: Modifier = Modifier, content: @Composable () -> Unit
         return
     }
 
-    val ease = tween<Color>(durationMillis = 3_000)
-    val easeF = tween<Float>(durationMillis = 3_000)
+    // Eased over seconds in real use; near-instant while the developer tools play or scrub the day.
+    val previewing by viewModel.previewing.collectAsStateWithLifecycle()
+    val easeMillis = if (previewing) 90 else 3_000
+    val ease = tween<Color>(durationMillis = easeMillis)
+    val easeF = tween<Float>(durationMillis = easeMillis)
     val base by animateColorAsState(sky.base, ease, label = "skyBase")
     val bloom0 by animateColorAsState(sky.blooms[0], ease, label = "bloom0")
     val bloom1 by animateColorAsState(sky.blooms[1], ease, label = "bloom1")
     val bloom2 by animateColorAsState(sky.blooms[2], ease, label = "bloom2")
     val bloomAlpha by animateFloatAsState(sky.bloomAlpha, easeF, label = "bloomAlpha")
     val stars by animateFloatAsState(sky.stars, easeF, label = "stars")
+    val moon by animateFloatAsState(sky.moon, easeF, label = "moon")
     val sun by animateFloatAsState(sky.sun, easeF, label = "sun")
     val sunArc by animateFloatAsState(sky.sunArc, easeF, label = "sunArc")
 
@@ -162,27 +213,82 @@ fun GlassBackdrop(modifier: Modifier = Modifier, content: @Composable () -> Unit
 
     Box(modifier) {
         Canvas(Modifier.fillMaxSize()) {
-            drawRect(base)
+            // Deeper at the top, as a real sky is: darker by night, and by day toward the high
+            // bloom's blue, so a day sky has depth instead of fading to a flat white.
+            val zenith = if (sky.dark) lerp(base, Color.Black, 0.18f) else lerp(base, bloom0, 0.55f)
+            drawRect(Brush.verticalGradient(listOf(zenith, base, lerp(base, Color.White, 0.04f))))
+            // Blooms: one high on the far side, one mid-left, and the horizon glow — wide and low
+            // across the whole bottom edge, so dawn and dusk warm the horizon rather than a corner.
+            // The upper two drift a little with the sun, so the sky never sits quite still.
+            drawBloom(bloom0, bloomAlpha, Offset(size.width * (0.92f - sunArc * 0.25f), size.height * 0.06f), size.width * 0.85f)
+            drawBloom(bloom1, bloomAlpha, Offset(size.width * (0.02f + sunArc * 0.12f), size.height * 0.50f), size.width * 0.80f)
+            drawHorizon(bloom2, bloomAlpha)
             drawStars(stars)
+            drawMoon(moon)
             drawSun(sun, sunArc, sky.dark)
-            // Blooms placed as in the mockup: top corner, left middle, bottom corner.
-            drawBloom(bloom0, bloomAlpha, Offset(size.width * 0.95f, size.height * 0.08f), size.width * 0.75f)
-            drawBloom(bloom1, bloomAlpha, Offset(size.width * 0.05f, size.height * 0.52f), size.width * 0.70f)
-            drawBloom(bloom2, bloomAlpha, Offset(size.width * 0.85f, size.height * 0.98f), size.width * 0.65f)
         }
-        MaterialTheme(colorScheme = if (sky.dark) GlassNightColors else GlassDayColors) {
-            CompositionLocalProvider(LocalGlassStyle provides if (sky.dark) DarkGlass else LightGlass) {
+        MaterialTheme(colorScheme = celestialAccent(if (sky.dark) GlassNightColors else GlassDayColors, sky)) {
+            // The screens sit on transparent surfaces, which pass no content colour down; without
+            // this, icons (the day switcher's arrows) keep the default black into the night.
+            CompositionLocalProvider(
+                LocalGlassStyle provides if (sky.dark) DarkGlass else LightGlass,
+                LocalCelestialLight provides celestialLight(sky),
+                LocalContentColor provides MaterialTheme.colorScheme.onBackground,
+            ) {
                 content()
             }
         }
     }
 }
 
+/** The two colours a light in the sky is drawn with: its bright centre and the glow at its rim. */
+data class CelestialLight(val core: Color, val rim: Color) {
+    /**
+     * The colour the light *looks*: mostly its bright centre with a touch of its rim. The rim alone
+     * is far more saturated than the sun ever reads in the sky.
+     */
+    val seen: Color get() = lerp(core, rim, 0.4f)
+
+}
+
+private val DaySun = CelestialLight(core = Color(0xFFFFF4D6), rim = Color(0xFFFFE08A))
+private val SettingSun = CelestialLight(core = Color(0xFFFFC27A), rim = Color(0xFFFF9A5C))
+private val Moonlight = CelestialLight(core = Color(0xFFF8F7F8), rim = Color(0xFFE4E3EC))
+
+/**
+ * The light the compass wears once aligned, under Glass; null under every other theme. Two lights,
+ * never more: while the sun is in the sky, the low sun's apricot as the sky draws it at first light
+ * (the look picked from 6 am — the pale midday sun made the needle unreadable); otherwise the moon's
+ * white.
+ */
+val LocalCelestialLight = staticCompositionLocalOf<CelestialLight?> { null }
+
+private fun celestialLight(sky: SkyFrame): CelestialLight = if (sky.sun > 0.01f) SettingSun else Moonlight
+
+/**
+ * The "good" accent (the compass once aligned, its marker and pill, and the chips) is that same
+ * light, so every one of them is the same apricot as the needle, with dark text on it.
+ */
+private fun celestialAccent(scheme: ColorScheme, sky: SkyFrame): ColorScheme {
+    val light = celestialLight(sky)
+    val ink = if (light == Moonlight) Color(0xFF1A2150) else Color(0xFF4A2600)
+    return scheme.copy(
+        tertiary = light.seen,
+        onTertiary = ink,
+        tertiaryContainer = if (sky.dark) light.rim.copy(alpha = 0.30f) else light.core,
+        onTertiaryContainer = if (sky.dark) light.core else ink,
+    )
+}
+
 /** A soft pool of light: the colour at the centre fading to nothing at [radius]. */
 private fun DrawScope.drawBloom(color: Color, alpha: Float, center: Offset, radius: Float) {
+    // Four stops, not three: a long, even falloff, so a bloom has no visible rim.
     drawCircle(
         brush = Brush.radialGradient(
-            colors = listOf(color.copy(alpha = alpha), color.copy(alpha = alpha * 0.45f), Color.Transparent),
+            0f to color.copy(alpha = alpha),
+            0.35f to color.copy(alpha = alpha * 0.6f),
+            0.7f to color.copy(alpha = alpha * 0.18f),
+            1f to Color.Transparent,
             center = center,
             radius = radius,
         ),
@@ -191,23 +297,134 @@ private fun DrawScope.drawBloom(color: Color, alpha: Float, center: Offset, radi
     )
 }
 
-/** The sun climbs from one side at sunrise, peaks at midday and sets on the other side. */
+/** A glow along the bottom edge, strongest at the edge and gone by a third of the way up. */
+private fun DrawScope.drawHorizon(color: Color, alpha: Float) {
+    drawRect(
+        brush = Brush.verticalGradient(
+            0f to Color.Transparent,
+            0.62f to Color.Transparent,
+            0.85f to color.copy(alpha = alpha * 0.45f),
+            1f to color.copy(alpha = alpha * 0.8f),
+        ),
+    )
+}
+
+/**
+ * The sun climbs from one side at sunrise, peaks at midday and sets on the other side. A crisp disc
+ * with a soft corona round it — a blurred blob alone reads as a stain, not a sun. Low in the sky
+ * it turns amber.
+ */
 private fun DrawScope.drawSun(alpha: Float, arc: Float, dusk: Boolean) {
     if (alpha <= 0.01f) return
     val center = Offset(
-        x = size.width * (0.12f + arc * 0.76f),
-        y = size.height * (0.48f - sin(arc * PI).toFloat() * 0.36f),
+        x = size.width * (0.14f + arc * 0.72f),
+        y = size.height * (0.42f - sin(arc * PI).toFloat() * 0.32f),
     )
-    val radius = size.width * 0.16f
-    val core = if (dusk) Color(0xFFFFD08A) else Color(0xFFFFF6D8)
-    val halo = if (dusk) Color(0xFFFF8A5C) else Color(0xFFFFD98A)
+    val disc = size.width * 0.055f
+    val light = if (dusk) SettingSun else DaySun
+    val core = light.core
+    val rim = light.rim
+    // Corona: wide and faint, then a tighter glow hugging the disc.
     drawCircle(
         brush = Brush.radialGradient(
-            colors = listOf(core.copy(alpha = alpha), halo.copy(alpha = alpha * 0.6f), Color.Transparent),
+            listOf(rim.copy(alpha = alpha * 0.28f), Color.Transparent),
             center = center,
-            radius = radius,
+            radius = disc * 6f,
+        ),
+        radius = disc * 6f,
+        center = center,
+    )
+    drawCircle(
+        brush = Brush.radialGradient(
+            listOf(core.copy(alpha = alpha * 0.55f), rim.copy(alpha = alpha * 0.25f), Color.Transparent),
+            center = center,
+            radius = disc * 2.2f,
+        ),
+        radius = disc * 2.2f,
+        center = center,
+    )
+    drawCircle(
+        brush = Brush.radialGradient(listOf(Color.White.copy(alpha = alpha), core.copy(alpha = alpha)), center, disc),
+        radius = disc,
+        center = center,
+    )
+}
+
+/**
+ * A crescent high on the night side, chosen from a gallery of drafts (C3): a medium crescent with a
+ * clean outer edge, the inner edge (the terminator) softened just slightly, and a soft light that
+ * follows the crescent's own shape — not a round glow, which would outline the dark side and give
+ * the full circle away. Its white carries a light touch of warmth. Softness is kept to the
+ * terminator and that glow on purpose — a blurred outline reads as low resolution.
+ */
+private fun DrawScope.drawMoon(alpha: Float) {
+    if (alpha <= 0.01f) return
+    val center = Offset(size.width * 0.78f, size.height * 0.13f)
+    val radius = size.width * 0.04f
+
+    val shadow = center + Offset(-radius * 0.38f, -radius * 0.18f)
+
+    // A faint wide halo, eased over many stops so it does not band, then the crescent's own light:
+    // the crescent shape itself, blurred, under the moon. (A blur mask needs Android 9+ with
+    // hardware drawing; older phones simply show the moon without that inner glow.)
+    drawGlow(Color(0xFFE4E3EC), alpha * 0.10f, center, radius * 0.8f, radius * 6f)
+    val crescent = android.graphics.Path().apply {
+        addCircle(center.x, center.y, radius, android.graphics.Path.Direction.CW)
+        op(
+            android.graphics.Path().apply {
+                addCircle(shadow.x, shadow.y, radius * 0.92f, android.graphics.Path.Direction.CW)
+            },
+            android.graphics.Path.Op.DIFFERENCE,
+        )
+    }
+    val crescentGlow = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        color = MoonFace.copy(alpha = alpha * 0.45f).toArgb()
+        maskFilter = android.graphics.BlurMaskFilter(radius * 0.3f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+    }
+    drawContext.canvas.nativeCanvas.drawPath(crescent, crescentGlow)
+
+    // The disc, brightest toward its lit limb; then the shadow side erased from it with a 4%
+    // feather, so whatever sky lies behind shows through the dark side.
+    drawContext.canvas.saveLayer(Rect(center, radius * 2f), Paint())
+    drawCircle(
+        brush = Brush.radialGradient(
+            0f to lerp(MoonFace, Color.White, 0.5f).copy(alpha = alpha),
+            0.6f to MoonFace.copy(alpha = alpha),
+            1f to MoonFace.copy(alpha = alpha),
+            center = center + Offset(radius * 0.55f, radius * 0.1f),
+            radius = radius * 1.3f,
         ),
         radius = radius,
+        center = center,
+    )
+    val shadowRadius = radius * 0.92f * 1.04f
+    drawCircle(
+        brush = Brush.radialGradient(
+            0f to Color.Black,
+            (1f / 1.04f) to Color.Black,
+            1f to Color.Transparent,
+            center = shadow,
+            radius = shadowRadius,
+        ),
+        radius = shadowRadius,
+        center = shadow,
+        blendMode = BlendMode.DstOut,
+    )
+    drawContext.canvas.restore()
+}
+
+/** The moon's white: a cool white with a light touch of warmth. */
+private val MoonFace = Color(0xFFF8F7F8)
+
+private fun DrawScope.drawGlow(color: Color, alpha: Float, center: Offset, from: Float, to: Float) {
+    val start = from / to
+    val stops = Array(13) { i ->
+        val t = i / 12f
+        (start + (1f - start) * t) to color.copy(alpha = alpha * (1f - t).pow(2.2f))
+    }
+    drawCircle(
+        brush = Brush.radialGradient(*stops, center = center, radius = to),
+        radius = to,
         center = center,
     )
 }

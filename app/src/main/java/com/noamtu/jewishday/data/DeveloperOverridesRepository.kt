@@ -66,6 +66,9 @@ data class DeveloperOverrides(
     val anchorVirtualEpochMs: Long = 0L,
     // Frozen = the clock stays pinned at the anchor; otherwise virtual time flows from the anchor.
     val timeFrozen: Boolean = true,
+    // Hides the red "times are simulated" banner on the Zmanim screen while the clock is overridden,
+    // for screenshots or for looking at the screen as a user would see it.
+    val hideTimeOverrideBanner: Boolean = false,
     val locationOverrideEnabled: Boolean = false,
     val locationPresetId: String? = null,
     // Forces the About page to render in English regardless of the app language, so the English
@@ -76,9 +79,6 @@ data class DeveloperOverrides(
     val updateNotesInEnglish: Boolean = false,
     // Shows a live sensor/quality diagnostics panel on the Prayer Compass screen.
     val compassMonitoringEnabled: Boolean = false,
-    // Lists the unfinished Glass theme among the themes in Settings. Off, it is hidden, and anyone
-    // already on it is moved back to the default theme (see DeveloperViewModel).
-    val glassThemeAvailable: Boolean = false,
     // Makes the update check believe this is the installed version, so any release newer than it
     // looks like an update and the whole flow — check, download, install — runs against GitHub for
     // real. Blank means "use the real version".
@@ -170,7 +170,8 @@ class DeveloperOverridesRepository @Inject constructor(
 
     suspend fun setCompassMonitoringEnabled(enabled: Boolean) = update { it.copy(compassMonitoringEnabled = enabled) }
 
-    suspend fun setGlassThemeAvailable(enabled: Boolean) = update { it.copy(glassThemeAvailable = enabled) }
+    suspend fun setHideTimeOverrideBanner(hidden: Boolean) = update { it.copy(hideTimeOverrideBanner = hidden) }
+
 
     suspend fun setSpoofedVersionName(versionName: String) =
         update { it.copy(spoofedVersionName = versionName.trim()) }
@@ -217,7 +218,7 @@ class DeveloperOverridesRepository @Inject constructor(
         aboutInEnglish = preferences[AboutEnglishKey] ?: false,
         updateNotesInEnglish = preferences[UpdateNotesEnglishKey] ?: false,
         compassMonitoringEnabled = preferences[CompassMonitoringKey] ?: false,
-        glassThemeAvailable = preferences[GlassThemeKey] ?: false,
+        hideTimeOverrideBanner = preferences[HideTimeBannerKey] ?: false,
         spoofedVersionName = preferences[SpoofedVersionKey].orEmpty(),
     )
 
@@ -232,7 +233,7 @@ class DeveloperOverridesRepository @Inject constructor(
         preferences[AboutEnglishKey] = overrides.aboutInEnglish
         preferences[UpdateNotesEnglishKey] = overrides.updateNotesInEnglish
         preferences[CompassMonitoringKey] = overrides.compassMonitoringEnabled
-        preferences[GlassThemeKey] = overrides.glassThemeAvailable
+        preferences[HideTimeBannerKey] = overrides.hideTimeOverrideBanner
         preferences[SpoofedVersionKey] = overrides.spoofedVersionName
     }
 
@@ -247,7 +248,7 @@ class DeveloperOverridesRepository @Inject constructor(
         val AboutEnglishKey = booleanPreferencesKey("dev_about_english")
         val UpdateNotesEnglishKey = booleanPreferencesKey("dev_update_notes_english")
         val CompassMonitoringKey = booleanPreferencesKey("dev_compass_monitoring")
-        val GlassThemeKey = booleanPreferencesKey("dev_glass_theme")
+        val HideTimeBannerKey = booleanPreferencesKey("dev_hide_time_banner")
         val SpoofedVersionKey = stringPreferencesKey("dev_spoofed_version")
     }
 }
