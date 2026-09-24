@@ -264,7 +264,7 @@ fun SettingsScreen(
             title = { Text(localizedString(R.string.settings_theme, R.string.settings_theme_hebrew)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    uiState.availableThemes.forEach { themeOption ->
+                    AppThemeOption.entries.forEach { themeOption ->
                         ThemeOptionRow(
                             label = themeOption.localizedLabel(),
                             selected = themeOption == uiState.themeOption,

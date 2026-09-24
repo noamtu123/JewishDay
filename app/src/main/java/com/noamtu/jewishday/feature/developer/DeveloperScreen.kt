@@ -19,12 +19,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
@@ -62,6 +62,9 @@ fun DeveloperScreen(
     val overrides = state.overrides
     val context = LocalContext.current
     val updateCheckResult by viewModel.updateCheckResult.collectAsStateWithLifecycle()
+    val skyTime by viewModel.skyPreviewTime.collectAsStateWithLifecycle()
+    val skyPlaying by viewModel.skyPreviewPlaying.collectAsStateWithLifecycle()
+    val skyZone = state.skyZone
     var showSpoofedVersionDialog by rememberSaveable { mutableStateOf(false) }
     var showDisableDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -73,7 +76,7 @@ fun DeveloperScreen(
             contentPadding = ScreenPaddingValues,
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // First card on purpose: the way out of the tools sits above everything they can do.
+            // Status first: the way out, what is in effect right now, and one tap to undo it all.
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
                     SwitchRow(
@@ -81,29 +84,36 @@ fun DeveloperScreen(
                         checked = true,
                         onCheckedChange = { showDisableDialog = true },
                     )
-                    Text(
-                        text = "Turning this off clears every override below and hides the tools " +
-                            "again — tap the version 7× on the About page to bring them back.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Spacer(Modifier.height(8.dp))
+                    ReadoutRow("Now", state.effectiveDateTime)
+                    ReadoutRow("Hebrew date", state.jewishDate + if (state.dayInfo != "Regular day") " · ${state.dayInfo}" else "")
+                    ReadoutRow("Location", state.effectiveLocation + if (state.inIsrael) " · Israel" else " · Diaspora")
+                    val active = activeOverrides(overrides)
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = if (active.isEmpty()) "No overrides active" else "Active: " + active.joinToString(" · "),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (active.isEmpty()) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        )
+                        if (active.isNotEmpty()) {
+                            TextButton(onClick = viewModel::resetOverrides) { Text("Reset all") }
+                        }
+                    }
                 }
             }
 
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("Effective state")
-                    ReadoutRow("Date & time", state.effectiveDateTime)
-                    ReadoutRow("Jewish date", state.jewishDate)
-                    ReadoutRow("Today is", state.dayInfo)
-                    ReadoutRow("Location", state.effectiveLocation)
-                    ReadoutRow("In Israel", if (state.inIsrael) "Yes" else "No")
-                }
-            }
-
-            item {
-                InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("Date & time override")
+                    SectionTitle("Clock")
                     SwitchRow(
                         label = "Override the clock",
                         checked = overrides.timeOverrideEnabled,
@@ -111,9 +121,14 @@ fun DeveloperScreen(
                     )
                     if (overrides.timeOverrideEnabled) {
                         SwitchRow(
-                            label = "Freeze time (otherwise it keeps ticking)",
+                            label = "Freeze time",
                             checked = overrides.timeFrozen,
                             onCheckedChange = viewModel::setTimeFrozen,
+                        )
+                        SwitchRow(
+                            label = "Hide the warning banner",
+                            checked = overrides.hideTimeOverrideBanner,
+                            onCheckedChange = viewModel::setHideTimeOverrideBanner,
                         )
                         Spacer(Modifier.height(8.dp))
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -154,18 +169,12 @@ fun DeveloperScreen(
                             ) { Text("Pick time…") }
                         }
                     }
-                }
-            }
-
-            item {
-                InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("Jump to next…")
+                    Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "Sets the clock to the next occurrence, so you can test that day's behavior.",
-                        style = MaterialTheme.typography.bodySmall,
+                        text = "Jump to the next…",
+                        style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(Modifier.height(10.dp))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         DeveloperJumpTarget.entries.forEach { target ->
                             AssistChip(
@@ -179,21 +188,73 @@ fun DeveloperScreen(
 
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("Location override")
+                    SectionTitle("Sky theme")
+                    // Moves the Sky theme's backdrop alone; the zmanim stay on the real clock.
+                    val time = skyTime
+                    val minute = time?.let { it.hour * 60 + it.minute } ?: state.effectiveTime.let { it.hour * 60 + it.minute }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = if (time == null) "Following the clock" else "Sky at %02d:%02d".format(time.hour, time.minute),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        if (time != null) {
+                            TextButton(onClick = viewModel::followClockWithSky) { Text("Back to clock") }
+                        }
+                    }
+                    Slider(
+                        value = minute.toFloat(),
+                        onValueChange = { viewModel.showSkyAt(LocalTime.of(it.toInt() / 60, it.toInt() % 60)) },
+                        valueRange = 0f..1439f,
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = if (skyPlaying) viewModel::stopSkyDay else viewModel::playSkyDay) {
+                            Text(if (skyPlaying) "Pause" else "Play the day")
+                        }
+                        state.skyPhases.forEach { phase ->
+                            AssistChip(
+                                onClick = { viewModel.showSkyAt(phase.at.atZone(skyZone).toLocalTime()) },
+                                label = { Text("${phase.name} ${"%02d:%02d".format(phase.at.atZone(skyZone).hour, phase.at.atZone(skyZone).minute)}") },
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("Location")
                     SwitchRow(
                         label = "Pin location",
                         checked = overrides.locationOverrideEnabled,
                         onCheckedChange = viewModel::setLocationOverrideEnabled,
                     )
                     if (overrides.locationOverrideEnabled) {
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(4.dp))
                         LocationPresetPicker(
                             selectedId = overrides.locationPresetId,
                             onSelect = viewModel::setLocationPreset,
                         )
                     }
-                    // "In Israel" is derived from the effective location (see the readout above);
-                    // pick a diaspora location preset to exercise two-day Yom Tov.
+                }
+            }
+
+            item {
+                InfoCard(modifier = Modifier.fillMaxWidth()) {
+                    SectionTitle("Language")
+                    SwitchRow(
+                        label = "About page in English",
+                        checked = overrides.aboutInEnglish,
+                        onCheckedChange = viewModel::setAboutInEnglish,
+                    )
+                    SwitchRow(
+                        label = "Update changelog in English",
+                        checked = overrides.updateNotesInEnglish,
+                        onCheckedChange = viewModel::setUpdateNotesInEnglish,
+                    )
                 }
             }
 
@@ -201,19 +262,9 @@ fun DeveloperScreen(
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
                     SectionTitle("App updates")
                     ValueRow(
-                        label = "Pretend this build is version",
+                        label = "Pretend to be version",
                         value = overrides.spoofedVersionName.ifBlank { "Real (${BuildConfig.VERSION_NAME})" },
                         onClick = { showSpoofedVersionDialog = true },
-                    )
-                    Text(
-                        text = "The update check compares releases against this instead of the " +
-                            "real version, so setting something older (0.5.0) makes the newest " +
-                            "release on GitHub look like an update. Clear it to use the real " +
-                            "version. It shows on the About page too, so you can see it took. " +
-                            "The check, download and install are all real — installing genuinely " +
-                            "replaces this build.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = viewModel::runUpdateCheck) { Text("Run update check") }
@@ -230,60 +281,12 @@ fun DeveloperScreen(
 
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("Prayer compass")
+                    SectionTitle("Diagnostics")
                     SwitchRow(
                         label = "Monitor compass sensors",
                         checked = overrides.compassMonitoringEnabled,
                         onCheckedChange = viewModel::setCompassMonitoringEnabled,
                     )
-                    Text(
-                        text = "Overlays live sensor status, delivery rates, heading error, and the " +
-                            "quality verdict on the Prayer Compass screen.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            item {
-                InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("Appearance")
-                    SwitchRow(
-                        label = "Offer the Glass theme",
-                        checked = overrides.glassThemeAvailable,
-                        onCheckedChange = viewModel::setGlassThemeAvailable,
-                    )
-                    Text(
-                        text = "Lists the in-development Glass theme under Settings → Theme. " +
-                            "Turning this off hides it again and moves you back to the default theme.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-
-            item {
-                InfoCard(modifier = Modifier.fillMaxWidth()) {
-                    SectionTitle("English overrides")
-                    SwitchRow(
-                        label = "Show About page in English",
-                        checked = overrides.aboutInEnglish,
-                        onCheckedChange = viewModel::setAboutInEnglish,
-                    )
-                    SwitchRow(
-                        label = "Show update changelog in English",
-                        checked = overrides.updateNotesInEnglish,
-                        onCheckedChange = viewModel::setUpdateNotesInEnglish,
-                    )
-                }
-            }
-
-            item {
-                Button(
-                    onClick = viewModel::resetOverrides,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Reset all overrides")
                 }
             }
         }
@@ -349,6 +352,15 @@ private fun LocationPresetPicker(
             }
         }
     }
+}
+
+/** What is being overridden right now, in a word each, for the status card. */
+private fun activeOverrides(overrides: com.noamtu.jewishday.data.DeveloperOverrides): List<String> = buildList {
+    if (overrides.timeOverrideEnabled) add(if (overrides.timeFrozen) "Clock (frozen)" else "Clock")
+    if (overrides.locationOverrideEnabled) add(developerLocationPreset(overrides.locationPresetId)?.displayName ?: "Location")
+    if (overrides.spoofedVersionName.isNotBlank()) add("Version ${overrides.spoofedVersionName}")
+    if (overrides.aboutInEnglish || overrides.updateNotesInEnglish) add("English")
+    if (overrides.compassMonitoringEnabled) add("Compass monitor")
 }
 
 @Composable

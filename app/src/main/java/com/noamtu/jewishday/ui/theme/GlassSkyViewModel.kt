@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
+import com.noamtu.jewishday.data.SkyPreview
 import com.noamtu.jewishday.model.defaultJerusalemLocation
 import com.noamtu.jewishday.model.skyDayFor
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 /**
@@ -32,7 +34,14 @@ class GlassSkyViewModel @Inject constructor(
     currentLocationRepository: CurrentLocationRepository,
     appSettingsRepository: AppSettingsRepository,
     developerOverridesRepository: DeveloperOverridesRepository,
+    skyPreview: SkyPreview,
 ) : ViewModel() {
+
+    /** While the developer tools preview the sky, changes are shown quickly rather than eased. */
+    val previewing: StateFlow<Boolean> = skyPreview.time
+        .map { it != null }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
 
     private val ticks = flow {
         while (true) {
@@ -47,9 +56,13 @@ class GlassSkyViewModel @Inject constructor(
         appSettingsRepository.settings,
         // A jump of the developer clock should move the sky at once, not on the next tick.
         developerOverridesRepository.state,
-    ) { _, location, settings, _ ->
+        skyPreview.time,
+    ) { _, location, settings, _, preview ->
         val place = location ?: defaultJerusalemLocation
-        val now = clock.instant()
+        // The developer tools' sky preview, if any, sets the time of day on today's date.
+        val now = preview
+            ?.let { clock.instant().atZone(place.zoneId).toLocalDate().atTime(it).atZone(place.zoneId).toInstant() }
+            ?: clock.instant()
         val date = now.atZone(place.zoneId).toLocalDate()
         skyAt(now, skyDayFor(place, date, settings.zmanimSettings), place.zoneId)
     }
