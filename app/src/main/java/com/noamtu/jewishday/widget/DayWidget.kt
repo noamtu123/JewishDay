@@ -101,8 +101,9 @@ internal fun skyBitmapSize(size: DpSize, density: Float): IntSize {
     )
 }
 
+/** The day laid over its sky, fitted to the frame the launcher gave this composition. */
 @Composable
-private fun DayWidgetContent(state: DayWidgetState) {
+internal fun DayWidgetContent(state: DayWidgetState) {
     val size = LocalSize.current
     val context = LocalContext.current
     val density = context.resources.displayMetrics.density
@@ -119,7 +120,7 @@ private fun DayWidgetContent(state: DayWidgetState) {
     val rtlLayout = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
     val mirrored = state.useHebrew != rtlLayout
     val ink = SkyInk(dark = state.sky.dark, align = if (mirrored) TextAlign.End else TextAlign.Start)
-    val layout = dayWidgetLayoutFor(state, size)
+    val layout = dayWidgetLayoutFor(state, size, context.resources.configuration.fontScale)
     Box(modifier = GlanceModifier.fillMaxSize().appWidgetBackground().clickable(actionStartActivity<MainActivity>())) {
         // The bitmap is the frame's own size (or a capped scale of it), so it maps onto the frame
         // edge to edge and its baked corners land exactly on the launcher's; cropping would cut the
@@ -147,10 +148,11 @@ private fun DayWidgetContent(state: DayWidgetState) {
 @Composable
 private fun Slot(slot: DayWidgetSlot, state: DayWidgetState, layout: DayWidgetLayout, ink: SkyInk, mirrored: Boolean) {
     when (slot) {
-        DayWidgetSlot.HebrewDate -> Line(state.hebrewDate, ink.primary(layout.hebrewDateSp.sp, FontWeight.Bold))
+        DayWidgetSlot.HebrewDate ->
+            Line(state.hebrewDate, ink.primary(layout.hebrewDateSp.sp, FontWeight.Bold), maxLines = layout.hebrewDateLines)
         DayWidgetSlot.WeekdayAndDate -> Line(state.weekdayAndDate, ink.primary(DateSp.sp))
         DayWidgetSlot.Chip -> state.chip?.let { Line(it, ink.primary(ChipSp.sp, FontWeight.Medium)) }
-        DayWidgetSlot.Times -> TimesRow(layout.times, ink, mirrored)
+        DayWidgetSlot.Times -> TimesRow(layout.times, layout.timeLabelSp, ink, mirrored)
         // Grouped so the outer Column stays within Glance's ten-children limit on the fullest of days.
         DayWidgetSlot.Observance -> Column(modifier = GlanceModifier.fillMaxWidth()) {
             state.observanceLines.take(layout.observanceLinesShown).forEach { Line(it, ink.primary(LineSp.sp)) }
@@ -161,26 +163,32 @@ private fun Slot(slot: DayWidgetSlot, state: DayWidgetState, layout: DayWidgetLa
     }
 }
 
-/** The times still to come spread across the width, each a label over its clock time. */
+/**
+ * The times still to come spread across the width, each a label over its clock time. The columns
+ * sit on the row's bottom, so the times stand level when one label wraps and another does not.
+ */
 @Composable
-private fun TimesRow(times: List<DayWidgetTime>, ink: SkyInk, mirrored: Boolean) {
+private fun TimesRow(times: List<DayWidgetTime>, labelSp: Int, ink: SkyInk, mirrored: Boolean) {
     if (times.isEmpty()) return
     // The launcher lays a row out in the device's direction; when the texts read the other way,
     // the columns are reversed by hand so the soonest still comes first in reading order.
     val ordered = if (mirrored) times.asReversed() else times
-    Row(modifier = GlanceModifier.fillMaxWidth()) {
+    Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
         ordered.forEach { time ->
-            Column(modifier = GlanceModifier.defaultWeight()) {
-                Line(time.label, ink.secondary(TimeLabelSp.sp), maxLines = 2)
-                Line(time.time, ink.primary(TimeSp.sp, FontWeight.Medium))
+            Column(modifier = GlanceModifier.defaultWeight().padding(horizontal = TimeColumnPaddingDp.dp)) {
+                Line(time.label, ink.secondary(labelSp.sp))
+                Line(time.time, ink.primary(TimeSp.sp, FontWeight.Medium), maxLines = 1)
             }
         }
     }
 }
 
-/** One full-width line of text; the width is what lets its alignment mean anything. */
+/**
+ * One full-width piece of text, wrapping to a second line when the width runs out; the width is what
+ * lets its alignment mean anything.
+ */
 @Composable
-private fun Line(text: String, style: TextStyle, maxLines: Int = 1) {
+private fun Line(text: String, style: TextStyle, maxLines: Int = MaxTextLines) {
     Text(text = text, modifier = GlanceModifier.fillMaxWidth(), style = style, maxLines = maxLines)
 }
 
@@ -193,7 +201,7 @@ private fun DayWidgetUnavailable() {
     ) {
         Text(
             text = LocalContext.current.getString(R.string.app_name),
-            style = TextStyle(color = ColorProvider(Color.White), fontSize = 16.sp, fontWeight = FontWeight.Medium),
+            style = TextStyle(color = ColorProvider(Color.White), fontSize = 32.sp, fontWeight = FontWeight.Medium),
             maxLines = 1,
         )
     }

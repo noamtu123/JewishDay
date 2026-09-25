@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What the widget picker shows for each size of the day widget: its label, its description and the
+  sample day its preview is drawn with. The system resolves these by the device's locale, so they
+  are translated in values-iw rather than paired with _hebrew names the way the app's own texts are.
+-->
+<resources>
+    <string name="widget_day_small_label">Hebrew date</string>
+    <string name="widget_day_small_description">Today\'s Hebrew date and the next time, under the day\'s sky.</string>
+    <string name="widget_day_label">Today\'s times</string>
+    <string name="widget_day_description">Today\'s Hebrew date and the times still to come, under the day\'s sky.</string>
+    <string name="widget_day_large_label">The whole day</string>
+    <string name="widget_day_large_description">Today\'s Hebrew date, times, holidays and learning, under the day\'s sky.</string>
+
+    <string name="widget_preview_hebrew_date">14 Tishrei 5787</string>
+    <string name="widget_preview_weekday">Friday, September 25</string>
+    <string name="widget_preview_chip">Erev Sukkot</string>
+    <string name="widget_preview_candle_lighting">Candle Lighting</string>
+    <string name="widget_preview_candle_lighting_time" translatable="false">18:12</string>
+    <string name="widget_preview_sunset">Sunset</string>
+    <string name="widget_preview_sunset_time" translatable="false">18:32</string>
+    <string name="widget_preview_observance">Yom Tov starts 18:12</string>
+    <string name="widget_preview_learning">Daf Yomi: Bechorot 7</string>
+    <string name="widget_preview_location">Times based on Jerusalem</string>
+</resources>

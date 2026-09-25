@@ -89,6 +89,7 @@ class DayWidgetRefresher @Inject constructor(
                     return
                 }
                 lastRenderElapsedMillis.set(SystemClock.elapsedRealtime())
+                // Every size's receiver hosts the same DayWidget, so this reaches all of them.
                 DayWidget().updateAll(context)
                 scheduleNext()
             } catch (cancellation: CancellationException) {
@@ -128,9 +129,12 @@ class DayWidgetRefresher @Inject constructor(
         }
     }
 
-    /** The last instance is gone: nothing left to keep current. */
+    /**
+     * The last widget of one size is gone. The alarm stops only once no size has one left; while
+     * another is placed, its schedule carries on as armed.
+     */
     fun onWidgetsRemoved() {
-        alarmScheduler.cancel()
+        if (!hasWidgets()) alarmScheduler.cancel()
     }
 
     /**
@@ -190,7 +194,7 @@ class DayWidgetRefresher @Inject constructor(
      */
     private fun hasWidgets(): Boolean {
         val manager = context.getSystemService(AppWidgetManager::class.java) ?: return false
-        return manager.getAppWidgetIds(ComponentName(context, DayWidgetReceiver::class.java)).isNotEmpty()
+        return dayWidgetReceivers.any { manager.getAppWidgetIds(ComponentName(context, it)).isNotEmpty() }
     }
 
     private data class RenderInputs(val settings: AppSettings, val location: JewishLocation?)

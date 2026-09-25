@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_day_small_label">תאריך עברי</string>
+    <string name="widget_day_small_description">התאריך העברי של היום והזמן הבא, מתחת לשמי היום.</string>
+    <string name="widget_day_label">זמני היום</string>
+    <string name="widget_day_description">התאריך העברי של היום והזמנים שעוד לפניו, מתחת לשמי היום.</string>
+    <string name="widget_day_large_label">כל היום</string>
+    <string name="widget_day_large_description">התאריך העברי, הזמנים, החגים והלימוד של היום, מתחת לשמי היום.</string>
+
+    <string name="widget_preview_hebrew_date">י״ד תשרי תשפ״ז</string>
+    <string name="widget_preview_weekday">יום שישי, 25 בספטמבר</string>
+    <string name="widget_preview_chip">ערב סוכות</string>
+    <string name="widget_preview_candle_lighting">הדלקת נרות</string>
+    <string name="widget_preview_sunset">שקיעה</string>
+    <string name="widget_preview_observance">כניסת החג 18:12</string>
+    <string name="widget_preview_learning">דף יומי: בכורות ז׳</string>
+    <string name="widget_preview_location">הזמנים מבוססים על ירושלים</string>
+</resources>

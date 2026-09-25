@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The small widget in the picker: the Hebrew date over two lines and the next time. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@android:id/background"
+    style="@style/WidgetPreviewFrame"
+    android:clipToOutline="true"
+    tools:targetApi="s">
+
+    <LinearLayout
+        style="@style/WidgetPreviewColumn"
+        android:orientation="vertical">
+
+        <TextView
+            style="@style/WidgetPreviewText.HebrewDate"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:maxLines="2"
+            android:text="@string/widget_preview_hebrew_date" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout style="@style/WidgetPreviewTimeColumn">
+                <TextView
+                    style="@style/WidgetPreviewText.TimeLabel"
+                    android:text="@string/widget_preview_candle_lighting" />
+                <TextView
+                    style="@style/WidgetPreviewText.Time"
+                    android:text="@string/widget_preview_candle_lighting_time" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

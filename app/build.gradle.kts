@@ -67,6 +67,11 @@ android {
         compose = true
         buildConfig = true
     }
+
+    testOptions {
+        // The widget render test inflates the app's own layouts and strings.
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -102,6 +107,8 @@ dependencies {
     testImplementation(libs.junit)
     // android.jar's org.json is a stub in unit tests; the real one lets release parsing be tested.
     testImplementation(libs.json)
+    // Lays the widget and its picker previews out and draws them with real fonts (DayWidgetRenderTest).
+    testImplementation(libs.robolectric)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

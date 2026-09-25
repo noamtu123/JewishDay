@@ -8,11 +8,15 @@ import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 
 /**
- * The AppWidgetProvider the launcher talks to for [DayWidget]: Glance turns the broadcasts it
- * receives into runs of the widget's provideGlance. The app's own refresh schedule — what keeps the
- * sun moving between the launcher's sparse updates — hooks in here separately.
+ * The AppWidgetProviders the launcher talks to for [DayWidget], one per size the widget picker
+ * offers. They differ only in their provider info — the default size and the preview — since the
+ * widget itself fits whatever frame it is given, so each is [DayWidget] under its own entry, and
+ * every instance of every size is kept current by the one [DayWidgetRefresher].
+ *
+ * Glance turns the broadcasts each receives into runs of the widget's provideGlance. The app's own
+ * refresh schedule — what keeps the sun moving between the launcher's sparse updates — hooks in here.
  */
-class DayWidgetReceiver : GlanceAppWidgetReceiver() {
+abstract class DayWidgetSizeReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = DayWidget()
 
     /**
@@ -31,8 +35,28 @@ class DayWidgetReceiver : GlanceAppWidgetReceiver() {
         dayWidgetRefresher(context).requestRefresh()
     }
 
+    /** The last widget of this size is gone; the refresher keeps going while any other size is placed. */
     override fun onDisabled(context: Context) {
         super.onDisabled(context)
         dayWidgetRefresher(context).onWidgetsRemoved()
     }
 }
+
+/** The small widget: the Hebrew date and the next time, two cells square. */
+class DayWidgetSmallReceiver : DayWidgetSizeReceiver()
+
+/**
+ * The medium widget: the Hebrew date, the weekday and the times still to come, four cells by two.
+ * It keeps the name the widget had when it came in one size, so widgets placed then stay placed.
+ */
+class DayWidgetReceiver : DayWidgetSizeReceiver()
+
+/** The large widget: the whole day, four cells square. */
+class DayWidgetLargeReceiver : DayWidgetSizeReceiver()
+
+/** Every size's receiver, for asking the framework whether any widget is placed. */
+internal val dayWidgetReceivers: List<Class<out DayWidgetSizeReceiver>> = listOf(
+    DayWidgetSmallReceiver::class.java,
+    DayWidgetReceiver::class.java,
+    DayWidgetLargeReceiver::class.java,
+)

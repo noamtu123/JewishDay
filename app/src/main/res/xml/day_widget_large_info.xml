@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The medium day widget: four cells by two, the Hebrew date, the weekday and the next times.
+  The large day widget: four cells square, the whole day.
   updatePeriodMillis is 0 because the app schedules its own refreshes: the sun has to move along
   its arc far more often than the system's half-hour minimum would allow, and the app already knows
   when the sky changes. Every size resizes down to a strip, since the widget fits whatever frame it
@@ -9,17 +9,17 @@
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:description="@string/widget_day_description"
+    android:description="@string/widget_day_large_description"
     android:initialLayout="@layout/glance_default_loading_layout"
     android:minWidth="250dp"
-    android:minHeight="110dp"
+    android:minHeight="250dp"
     android:minResizeWidth="100dp"
     android:minResizeHeight="40dp"
-    android:previewImage="@drawable/day_widget_medium_preview_image"
-    android:previewLayout="@layout/day_widget_medium_preview"
+    android:previewImage="@drawable/day_widget_large_preview_image"
+    android:previewLayout="@layout/day_widget_large_preview"
     android:resizeMode="horizontal|vertical"
     android:targetCellWidth="4"
-    android:targetCellHeight="2"
+    android:targetCellHeight="4"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen"
     tools:targetApi="s" />
