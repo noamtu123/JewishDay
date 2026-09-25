@@ -6,7 +6,6 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import android.view.View
-import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
@@ -47,6 +46,7 @@ import androidx.glance.unit.ColorProvider
 import com.noamtu.jewishday.MainActivity
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.model.Festival
+import com.noamtu.jewishday.ui.components.iconRes
 import com.noamtu.jewishday.ui.theme.renderSkyBitmap
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
@@ -211,23 +211,6 @@ private fun FestivalIcon(festival: Festival, sizeDp: Int) {
         contentScale = ContentScale.Fit,
     )
 }
-
-/** Each festival's picture: what the day is known by at a glance. */
-@get:DrawableRes
-internal val Festival.iconRes: Int
-    get() = when (this) {
-        Festival.RoshHashana -> R.drawable.ic_festival_rosh_hashana
-        Festival.YomKippur -> R.drawable.ic_festival_yom_kippur
-        Festival.Sukkot -> R.drawable.ic_festival_sukkot
-        Festival.SimchatTorah -> R.drawable.ic_festival_simchat_torah
-        Festival.Chanukah -> R.drawable.ic_festival_chanukah
-        Festival.TuBishvat -> R.drawable.ic_festival_tu_bishvat
-        Festival.Purim -> R.drawable.ic_festival_purim
-        Festival.Pesach -> R.drawable.ic_festival_pesach
-        Festival.YomHaatzmaut -> R.drawable.ic_festival_yom_haatzmaut
-        Festival.LagBaomer -> R.drawable.ic_festival_lag_baomer
-        Festival.Shavuot -> R.drawable.ic_festival_shavuot
-    }
 
 /**
  * The times still to come spread across the width, each a label over its clock time. The columns

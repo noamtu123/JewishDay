@@ -13,6 +13,7 @@ import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.data.JewishDayRepository
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.DailyLearningGroupTitle
+import com.noamtu.jewishday.model.Festival
 import com.noamtu.jewishday.model.ShabbatGroupTitle
 import com.noamtu.jewishday.model.DailyLearningType
 import com.noamtu.jewishday.model.JewishLocation
@@ -72,6 +73,8 @@ data class ZmanimHeaderUi(
     // The weekday alone, rolling with the Hebrew date: the widget shows it without the civil date.
     val weekday: String,
     val weekdayHebrew: String,
+    // The festival whose picture marks the date, its erev included; null on any other day.
+    val festival: Festival? = null,
     // The name of the location the times were computed for; the UI turns this into a small caption
     // when it isn't a fresh current-location fix (last-known, Jerusalem, or a named place).
     val locationName: String = "",

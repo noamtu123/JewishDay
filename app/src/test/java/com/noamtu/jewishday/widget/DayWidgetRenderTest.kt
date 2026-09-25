@@ -22,6 +22,7 @@ import androidx.glance.appwidget.compose
 import androidx.glance.appwidget.provideContent
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.model.Festival
+import com.noamtu.jewishday.ui.components.iconRes
 import com.noamtu.jewishday.ui.theme.SkyFrame
 import java.io.File
 import kotlin.math.roundToInt
