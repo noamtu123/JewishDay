@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Build
 import android.util.Log
 import android.view.View
+import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
@@ -32,9 +33,12 @@ import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
+import androidx.glance.layout.absolutePadding
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
+import androidx.glance.layout.height
 import androidx.glance.layout.padding
+import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
@@ -42,13 +46,14 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import com.noamtu.jewishday.MainActivity
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.model.Festival
 import com.noamtu.jewishday.ui.theme.renderSkyBitmap
 import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 
 /**
- * The home-screen widget: today — its Hebrew date, badge, the times still to come, events and
- * learning — laid over the sky the Glass theme paints at this hour, sun by day and moon and stars by
+ * The home-screen widget: today — its Hebrew date, with the festival's picture on a festival, its
+ * badge, the times still to come, events and learning — laid over the sky the Glass theme paints at this hour, sun by day and moon and stars by
  * night.
  *
  * A widget is a RemoteViews snapshot the launcher shows as-is, so the sky cannot be drawn live: it
@@ -139,18 +144,24 @@ internal fun DayWidgetContent(state: DayWidgetState) {
             verticalAlignment = if (layout.slots.size <= 2) Alignment.CenterVertically else Alignment.Top,
             horizontalAlignment = if (mirrored) Alignment.End else Alignment.Start,
         ) {
-            layout.slots.forEach { Slot(it, state, layout, ink, mirrored) }
+            layout.slots.forEach { Slot(it, state, layout, ink, mirrored, rtlLayout) }
         }
     }
 }
 
 /** One piece of the day, at the size [dayWidgetLayoutFor] budgeted it for. */
 @Composable
-private fun Slot(slot: DayWidgetSlot, state: DayWidgetState, layout: DayWidgetLayout, ink: SkyInk, mirrored: Boolean) {
+private fun Slot(
+    slot: DayWidgetSlot,
+    state: DayWidgetState,
+    layout: DayWidgetLayout,
+    ink: SkyInk,
+    mirrored: Boolean,
+    rtlLayout: Boolean,
+) {
     when (slot) {
-        DayWidgetSlot.HebrewDate ->
-            Line(state.hebrewDate, ink.primary(layout.hebrewDateSp.sp, FontWeight.Bold), maxLines = layout.hebrewDateLines)
-        DayWidgetSlot.WeekdayAndDate -> Line(state.weekdayAndDate, ink.primary(DateSp.sp))
+        DayWidgetSlot.HebrewDate -> HebrewDateRow(state, layout, ink, rtlLayout)
+        DayWidgetSlot.Weekday -> Line(state.weekday, ink.primary(WeekdaySp.sp))
         DayWidgetSlot.Chip -> state.chip?.let { Line(it, ink.primary(ChipSp.sp, FontWeight.Medium)) }
         DayWidgetSlot.Times -> TimesRow(layout.times, layout.timeLabelSp, ink, mirrored)
         // Grouped so the outer Column stays within Glance's ten-children limit on the fullest of days.
@@ -164,6 +175,61 @@ private fun Slot(slot: DayWidgetSlot, state: DayWidgetState, layout: DayWidgetLa
 }
 
 /**
+ * The Hebrew date, with the festival's picture in the top-left corner on a festival: across from
+ * where Hebrew starts reading, and ahead of English like an initial. The launcher lays a row out in
+ * the device's direction, so the picture goes last in a right-to-left row and first otherwise.
+ */
+@Composable
+private fun HebrewDateRow(state: DayWidgetState, layout: DayWidgetLayout, ink: SkyInk, rtlLayout: Boolean) {
+    val style = ink.primary(layout.hebrewDateSp.sp, FontWeight.Bold)
+    val festival = state.festival
+    if (festival == null || layout.festivalIconDp == 0) {
+        Line(state.hebrewDate, style, maxLines = layout.hebrewDateLines)
+        return
+    }
+    Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        if (!rtlLayout) FestivalIcon(festival, layout.festivalIconDp)
+        Text(
+            text = state.hebrewDate,
+            modifier = GlanceModifier.defaultWeight(),
+            style = style,
+            maxLines = layout.hebrewDateLines,
+        )
+        if (rtlLayout) FestivalIcon(festival, layout.festivalIconDp)
+    }
+}
+
+/** The festival's picture, [sizeDp] square, with the gap to the date on its right: it always sits on the left. */
+@Composable
+private fun FestivalIcon(festival: Festival, sizeDp: Int) {
+    Image(
+        provider = ImageProvider(festival.iconRes),
+        // The badge beneath names the festival; the picture only marks it.
+        contentDescription = null,
+        modifier = GlanceModifier.width((sizeDp + FestivalIconGapDp).dp).height(sizeDp.dp)
+            .absolutePadding(right = FestivalIconGapDp.dp),
+        contentScale = ContentScale.Fit,
+    )
+}
+
+/** Each festival's picture: what the day is known by at a glance. */
+@get:DrawableRes
+internal val Festival.iconRes: Int
+    get() = when (this) {
+        Festival.RoshHashana -> R.drawable.ic_festival_rosh_hashana
+        Festival.YomKippur -> R.drawable.ic_festival_yom_kippur
+        Festival.Sukkot -> R.drawable.ic_festival_sukkot
+        Festival.SimchatTorah -> R.drawable.ic_festival_simchat_torah
+        Festival.Chanukah -> R.drawable.ic_festival_chanukah
+        Festival.TuBishvat -> R.drawable.ic_festival_tu_bishvat
+        Festival.Purim -> R.drawable.ic_festival_purim
+        Festival.Pesach -> R.drawable.ic_festival_pesach
+        Festival.YomHaatzmaut -> R.drawable.ic_festival_yom_haatzmaut
+        Festival.LagBaomer -> R.drawable.ic_festival_lag_baomer
+        Festival.Shavuot -> R.drawable.ic_festival_shavuot
+    }
+
+/**
  * The times still to come spread across the width, each a label over its clock time. The columns
  * sit on the row's bottom, so the times stand level when one label wraps and another does not.
  */
@@ -173,7 +239,7 @@ private fun TimesRow(times: List<DayWidgetTime>, labelSp: Int, ink: SkyInk, mirr
     // The launcher lays a row out in the device's direction; when the texts read the other way,
     // the columns are reversed by hand so the soonest still comes first in reading order.
     val ordered = if (mirrored) times.asReversed() else times
-    Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+    Row(modifier = GlanceModifier.fillMaxWidth().padding(top = TimesGapDp.dp), verticalAlignment = Alignment.Bottom) {
         ordered.forEach { time ->
             Column(modifier = GlanceModifier.defaultWeight().padding(horizontal = TimeColumnPaddingDp.dp)) {
                 Line(time.label, ink.secondary(labelSp.sp))

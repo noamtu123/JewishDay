@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.widget
 
+import com.noamtu.jewishday.model.Festival
 import com.noamtu.jewishday.ui.theme.SkyFrame
 
 /**
@@ -35,8 +36,10 @@ data class DayWidgetState(
     val sky: SkyFrame,
     /** The Hebrew date as the app's header shows it, rolled past tzeit like the header. */
     val hebrewDate: String,
-    /** The weekday and civil date beneath it — "Friday, September 25". */
-    val weekdayAndDate: String,
+    /** The weekday beneath it — "Friday" — rolling with the Hebrew date; the civil date is left out. */
+    val weekday: String,
+    /** The festival the day belongs to, erev included, drawn as its picture beside the date; or null. */
+    val festival: Festival?,
     /**
      * The day's badge: the holy day or fast under way, else the day's own name ("Erev Pesach"),
      * else the coming Shabbat — its parasha, worded "Parashat Noach" all week long, or the Yom Tov

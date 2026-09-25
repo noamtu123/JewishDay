@@ -58,6 +58,8 @@ internal fun ZmanimDay.toHeaderUi(use24HourTime: Boolean): ZmanimHeaderUi {
         jewishDateHebrew = hebrewDateHebrew,
         gregorianDate = "${displayedDate.format(englishWeekdayFormatter)}, ${date.format(englishDayMonthFormatter)}",
         gregorianDateHebrew = "${displayedDate.format(hebrewWeekdayFormatter)}, ${date.format(hebrewDayMonthFormatter)}",
+        weekday = displayedDate.format(englishWeekdayFormatter),
+        weekdayHebrew = displayedDate.format(hebrewWeekdayFormatter),
         locationName = locationName,
         // The fast's name belongs to it only while it is on; the times show a day ahead.
         fastName = fastDayInfo?.takeIf { it.isUnderWay }?.name,

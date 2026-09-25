@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.noamtu.jewishday.model.Festival
 import com.noamtu.jewishday.ui.theme.SkyFrame
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -34,7 +35,8 @@ class DayWidgetLayoutTest {
         useHebrew = false,
         sky = sky,
         hebrewDate = "14 Tishrei 5787",
-        weekdayAndDate = "Friday, September 25",
+        weekday = "Friday",
+        festival = null,
         chip = "Sukkot",
         observanceLines = listOf("Sukkot starts 18:10", "Sukkot ends 19:05"),
         eventLine = "Omer: 12",
@@ -75,11 +77,16 @@ class DayWidgetLayoutTest {
     }
 
     @Test
-    fun aMediumWidgetShowsTheDateTheWeekdayAndTheNextTimes() {
+    fun aMediumWidgetShowsTheDateTheWeekdayTheNextTimesAndAnEntryLine() {
         val layout = dayWidgetLayoutFor(fullDay, mediumSize)
 
-        assertEquals(listOf(DayWidgetSlot.HebrewDate, DayWidgetSlot.WeekdayAndDate, DayWidgetSlot.Times), layout.slots)
+        assertEquals(
+            listOf(DayWidgetSlot.HebrewDate, DayWidgetSlot.Weekday, DayWidgetSlot.Times, DayWidgetSlot.Observance),
+            layout.slots,
+        )
         assertEquals(listOf("Mincha", "Plag", "Sunset"), layout.times.map { it.label })
+        assertEquals(TimeLabelSp, layout.timeLabelSp)
+        assertEquals(1, layout.observanceLinesShown)
     }
 
     @Test
@@ -119,36 +126,73 @@ class DayWidgetLayoutTest {
             mediumSize,
         )
 
-        // The wrapped label takes the room the weekday had on the same frame, and "(tomorrow)" is
-        // too wide a word for a third of the width even at the labels' smallest, so the row gives
-        // up a column rather than break it.
-        assertTrue(DayWidgetSlot.WeekdayAndDate in dayWidgetLayoutFor(fullDay, mediumSize).slots)
-        assertFalse(DayWidgetSlot.WeekdayAndDate in long.slots)
+        // The wrapped label takes the room the entry line had on the same frame, and "(tomorrow)"
+        // is too wide a word for a third of the width even at the labels' smallest, so the row
+        // gives up a column rather than break it.
+        assertTrue(DayWidgetSlot.Observance in dayWidgetLayoutFor(fullDay, mediumSize).slots)
+        assertFalse(DayWidgetSlot.Observance in long.slots)
         assertEquals(2, long.timesShown)
     }
 
     @Test
     fun aTimeLabelShrinksBeforeAWordOfItBreaks() {
-        val layout = dayWidgetLayoutFor(fullDay.copy(times = listOf(DayWidgetTime("Plag Hamincha", "17:17")) + fullDay.times), mediumSize)
+        val layout = dayWidgetLayoutFor(fullDay.copy(times = listOf(DayWidgetTime("Tzeit Hakochavim", "19:01")) + fullDay.times), mediumSize)
 
+        // Too long for one line of a third of the width at any size, so it wraps, a little smaller
+        // than the labels' own size so that "Hakochavim" still fits its column whole.
         assertEquals(3, layout.timesShown)
         assertTrue(layout.timeLabelSp in MinTimeLabelSp until TimeLabelSp)
     }
 
     @Test
-    fun aWideWidgetSetsTheHebrewDateOnOneLineAtFullSize() {
-        val layout = dayWidgetLayoutFor(hebrewDay, DpSize(440.dp, 202.dp))
+    fun aFourColumnWidgetSetsTheHebrewDateOnOneLineAtFullSize() {
+        val layout = dayWidgetLayoutFor(hebrewDay, mediumSize)
 
         assertEquals(HebrewDateSp, layout.hebrewDateSp)
         assertEquals(1, layout.hebrewDateLines)
+        assertEquals(0, layout.festivalIconDp)
     }
 
     @Test
-    fun aFourColumnWidgetShrinksTheHebrewDateALittleToKeepItOnOneLine() {
-        val layout = dayWidgetLayoutFor(hebrewDay, mediumSize)
+    fun aFestivalsPictureTakesItsRoomFromTheHebrewDate() {
+        val plain = dayWidgetLayoutFor(hebrewDay, mediumSize)
+        val sukkot = dayWidgetLayoutFor(hebrewDay.copy(festival = Festival.Sukkot), mediumSize)
 
-        assertEquals(41, layout.hebrewDateSp)
-        assertEquals(1, layout.hebrewDateLines)
+        assertEquals(FestivalIconDp, sukkot.festivalIconDp)
+        assertTrue("${sukkot.hebrewDateSp} < ${plain.hebrewDateSp}", sukkot.hebrewDateSp < plain.hebrewDateSp)
+        assertEquals(1, sukkot.hebrewDateLines)
+    }
+
+    @Test
+    fun aFestivalsPictureShrinksWithASmallWidget() {
+        val layout = dayWidgetLayoutFor(hebrewDay.copy(festival = Festival.Sukkot), DpSize(170.dp, 202.dp))
+
+        assertTrue(layout.festivalIconDp in 1 until FestivalIconDp)
+    }
+
+    @Test
+    fun aFrameTooNarrowForTheDateAndThePictureKeepsTheDate() {
+        val tight = DpSize(130.dp, 150.dp)
+        val layout = dayWidgetLayoutFor(hebrewDay.copy(festival = Festival.Sukkot), tight)
+
+        assertEquals(0, layout.festivalIconDp)
+        assertEquals(dayWidgetLayoutFor(hebrewDay, tight), layout)
+    }
+
+    @Test
+    fun theTimeLabelsShrinkToSitOnOneLine() {
+        val friday = hebrewDay.copy(
+            times = listOf(
+                DayWidgetTime("מנחה קטנה", "16:01"),
+                DayWidgetTime("פלג המנחה", "17:17"),
+                DayWidgetTime("הדלקת נרות", "18:02", pinned = true),
+            ),
+        )
+
+        val layout = dayWidgetLayoutFor(friday, mediumSize)
+
+        assertEquals(3, layout.timesShown)
+        assertTrue(layout.timeLabelSp in MinTimeLabelSp until TimeLabelSp)
     }
 
     @Test
@@ -165,7 +209,7 @@ class DayWidgetLayoutTest {
     fun aLargerSystemFontLeavesRoomForLess() {
         val layout = dayWidgetLayoutFor(fullDay, mediumSize, fontScale = 1.3f)
 
-        assertEquals(listOf(DayWidgetSlot.HebrewDate, DayWidgetSlot.Times), layout.slots)
+        assertEquals(listOf(DayWidgetSlot.HebrewDate, DayWidgetSlot.Times, DayWidgetSlot.Observance), layout.slots)
         assertEquals(2, layout.timesShown)
     }
 
@@ -173,7 +217,7 @@ class DayWidgetLayoutTest {
     fun aQuietDayLeavesItsEmptySlotsOut() {
         val layout = dayWidgetLayoutFor(quietDay, DpSize(358.dp, 300.dp))
 
-        assertEquals(listOf(DayWidgetSlot.HebrewDate, DayWidgetSlot.WeekdayAndDate, DayWidgetSlot.Times), layout.slots)
+        assertEquals(listOf(DayWidgetSlot.HebrewDate, DayWidgetSlot.Weekday, DayWidgetSlot.Times), layout.slots)
         // Never more columns than there are times to put in them.
         assertEquals(2, layout.timesShown)
         assertEquals(0, layout.observanceLinesShown)
@@ -183,7 +227,7 @@ class DayWidgetLayoutTest {
     fun aDayWithNothingStillToComeHasNoTimesRow() {
         val layout = dayWidgetLayoutFor(quietDay.copy(times = emptyList()), DpSize(358.dp, 300.dp))
 
-        assertEquals(listOf(DayWidgetSlot.HebrewDate, DayWidgetSlot.WeekdayAndDate), layout.slots)
+        assertEquals(listOf(DayWidgetSlot.HebrewDate, DayWidgetSlot.Weekday), layout.slots)
         assertEquals(0, layout.timesShown)
     }
 

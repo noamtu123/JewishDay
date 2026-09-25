@@ -5,6 +5,7 @@ package com.noamtu.jewishday.widget
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color as AndroidColor
 import android.graphics.Rect
 import android.view.LayoutInflater
 import android.view.View
@@ -20,6 +21,7 @@ import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.compose
 import androidx.glance.appwidget.provideContent
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.model.Festival
 import com.noamtu.jewishday.ui.theme.SkyFrame
 import java.io.File
 import kotlin.math.roundToInt
@@ -59,6 +61,9 @@ class DayWidgetRenderTest {
     @Test
     fun theWidgetFitsEverySize() = assertWidgetFits(englishDay, "en")
 
+    @Test
+    fun theWidgetFitsEverySizeOnAnOrdinaryDay() = assertWidgetFits(englishDay.copy(festival = null), "en-plain")
+
     /** Hebrew texts on a left-to-right device, where the widget mirrors itself by hand. */
     @Test
     fun theWidgetFitsEverySizeInHebrewOnAnEnglishDevice() = assertWidgetFits(hebrewDay, "he-on-en")
@@ -66,6 +71,31 @@ class DayWidgetRenderTest {
     @Test
     @Config(qualifiers = "+iw-ldrtl")
     fun theWidgetFitsEverySizeInHebrew() = assertWidgetFits(hebrewDay, "iw")
+
+    @Test
+    @Config(qualifiers = "+iw-ldrtl")
+    fun theWidgetFitsEverySizeInHebrewOnAnOrdinaryDay() = assertWidgetFits(hebrewDay.copy(festival = null), "iw-plain")
+
+    /** Every festival has a picture that draws, all of them written side by side to festivals.png. */
+    @Test
+    fun everyFestivalHasAPicture() {
+        val cell = 144
+        val sheet = Bitmap.createBitmap(cell * Festival.entries.size, cell, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(sheet).apply { drawColor(0xFFAEC9F6.toInt()) }
+        val blank = Festival.entries.filterIndexed { index, festival ->
+            val picture = Bitmap.createBitmap(cell, cell, Bitmap.Config.ARGB_8888)
+            requireNotNull(context.getDrawable(festival.iconRes)).apply { setBounds(0, 0, cell, cell) }.draw(Canvas(picture))
+            canvas.drawBitmap(picture, (index * cell).toFloat(), 0f, null)
+            // The pale disc alone paints pixels too, so a fifth of the disc must be the drawing's own.
+            val disc = picture.getPixel(cell / 2, 2)
+            val samples = (0 until cell step 4).flatMap { x -> (0 until cell step 4).map { y -> picture.getPixel(x, y) } }
+                .filter { AndroidColor.alpha(it) > 0 }
+            samples.count { it != disc } < samples.size / 5
+        }
+        File(File("build/widget-renders").apply { mkdirs() }, "festivals.png").outputStream()
+            .use { sheet.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        assertTrue("No picture drawn for $blank", blank.isEmpty())
+    }
 
     private fun assertPreviewsFit(locale: String) {
         val problems = previews.flatMap { (name, layout, size) ->
@@ -180,15 +210,16 @@ class DayWidgetRenderTest {
             useHebrew = false,
             sky = daySky,
             hebrewDate = "14 Tishrei 5787",
-            weekdayAndDate = "Friday, September 25",
-            chip = "Erev Sukkot",
-            observanceLines = listOf("Yom Tov starts 18:12"),
+            weekday = "Friday",
+            festival = Festival.Sukkot,
+            chip = "Sukkot",
+            observanceLines = listOf("Yom Tov starts 18:02", "Yom Tov ends 19:01"),
             eventLine = null,
             times = listOf(
+                DayWidgetTime("Mincha Ketana", "16:01"),
                 DayWidgetTime("Plag Hamincha", "17:17"),
-                DayWidgetTime("Candle Lighting", "18:12", pinned = true),
-                DayWidgetTime("Sunset", "18:32"),
-                DayWidgetTime("Tzeit Hakochavim", "19:01"),
+                DayWidgetTime("Candle Lighting", "18:02", pinned = true),
+                DayWidgetTime("Sunset", "18:22"),
             ),
             learning = "Daf Yomi Bavli: Bechorot 7",
             locationName = "Times based on Jerusalem",
@@ -197,14 +228,14 @@ class DayWidgetRenderTest {
         val hebrewDay = englishDay.copy(
             useHebrew = true,
             hebrewDate = "י״ד תשרי תשפ״ז",
-            weekdayAndDate = "יום שישי, 25 בספטמבר",
-            chip = "ערב סוכות",
-            observanceLines = listOf("כניסת החג 18:12"),
+            weekday = "יום שישי",
+            chip = "סוכות",
+            observanceLines = listOf("כניסת החג 18:02", "צאת החג 19:01"),
             times = listOf(
+                DayWidgetTime("מנחה קטנה", "16:01"),
                 DayWidgetTime("פלג המנחה", "17:17"),
-                DayWidgetTime("הדלקת נרות", "18:12", pinned = true),
-                DayWidgetTime("שקיעה", "18:32"),
-                DayWidgetTime("צאת הכוכבים", "19:01"),
+                DayWidgetTime("הדלקת נרות", "18:02", pinned = true),
+                DayWidgetTime("שקיעה", "18:22"),
             ),
             learning = "דף יומי בבלי: בכורות ז׳",
             locationName = "הזמנים מבוססים על ירושלים",

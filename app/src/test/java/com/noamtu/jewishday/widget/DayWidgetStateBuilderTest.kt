@@ -147,7 +147,8 @@ class DayWidgetStateBuilderTest {
         assertNull(state.eventLine)
         assertTrue(state.observanceLines.isEmpty())
         assertTrue(state.hebrewDate, state.hebrewDate.isNotBlank())
-        assertTrue(state.weekdayAndDate, state.weekdayAndDate.startsWith("Wednesday, November 4"))
+        assertEquals("Wednesday", state.weekday)
+        assertNull(state.festival)
         // Jerusalem here is the fallback, not a fix, and the caption says so.
         assertEquals("Times based on Jerusalem", state.locationName)
     }
@@ -229,7 +230,7 @@ class DayWidgetStateBuilderTest {
         assertEquals("הזמנים מבוססים על ירושלים", hebrew.locationName)
         // The clock times themselves are the same instants either way.
         assertEquals(english.times.map { it.time }, hebrew.times.map { it.time })
-        assertTrue(hebrew.weekdayAndDate, hebrew.weekdayAndDate.contains("בנובמבר"))
+        assertEquals("יום רביעי", hebrew.weekday)
         assertTrue(requireNotNull(hebrew.learning), hebrew.learning.startsWith("דף יומי בבלי: "))
     }
 

@@ -69,6 +69,9 @@ data class ZmanimHeaderUi(
     val jewishDateHebrew: String,
     val gregorianDate: String,
     val gregorianDateHebrew: String,
+    // The weekday alone, rolling with the Hebrew date: the widget shows it without the civil date.
+    val weekday: String,
+    val weekdayHebrew: String,
     // The name of the location the times were computed for; the UI turns this into a small caption
     // when it isn't a fresh current-location fix (last-known, Jerusalem, or a named place).
     val locationName: String = "",

@@ -6,17 +6,22 @@ import androidx.compose.ui.unit.DpSize
 import kotlin.math.ceil
 
 /** The pieces of the widget, in the order they stack from the top. */
-internal enum class DayWidgetSlot { HebrewDate, WeekdayAndDate, Chip, Times, Observance, Event, Learning, Location }
+internal enum class DayWidgetSlot { HebrewDate, Weekday, Chip, Times, Observance, Event, Learning, Location }
 
-/** What one widget frame shows: which slots, how the Hebrew date is set, which times and how many entry/exit lines. */
+/**
+ * What one widget frame shows: which slots, how the Hebrew date is set (beside the festival's
+ * picture, on a festival), which times and how many entry/exit lines.
+ */
 internal data class DayWidgetLayout(
     val slots: List<DayWidgetSlot>,
     val hebrewDateSp: Int,
     /** One line, or two on a frame too narrow to hold the date on one at a readable size. */
     val hebrewDateLines: Int,
+    /** How large the festival's picture beside the date is, or 0 for none. */
+    val festivalIconDp: Int,
     /** The times the row shows: the soonest its width has columns for, observance boundaries always kept. */
     val times: List<DayWidgetTime>,
-    /** The times' labels' size: as large as lets every word of every label fit its column whole. */
+    /** The times' labels' size: as large as sets them all on one line, else every word of them whole. */
     val timeLabelSp: Int,
     val observanceLinesShown: Int,
 ) {
@@ -33,7 +38,8 @@ internal data class DayWidgetLayout(
  *
  * The times row has as many columns as the width holds at the times' size, up to four. The Hebrew
  * date shrinks to fit the width, and on a frame too narrow for it at a readable size it breaks onto
- * two lines instead.
+ * two lines instead. On a festival its picture sits beside the date, sized to the frame, as long as
+ * the date keeps most of its size beside it; a frame too narrow for both keeps just the date.
  *
  * Sizes are estimated from the text, since a RemoteViews layout cannot be measured before it is
  * shown; the estimate errs a little generous, so a tight frame loses a line rather than cuts one.
@@ -54,11 +60,16 @@ internal fun dayWidgetLayoutFor(state: DayWidgetState, size: DpSize, fontScale: 
         return true
     }
 
-    val date = hebrewDateSettingFor(state.hebrewDate, text, budget)
-    budget -= date.lines * text.lineDp(date.sp)
+    val plainDate = hebrewDateSettingFor(state.hebrewDate, text, text.lineWidthDp, budget)
+    val iconDp = festivalIconDpFor(text.lineWidthDp).takeIf { state.festival != null && it <= budget }
+    val besideIcon = iconDp?.let { hebrewDateSettingFor(state.hebrewDate, text, text.lineWidthDp - it - FestivalIconGapDp, budget) }
+    val showIcon = besideIcon != null && besideIcon.fits && besideIcon.sp >= plainDate.sp * MinDateShareBesideIcon
+    val date = if (showIcon) requireNotNull(besideIcon) else plainDate
+    val festivalIconDp = if (showIcon) requireNotNull(iconDp) else 0
+    budget -= maxOf(date.lines * text.lineDp(date.sp), festivalIconDp.toFloat())
     val row = timesRowFor(state.times, text)
     if (row.times.isNotEmpty()) take(DayWidgetSlot.Times, row.heightDp)
-    take(DayWidgetSlot.WeekdayAndDate, text.blockDp(state.weekdayAndDate, DateSp))
+    take(DayWidgetSlot.Weekday, text.blockDp(state.weekday, WeekdaySp))
     state.chip?.let { take(DayWidgetSlot.Chip, text.blockDp(it, ChipSp)) }
     val observanceLines = state.observanceLines.takeWhile { take(DayWidgetSlot.Observance, text.blockDp(it, LineSp)) }
     state.eventLine?.let { take(DayWidgetSlot.Event, text.blockDp(it, LineSp)) }
@@ -68,6 +79,7 @@ internal fun dayWidgetLayoutFor(state: DayWidgetState, size: DpSize, fontScale: 
         slots = DayWidgetSlot.entries.filter { it in chosen },
         hebrewDateSp = date.sp,
         hebrewDateLines = date.lines,
+        festivalIconDp = festivalIconDp,
         times = if (DayWidgetSlot.Times in chosen) row.times else emptyList(),
         timeLabelSp = row.labelSp,
         observanceLinesShown = observanceLines.size,
@@ -96,21 +108,27 @@ internal fun wrappedLines(text: String, charDp: Float, lineWidthDp: Float): Int 
     return lines
 }
 
-/** The text's size and how many lines it is set on. */
-private data class TextSetting(val sp: Int, val lines: Int)
+/** The text's size, how many lines it is set on, and whether it fits there at all rather than at the least size. */
+private data class TextSetting(val sp: Int, val lines: Int, val fits: Boolean = true)
+
+/** The festival's picture, a fifth of the line across and no smaller than a glance can make out. */
+private fun festivalIconDpFor(lineWidthDp: Float): Int =
+    (lineWidthDp * FestivalIconShare).toInt().coerceIn(MinFestivalIconDp, FestivalIconDp)
 
 /**
- * The Hebrew date at the largest size its line fits the width and [heightDp] at. Below a readable
+ * The Hebrew date at the largest size its line fits [widthDp] and [heightDp] at. Below a readable
  * size, two lines win if they let it be set markedly larger and the height has room for both.
  */
-private fun hebrewDateSettingFor(date: String, text: TextMetrics, heightDp: Float): TextSetting {
+private fun hebrewDateSettingFor(date: String, text: TextMetrics, widthDp: Float, heightDp: Float): TextSetting {
     fun largest(fits: (Int) -> Boolean): Int? = (HebrewDateSp downTo MinHebrewDateSp).firstOrNull(fits)
-    val oneLine = largest { text.boldLines(date, it) == 1 && text.lineDp(it) <= heightDp }
+    val oneLine = largest { text.boldLines(date, it, widthDp) == 1 && text.lineDp(it) <= heightDp }
     if (oneLine != null && oneLine >= ReadableHebrewDateSp) return TextSetting(oneLine, 1)
-    val twoLines = largest { text.boldLines(date, it) <= 2 && 2 * text.lineDp(it) <= heightDp }
+    val twoLines = largest {
+        text.boldFitsWhole(date, it, widthDp) && text.boldLines(date, it, widthDp) <= 2 && 2 * text.lineDp(it) <= heightDp
+    }
     return when {
         twoLines != null && twoLines >= (oneLine ?: 0) + TwoLineGainSp -> TextSetting(twoLines, 2)
-        else -> TextSetting(oneLine ?: MinHebrewDateSp, 1)
+        else -> TextSetting(oneLine ?: MinHebrewDateSp, 1, fits = oneLine != null)
     }
 }
 
@@ -119,8 +137,9 @@ private class TimesRow(val times: List<DayWidgetTime>, val labelSp: Int, val hei
 
 /**
  * As many columns as the width holds at the times' own size, up to four, filled with the soonest
- * times but never without an observance boundary. A label may wrap to a second line, and the row
- * grows with it, but a word is never broken: the labels shrink a little first, and if even that
+ * times but never without an observance boundary. The labels shrink a little to sit on one line, as
+ * a row of labels at one height reads tidier than one broken over two. Where no size lets them, a
+ * label wraps to a second line and the row grows with it, but a word is never broken: if even that
  * leaves a word wider than its column, the row gives up a column.
  */
 private fun timesRowFor(times: List<DayWidgetTime>, text: TextMetrics): TimesRow {
@@ -131,13 +150,14 @@ private fun timesRowFor(times: List<DayWidgetTime>, text: TextMetrics): TimesRow
     fun row(shown: List<DayWidgetTime>, labelSp: Int): TimesRow {
         val labelLines = shown.maxOf { text.lines(it.label, labelSp, labelWidthDp(shown.size)) }
             .coerceAtMost(MaxTextLines)
-        return TimesRow(shown, labelSp, labelLines * text.lineDp(labelSp) + text.lineDp(TimeSp))
+        return TimesRow(shown, labelSp, TimesGapDp + labelLines * text.lineDp(labelSp) + text.lineDp(TimeSp))
     }
+    val sizes = TimeLabelSp downTo MinTimeLabelSp
     for (columns in mostColumns downTo 1) {
         val shown = times.keepingPinned(columns)
-        val labelSp = (TimeLabelSp downTo MinTimeLabelSp).firstOrNull { sp ->
-            shown.all { text.fitsWhole(it.label, sp, labelWidthDp(shown.size)) }
-        }
+        val widthDp = labelWidthDp(shown.size)
+        val labelSp = sizes.firstOrNull { sp -> shown.all { text.fitsOneLine(it.label, sp, widthDp) } }
+            ?: sizes.firstOrNull { sp -> shown.all { text.fitsWhole(it.label, sp, widthDp) } }
         if (labelSp != null) return row(shown, labelSp)
     }
     return row(times.keepingPinned(1), MinTimeLabelSp)
@@ -161,7 +181,15 @@ private class TextMetrics(
     fun lines(text: String, sp: Int, widthDp: Float = lineWidthDp): Int =
         wrappedLines(text, sp * fontScale * charWidthEm, widthDp.coerceAtLeast(1f))
 
-    fun boldLines(text: String, sp: Int): Int = wrappedLines(text, sp * fontScale * boldCharWidthEm, lineWidthDp)
+    fun boldLines(text: String, sp: Int, widthDp: Float = lineWidthDp): Int =
+        wrappedLines(text, sp * fontScale * boldCharWidthEm, widthDp)
+
+    /** Whether no word of bold [text] at [sp] is wider than [widthDp], with a character's slack as [fitsWhole] gives. */
+    fun boldFitsWhole(text: String, sp: Int, widthDp: Float): Boolean =
+        text.split(' ').all { textDp("$it ", sp, boldCharWidthEm) <= widthDp }
+
+    /** Whether [text] at [sp] sets in [widthDp] on one line, with a character's slack as [fitsWhole] gives a word. */
+    fun fitsOneLine(text: String, sp: Int, widthDp: Float): Boolean = textDp("$text ", sp) <= widthDp
 
     /**
      * Whether [text] at [sp] sets in [widthDp] on at most [MaxTextLines] with no word broken across
@@ -178,25 +206,36 @@ private class TextMetrics(
         lines(text, sp).let { if (it > MaxTextLines) Float.POSITIVE_INFINITY else it * lineDp(sp) }
 }
 
-internal const val HebrewDateSp = 44
+internal const val HebrewDateSp = 38
 internal const val MinHebrewDateSp = 14
-internal const val DateSp = 28
-internal const val ChipSp = 30
-internal const val LineSp = 26
-internal const val TimeLabelSp = 24
-internal const val MinTimeLabelSp = 18
-internal const val TimeSp = 36
-internal const val LocationSp = 22
+internal const val WeekdaySp = 22
+internal const val ChipSp = 24
+internal const val LineSp = 21
+internal const val TimeLabelSp = 19
+internal const val MinTimeLabelSp = 15
+internal const val TimeSp = 30
+internal const val LocationSp = 17
 internal const val MaxTextLines = 2
 internal const val HorizontalPaddingDp = 12
 internal const val VerticalPaddingDp = 6
 internal const val TimeColumnPaddingDp = 4
 
+// A little air between the lines above and the times row, so the row stands apart as the widget's table.
+internal const val TimesGapDp = 6
+internal const val FestivalIconDp = 40
+internal const val FestivalIconGapDp = 6
+private const val MinFestivalIconDp = 26
+private const val FestivalIconShare = 0.2f
+
+// The picture is a garnish: a frame that could only fit it by shrinking the date by more than this
+// share of its size leaves it out.
+private const val MinDateShareBesideIcon = 0.75f
+
 private const val MaxTimesShown = 4
 
 // Below this the date reads small enough that two larger lines serve better, if they are this much larger.
-private const val ReadableHebrewDateSp = 30
-private const val TwoLineGainSp = 6
+private const val ReadableHebrewDateSp = 26
+private const val TwoLineGainSp = 5
 
 // Average glyph widths of the launcher's sans-serif as a fraction of its size, measured off Roboto
 // and Noto Sans Hebrew and rounded up to the widest of the widget's texts: bold Hebrew runs wide,
