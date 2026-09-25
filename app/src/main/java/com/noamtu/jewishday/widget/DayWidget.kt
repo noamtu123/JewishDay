@@ -30,10 +30,8 @@ import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
-import androidx.glance.layout.ColumnScope
 import androidx.glance.layout.ContentScale
 import androidx.glance.layout.Row
-import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.padding
@@ -49,17 +47,18 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 
 /**
- * The home-screen widget: today — its Hebrew date, badge, key times, events and learning — laid
- * over the sky the Glass theme paints at this hour, sun by day and moon and stars by night.
+ * The home-screen widget: today — its Hebrew date, badge, the times still to come, events and
+ * learning — laid over the sky the Glass theme paints at this hour, sun by day and moon and stars by
+ * night.
  *
  * A widget is a RemoteViews snapshot the launcher shows as-is, so the sky cannot be drawn live: it
  * is rendered to a bitmap here, and the widget is re-rendered on a schedule (wired up on the
- * receiver's side) so the sun visibly moves along its arc through the day. The widget is composed
- * once per size the launcher reports for it — its portrait and landscape sizes, usually — so the sky
- * is drawn at the widget's own pixels and its baked corners meet the frame, rather than at one of a
- * few declared buckets and then cropped or stretched to fit, which took the sun and moon off the
- * top. Three tiers trade detail for room — a two-cell strip keeps just the dates, a short wide widget
- * adds the badge and the times, and a tall one has the whole day — chosen by the height given.
+ * receiver's side) so the sun visibly moves along its arc through the day and each time drops off
+ * once it has passed. The widget is composed once per size the launcher reports for it — its
+ * portrait and landscape sizes, usually — so the sky is drawn at the widget's own pixels and its
+ * baked corners meet the frame, rather than at one of a few declared buckets and then cropped or
+ * stretched to fit, which took the sun and moon off the top. The text is set large enough to read
+ * at a glance, and [dayWidgetLayoutFor] decides what of the day fits the frame at that size.
  */
 class DayWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Exact
@@ -79,32 +78,9 @@ class DayWidget : GlanceAppWidget() {
         provideContent { if (state == null) DayWidgetUnavailable() else DayWidgetContent(state) }
     }
 
-    companion object {
-        /** The strip, the smallest the widget goes (its minimum size in day_widget_info): the dates alone. */
-        val Small = DpSize(100.dp, 40.dp)
-
-        /** From this height there is room for the dates, the badge and the key times. */
-        val Medium = DpSize(200.dp, 100.dp)
-
-        /** From this height there is room for the whole day. */
-        val Large = DpSize(200.dp, 180.dp)
-
-        private const val Tag = "DayWidget"
+    private companion object {
+        const val Tag = "DayWidget"
     }
-}
-
-/** Which of the three layouts a composition is for. */
-internal enum class DayWidgetTier { Small, Medium, Large }
-
-/**
- * The tier for the size the launcher has given the widget. Only the height decides, since the two
- * wide tiers share a width and the strip is the only short one; a widget too narrow for the wide
- * tiers gets the strip however tall it is.
- */
-internal fun dayWidgetTierFor(size: DpSize): DayWidgetTier = when {
-    size.height < DayWidget.Medium.height -> DayWidgetTier.Small
-    size.height < DayWidget.Large.height -> DayWidgetTier.Medium
-    else -> DayWidgetTier.Large
 }
 
 /**
@@ -143,7 +119,7 @@ private fun DayWidgetContent(state: DayWidgetState) {
     val rtlLayout = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
     val mirrored = state.useHebrew != rtlLayout
     val ink = SkyInk(dark = state.sky.dark, align = if (mirrored) TextAlign.End else TextAlign.Start)
-    val tier = dayWidgetTierFor(size)
+    val layout = dayWidgetLayoutFor(state, size)
     Box(modifier = GlanceModifier.fillMaxSize().appWidgetBackground().clickable(actionStartActivity<MainActivity>())) {
         // The bitmap is the frame's own size (or a capped scale of it), so it maps onto the frame
         // edge to edge and its baked corners land exactly on the launcher's; cropping would cut the
@@ -155,75 +131,48 @@ private fun DayWidgetContent(state: DayWidgetState) {
             contentScale = ContentScale.FillBounds,
         )
         Column(
-            modifier = GlanceModifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp),
-            // The strip floats its two lines in the middle of whatever height it is given; the
-            // others read from the top down with the times settling at the bottom.
-            verticalAlignment = if (tier == DayWidgetTier.Small) Alignment.CenterVertically else Alignment.Top,
+            modifier = GlanceModifier.fillMaxSize()
+                .padding(horizontal = HorizontalPaddingDp.dp, vertical = VerticalPaddingDp.dp),
+            // A strip with a line or two floats them in the middle of its height; a fuller widget
+            // reads from the top down.
+            verticalAlignment = if (layout.slots.size <= 2) Alignment.CenterVertically else Alignment.Top,
             horizontalAlignment = if (mirrored) Alignment.End else Alignment.Start,
         ) {
-            when (tier) {
-                DayWidgetTier.Small -> SmallTier(state, ink)
-                DayWidgetTier.Medium -> MediumTier(state, ink, mirrored)
-                DayWidgetTier.Large -> LargeTier(state, ink, mirrored)
-            }
+            layout.slots.forEach { Slot(it, state, layout, ink, mirrored) }
         }
     }
 }
 
-/** The strip: the two dates and nothing else. Both may wrap once, since two cells are narrow. */
+/** One piece of the day, at the size [dayWidgetLayoutFor] budgeted it for. */
 @Composable
-private fun SmallTier(state: DayWidgetState, ink: SkyInk) {
-    Line(state.hebrewDate, ink.primary(17.sp, FontWeight.Bold), maxLines = 2)
-    Line(state.weekdayAndDate, ink.primary(12.sp), maxLines = 2)
-}
-
-/**
- * Short and wide: the header and the times. The observance lines wait for the tall tier — at this
- * tier's minimum height they would push the times off the bottom, and a clipped row is worse than a
- * missing one.
- */
-@Composable
-private fun ColumnScope.MediumTier(state: DayWidgetState, ink: SkyInk, mirrored: Boolean) {
-    Header(state, ink)
-    Spacer(GlanceModifier.defaultWeight())
-    TimesRow(state.times, ink, mirrored)
-}
-
-/** Tall: the whole day, least important last so that is what a crowded day loses. */
-@Composable
-private fun ColumnScope.LargeTier(state: DayWidgetState, ink: SkyInk, mirrored: Boolean) {
-    Header(state, ink)
-    // Grouped so the outer Column stays within Glance's ten-children limit on the fullest of days.
-    Column(modifier = GlanceModifier.fillMaxWidth()) {
-        state.eventLine?.let { Line(it, ink.primary(12.sp)) }
-        state.observanceLines.forEach { Line(it, ink.primary(12.sp)) }
+private fun Slot(slot: DayWidgetSlot, state: DayWidgetState, layout: DayWidgetLayout, ink: SkyInk, mirrored: Boolean) {
+    when (slot) {
+        DayWidgetSlot.HebrewDate -> Line(state.hebrewDate, ink.primary(layout.hebrewDateSp.sp, FontWeight.Bold))
+        DayWidgetSlot.WeekdayAndDate -> Line(state.weekdayAndDate, ink.primary(DateSp.sp))
+        DayWidgetSlot.Chip -> state.chip?.let { Line(it, ink.primary(ChipSp.sp, FontWeight.Medium)) }
+        DayWidgetSlot.Times -> TimesRow(layout.times, ink, mirrored)
+        // Grouped so the outer Column stays within Glance's ten-children limit on the fullest of days.
+        DayWidgetSlot.Observance -> Column(modifier = GlanceModifier.fillMaxWidth()) {
+            state.observanceLines.take(layout.observanceLinesShown).forEach { Line(it, ink.primary(LineSp.sp)) }
+        }
+        DayWidgetSlot.Event -> state.eventLine?.let { Line(it, ink.primary(LineSp.sp)) }
+        DayWidgetSlot.Learning -> state.learning?.let { Line(it, ink.primary(LineSp.sp)) }
+        DayWidgetSlot.Location -> state.locationName?.let { Line(it, ink.secondary(LocationSp.sp)) }
     }
-    Spacer(GlanceModifier.defaultWeight())
-    TimesRow(state.times, ink, mirrored)
-    state.learning?.let { Line(it, ink.primary(12.sp), maxLines = 2) }
-    state.locationName?.let { Line(it, ink.secondary(10.sp)) }
 }
 
-/** The Hebrew date, the weekday and civil date, and the day's badge when it has one. */
-@Composable
-private fun Header(state: DayWidgetState, ink: SkyInk) {
-    Line(state.hebrewDate, ink.primary(17.sp, FontWeight.Bold))
-    Line(state.weekdayAndDate, ink.primary(12.sp))
-    state.chip?.let { Line(it, ink.primary(13.sp, FontWeight.Medium)) }
-}
-
-/** The key times spread across the width, each a small label over its clock time. */
+/** The times still to come spread across the width, each a label over its clock time. */
 @Composable
 private fun TimesRow(times: List<DayWidgetTime>, ink: SkyInk, mirrored: Boolean) {
     if (times.isEmpty()) return
     // The launcher lays a row out in the device's direction; when the texts read the other way,
-    // the columns are reversed by hand so sunrise still comes first in reading order.
+    // the columns are reversed by hand so the soonest still comes first in reading order.
     val ordered = if (mirrored) times.asReversed() else times
     Row(modifier = GlanceModifier.fillMaxWidth()) {
         ordered.forEach { time ->
             Column(modifier = GlanceModifier.defaultWeight()) {
-                Line(time.label, ink.secondary(10.sp))
-                Line(time.time, ink.primary(14.sp, FontWeight.Medium))
+                Line(time.label, ink.secondary(TimeLabelSp.sp), maxLines = 2)
+                Line(time.time, ink.primary(TimeSp.sp, FontWeight.Medium))
             }
         }
     }
@@ -244,7 +193,7 @@ private fun DayWidgetUnavailable() {
     ) {
         Text(
             text = LocalContext.current.getString(R.string.app_name),
-            style = TextStyle(color = ColorProvider(Color.White), fontSize = 14.sp, fontWeight = FontWeight.Medium),
+            style = TextStyle(color = ColorProvider(Color.White), fontSize = 16.sp, fontWeight = FontWeight.Medium),
             maxLines = 1,
         )
     }
@@ -257,7 +206,7 @@ private fun DayWidgetUnavailable() {
 private class SkyInk(dark: Boolean, private val align: TextAlign) {
     private val color = if (dark) Color.White else NavyInk
     private val primary = ColorProvider(color)
-    private val secondary = ColorProvider(color.copy(alpha = 0.82f))
+    private val secondary = ColorProvider(color.copy(alpha = 0.85f))
 
     fun primary(size: TextUnit, weight: FontWeight = FontWeight.Normal): TextStyle =
         TextStyle(color = primary, fontSize = size, fontWeight = weight, textAlign = align)

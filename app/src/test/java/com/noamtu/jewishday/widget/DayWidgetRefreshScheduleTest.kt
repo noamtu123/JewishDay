@@ -6,7 +6,9 @@ import com.noamtu.jewishday.model.JewishLocation
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.defaultJerusalemLocation
 import com.noamtu.jewishday.model.skyDayFor
+import com.noamtu.jewishday.model.sunsetForDate
 import com.noamtu.jewishday.model.tzeitForDate
+import com.noamtu.jewishday.model.upcomingChatzotHaLaila
 import com.noamtu.jewishday.model.zmanimForDate
 import java.time.Duration
 import java.time.Instant
@@ -20,9 +22,10 @@ import org.junit.Test
 
 /**
  * The widget's refresh schedule is pure arithmetic over the day's sky and its content boundaries, so
- * it is pinned here: quarter-hour ticks while the sun moves, none through the still night, a content
- * boundary winning with an exact alarm, only the widget's own moments counting as boundaries, and a
- * floor of a minute so an alarm never re-arms itself into a loop.
+ * it is pinned here: quarter-hour ticks while the sun moves, none through the still night, a tick a
+ * minute after a listed time passes, a content boundary winning with an exact alarm, only the
+ * widget's own moments counting as boundaries, and a floor of a minute so an alarm never re-arms
+ * itself into a loop.
  *
  * Fixed dates (Jerusalem): 2026-11-04, an ordinary Wednesday with nothing coming in or going out, and
  * the Friday after it.
@@ -75,12 +78,20 @@ class DayWidgetRefreshScheduleTest {
     }
 
     @Test
-    fun afterDuskTheNextWakeUpIsMidnightsDateBoundaryThenTomorrowsFirstLight() {
+    fun afterDuskTheWidgetWakesForChatzotThenMidnightThenTomorrowsFirstLight() {
         val settled = tzeitOf(ordinaryWednesday).plus(Duration.ofMinutes(61))
+        val chatzotHaLaila = requireNotNull(upcomingChatzotHaLaila(location, settings, settled))
+        assertTrue(chatzotHaLaila.isBefore(midnightAfter(ordinaryWednesday)))
 
+        // The one time still listed, chatzot halaila, passes before midnight does: an inexact tick.
         val overnight = refreshAfter(settled)
-        assertEquals(midnightAfter(ordinaryWednesday).plus(Duration.ofMinutes(1)), overnight.at)
-        assertTrue(overnight.exact)
+        assertEquals(chatzotHaLaila.plusSeconds(60), overnight.at)
+        assertFalse(overnight.exact)
+
+        // Past it, nothing is listed before tomorrow's alot, so midnight's date boundary is next.
+        val pastChatzot = refreshAfter(chatzotHaLaila.plus(Duration.ofMinutes(2)))
+        assertEquals(midnightAfter(ordinaryWednesday).plus(Duration.ofMinutes(1)), pastChatzot.at)
+        assertTrue(pastChatzot.exact)
 
         val smallHours = refreshAfter(midnightAfter(ordinaryWednesday).plus(Duration.ofMinutes(2)))
         assertEquals(firstLightOf(ordinaryWednesday.plusDays(1)), smallHours.at)
@@ -98,6 +109,20 @@ class DayWidgetRefreshScheduleTest {
         val refresh = refreshAfter(now)
 
         assertEquals(firstLight, refresh.at)
+        assertFalse(refresh.exact)
+    }
+
+    @Test
+    fun aListedTimePassingIsAnInexactTick() {
+        // A sunset well inside its quarter hour, so no sky tick falls between now and a minute past it.
+        val sunset = generateSequence(ordinaryWednesday) { it.plusDays(1) }
+            .map { requireNotNull(sunsetForDate(location, it, settings)) }
+            .first { it.atZone(zone).minute % 15 in 4..10 }
+        val now = sunset.minus(Duration.ofMinutes(3))
+
+        val refresh = refreshAfter(now)
+
+        assertEquals(sunset.plusSeconds(60), refresh.at)
         assertFalse(refresh.exact)
     }
 

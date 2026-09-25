@@ -4,8 +4,21 @@ package com.noamtu.jewishday.widget
 
 import com.noamtu.jewishday.ui.theme.SkyFrame
 
-/** One time row of the widget: what the moment is, in the app's language, and the clock time. */
-data class DayWidgetTime(val label: String, val time: String)
+/**
+ * One time of the widget: what the moment is, in the app's language, and the clock time. A [pinned]
+ * time is an observance boundary — candle lighting, a fast's end — which the widget keeps however
+ * few times it has room for.
+ */
+data class DayWidgetTime(val label: String, val time: String, val pinned: Boolean = false)
+
+/**
+ * The first [limit] of these times, in their order, keeping every pinned one: what a narrower row
+ * drops is the zmanim filling in around an observance boundary, never the boundary itself.
+ */
+internal fun List<DayWidgetTime>.keepingPinned(limit: Int): List<DayWidgetTime> {
+    var fill = (limit - count { it.pinned }).coerceAtLeast(0)
+    return filter { it.pinned || fill-- > 0 }.take(limit)
+}
 
 /**
  * Everything the home-screen widget draws, already in one language and formatted.
@@ -36,7 +49,11 @@ data class DayWidgetState(
     val observanceLines: List<String>,
     /** The day's events — Rosh Chodesh, the Omer count, Chanukah — on one line, or null. */
     val eventLine: String?,
-    /** Up to three moments that shape the day, with an observance's own boundary swapped in. */
+    /**
+     * Up to four moments still to come, in order: the next of the user's zmanim, with the day's
+     * observance boundaries always among them, and tomorrow's first ones (marked so) once today's
+     * are past. Nothing that has already passed.
+     */
     val times: List<DayWidgetTime>,
     /** One daily-learning line — "Daf Yomi Bavli: Sanhedrin 78" — or null when none is enabled. */
     val learning: String?,

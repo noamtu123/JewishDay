@@ -50,10 +50,14 @@ class DayWidgetStateLoader @Inject constructor(
         val location = currentLocationRepository.awaitCurrentLocation(timeoutMillis = FixTimeoutMillis)
         lastRenderedInputs.set(RenderedInputs(settings, location))
         val computed = jewishDayRepository.getZmanim(location, settings.zmanimSettings)
+        // Tomorrow as well, so that once today's times are all past the widget looks ahead rather
+        // than standing empty through the night.
+        val nextDay = jewishDayRepository.getZmanim(location, settings.zmanimSettings, dayOffset = 1)
         val cached = dailyLearningCache.read(computed.date, location.isInIsrael)
         val day = if (cached.isEmpty()) computed else computed.withDailyLearningItems(cached.toZmanItems())
-        val sky = skyAt(clock.instant(), skyDayFor(location, day.date, settings.zmanimSettings), location.zoneId)
-        return buildDayWidgetState(day, settings, sky)
+        val now = clock.instant()
+        val sky = skyAt(now, skyDayFor(location, day.date, settings.zmanimSettings), location.zoneId)
+        return buildDayWidgetState(day, settings, sky, now, nextDay)
     }
 
     private companion object {

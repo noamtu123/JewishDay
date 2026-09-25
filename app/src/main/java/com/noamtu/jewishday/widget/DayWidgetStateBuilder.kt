@@ -18,6 +18,7 @@ import com.noamtu.jewishday.model.ZmanimGroupTitle
 import com.noamtu.jewishday.model.ZmanimTimeOption
 import com.noamtu.jewishday.ui.theme.SkyFrame
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -26,20 +27,25 @@ import java.time.format.DateTimeFormatter
  * Turns a computed [day] into what the widget shows, in the language and clock format of [settings].
  *
  * The header texts come from the same formatting the zmanim screen uses ([toHeaderUi]), so the two
- * surfaces never word a date or an observance differently. The times are the three moments that
- * shape a day — sunrise, sunset, tzeit — with an observance's own boundary swapped in when one is
- * arriving or under way: candle lighting takes sunset's place while Shabbat or a Yom Tov is
- * announced, and the exit takes tzeit's once it is in, since that is the time being waited for. A
- * fast's end takes that slot only while the fast is the observance leading the header — the chip's
- * own arbitration — so a fast that begins at Shabbat's sunset does not hide Shabbat's exit. The
- * boundaries are read from the day's [ZmanimDay.holyDayInfo] and [ZmanimDay.fastDayInfo] rather
- * than from the Shabbat section, which is dropped on Shabbat itself and, on a weekday Yom Tov, only
- * knows about the coming Friday.
+ * surfaces never word a date or an observance differently. The times are what is still to come at
+ * [now]: the next of the zmanim the user has switched on, in order, with the day's observance
+ * boundaries — candle lighting, the exit of Shabbat or a Yom Tov, a fast's start and end — always
+ * among them, since those are the times being waited for; once today's are all past, [nextDay]'s
+ * first ones follow, marked as tomorrow's. A time that has passed is of no use at a glance, so none
+ * is shown. The boundaries are read from the day's [ZmanimDay.holyDayInfo] and
+ * [ZmanimDay.fastDayInfo] rather than from the Shabbat section, which is dropped on Shabbat itself
+ * and, on a weekday Yom Tov, only knows about the coming Friday.
  *
  * Pure Kotlin — no Android classes — so it runs under plain JVM tests, and never throws on a day
  * with groups missing: every lookup degrades to an absent row or a null line.
  */
-fun buildDayWidgetState(day: ZmanimDay, settings: AppSettings, sky: SkyFrame): DayWidgetState {
+fun buildDayWidgetState(
+    day: ZmanimDay,
+    settings: AppSettings,
+    sky: SkyFrame,
+    now: Instant,
+    nextDay: ZmanimDay? = null,
+): DayWidgetState {
     val useHebrew = settings.useHebrewInterface
     val header = day.toHeaderUi(settings.use24HourTime)
     val formatters = zmanimTimeFormatters(settings.use24HourTime, day.zoneId)
@@ -52,7 +58,7 @@ fun buildDayWidgetState(day: ZmanimDay, settings: AppSettings, sky: SkyFrame): D
         chip = chipFor(header, day, useHebrew),
         observanceLines = observanceLinesFor(header, useHebrew),
         eventLine = eventLineFor(day, useHebrew, formatter),
-        times = timesFor(day, useHebrew, formatter),
+        times = timesFor(day, nextDay, now, settings.enabledZmanimTimes, useHebrew, formatter),
         learning = learningFor(day, settings.enabledDailyLearning, useHebrew, formatter),
         locationName = locationCaptionFor(day.locationName, useHebrew),
     )
@@ -126,32 +132,95 @@ private fun eventLineFor(day: ZmanimDay, useHebrew: Boolean, formatter: DateTime
     return events.take(MaxEvents).joinToString(EventSeparator) { it.asLine(useHebrew, formatter) }
 }
 
-private fun timesFor(day: ZmanimDay, useHebrew: Boolean, formatter: DateTimeFormatter): List<DayWidgetTime> {
-    val zmanim = day.group(ZmanimGroupTitle)
-    val sunrise = zmanim.row(ZmanimTimeOption.Sunrise)?.asTime(useHebrew, formatter)
-    var sunset = zmanim.row(ZmanimTimeOption.Sunset)?.asTime(useHebrew, formatter)
-    var tzeit = zmanim.row(ZmanimTimeOption.Tzeit)?.asTime(useHebrew, formatter)
+private fun timesFor(
+    day: ZmanimDay,
+    nextDay: ZmanimDay?,
+    now: Instant,
+    shown: Set<ZmanimTimeOption>,
+    useHebrew: Boolean,
+    formatter: DateTimeFormatter,
+): List<DayWidgetTime> {
+    val shownIds = shown.mapTo(mutableSetOf()) { it.storageValue }
+    val zmanim = listOfNotNull(day, nextDay).flatMap { source ->
+        source.group(ZmanimGroupTitle)?.items.orEmpty()
+            .filter { it.id in shownIds }
+            .mapNotNull { row ->
+                row.time?.let { Moment(row.widgetTitle(useHebrew), it, midnight = row.id == ChatzotHaLailaId) }
+            }
+    }
+    // Observances first, so that where a boundary shares its instant with a zman (a fast ending at
+    // tzeit) it is the boundary's name that survives the de-duplication.
+    return (observanceMoments(day, useHebrew) + zmanim)
+        .filter { it.time.isAfter(now) }
+        .sortedBy { it.time }
+        .distinctBy { it.time }
+        .map { DayWidgetTime(it.labelOn(day, useHebrew), formatter.format(it.time), it.pinned) }
+        .keepingPinned(MaxTimes)
+}
 
+/**
+ * A moment the widget could show; [pinned] ones — observance boundaries — are never crowded out, and
+ * a [midnight] one is the middle of a night, which belongs to the evening it follows.
+ */
+private class Moment(val label: String, val time: Instant, val pinned: Boolean = false, val midnight: Boolean = false)
+
+/**
+ * The label, saying "tomorrow" when the moment belongs to a later date than the day the widget is
+ * showing. Chatzot halaila is dated by the evening before it, so tonight's reads as tonight's even
+ * when the clock puts it past midnight, and tomorrow night's still says tomorrow.
+ */
+private fun Moment.labelOn(day: ZmanimDay, useHebrew: Boolean): String {
+    val dated = if (midnight) time.minus(HalfADay) else time
+    return if (dated.atZone(day.zoneId).toLocalDate() == day.date) {
+        label
+    } else {
+        label + resolve(useHebrew, " (tomorrow)", " (מחר)")
+    }
+}
+
+/**
+ * The zman's name as the widget words it: the screen's title, shortened where that would not fit a
+ * column of the times row — the four Shema and Tefillah deadlines differ only in their brackets, which
+ * are exactly what a cut-off label loses.
+ */
+private fun ZmanItem.widgetTitle(useHebrew: Boolean): String =
+    WidgetTitles[id]?.let { (english, hebrew) -> resolve(useHebrew, english, hebrew) }
+        ?: resolve(useHebrew, title, titleHebrew)
+
+private val WidgetTitles: Map<String, Pair<String, String>> = mapOf(
+    ZmanimTimeOption.AlotHashachar.storageValue to ("Alot" to "עלות השחר"),
+    ZmanimTimeOption.TallitTefillin.storageValue to ("Tallit" to "טלית ותפילין"),
+    ZmanimTimeOption.SofZmanShemaMagenAvraham.storageValue to ("Shema MGA" to "ק״ש מג״א"),
+    ZmanimTimeOption.SofZmanShemaGra.storageValue to ("Shema GRA" to "ק״ש גר״א"),
+    ZmanimTimeOption.SofZmanTefillahMagenAvraham.storageValue to ("Tefillah MGA" to "תפילה מג״א"),
+    ZmanimTimeOption.SofZmanTefillahGra.storageValue to ("Tefillah GRA" to "תפילה גר״א"),
+)
+
+private val ChatzotHaLailaId = ZmanimTimeOption.ChatzotHaLaila.storageValue
+private val HalfADay: Duration = Duration.ofHours(12)
+
+/**
+ * The boundaries of the day's observances, as the header announces them: the entry while a holy day
+ * is coming in, its exit while it is in, and both ends of a fast. Always kept, since on such a day
+ * these are the times being waited for.
+ */
+private fun observanceMoments(day: ZmanimDay, useHebrew: Boolean): List<Moment> {
     val holyDay = day.holyDayInfo
-    if (holyDay != null && !holyDay.isUnderWay) {
-        // Announced but not yet in: the entry is what the evening is about, not the bare sunset.
-        holyDay.startTime?.let {
-            sunset = DayWidgetTime(resolve(useHebrew, "Candle Lighting", "הדלקת נרות"), formatter.format(it))
-        }
-    }
-    if (holyDay != null && holyDay.isUnderWay) {
-        holyDay.endTime?.let { tzeit = DayWidgetTime(exitLabel(it, day.zoneId, useHebrew), formatter.format(it)) }
-    }
-    // The fast takes tzeit's slot only while it is the observance actually leading — the chip's own
-    // arbitration. Tisha B'Av observed on a Sunday begins at Shabbat's sunset while Shabbat runs on to
-    // its exit; until then the exit is the time being waited for, not tomorrow's fast end.
     val fast = day.fastDayInfo
-    if (fast != null && fast.isUnderWay && day.fastLeadsHeader) {
-        fast.endTime?.let {
-            tzeit = DayWidgetTime(resolve(useHebrew, "Fast ends", "צאת הצום"), formatter.format(it))
-        }
-    }
-    return listOfNotNull(sunrise, sunset, tzeit)
+    return listOfNotNull(
+        holyDay?.takeUnless { it.isUnderWay }?.startTime?.let {
+            Moment(resolve(useHebrew, "Candle Lighting", "הדלקת נרות"), it, pinned = true)
+        },
+        holyDay?.takeIf { it.isUnderWay }?.endTime?.let {
+            Moment(exitLabel(it, day.zoneId, useHebrew), it, pinned = true)
+        },
+        fast?.takeUnless { it.isUnderWay }?.startTime?.let {
+            Moment(resolve(useHebrew, "Fast starts", "כניסת הצום"), it, pinned = true)
+        },
+        fast?.takeIf { it.isUnderWay }?.endTime?.let {
+            Moment(resolve(useHebrew, "Fast ends", "צאת הצום"), it, pinned = true)
+        },
+    )
 }
 
 /** Names the exit by the day it falls on: a stretch going out on Saturday night is motzei Shabbat. */
@@ -193,13 +262,6 @@ private fun locationCaptionFor(name: String, useHebrew: Boolean): String? = when
 
 private fun ZmanimDay.group(title: String): ZmanimGroup? = groups.firstOrNull { it.title == title }
 
-private fun ZmanimGroup?.row(option: ZmanimTimeOption): ZmanItem? =
-    this?.items?.firstOrNull { it.id == option.storageValue }
-
-/** A time row, or null when the zman does not occur that day — the widget has no room for "--". */
-private fun ZmanItem.asTime(useHebrew: Boolean, formatter: DateTimeFormatter): DayWidgetTime? =
-    time?.let { DayWidgetTime(resolve(useHebrew, title, titleHebrew), formatter.format(it)) }
-
 /** "Title: value" — the value being the row's text, or its time for the rows that carry one. */
 private fun ZmanItem.asLine(useHebrew: Boolean, formatter: DateTimeFormatter): String {
     val title = resolve(useHebrew, title, titleHebrew)
@@ -214,6 +276,7 @@ private const val EventsGroupTitle = ""
 private const val EventSeparator = " · "
 private const val MaxEvents = 2
 private const val MaxObservanceLines = 3
+private const val MaxTimes = 4
 
 // The reading row carries no id; this is the title zmanimForDate gives the weekly-parasha row.
 private const val WeeklyParshaTitle = "Weekly Parsha"

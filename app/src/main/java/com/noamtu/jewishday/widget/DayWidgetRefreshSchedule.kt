@@ -4,6 +4,8 @@ package com.noamtu.jewishday.widget
 
 import com.noamtu.jewishday.model.JewishLocation
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.model.ZmanimDay
+import com.noamtu.jewishday.model.ZmanimGroupTitle
 import com.noamtu.jewishday.model.nextGregorianMidnight
 import com.noamtu.jewishday.model.nextTzeit
 import com.noamtu.jewishday.model.nextWeeklyParshaBoundary
@@ -41,7 +43,8 @@ data class DayWidgetRefresh(val at: Instant, val exact: Boolean)
  * ticks of its own: the tick after dusk is the next first light, and midnight's and tzeit's content
  * boundaries are the only night-time wake-ups. Where the sun never reaches one of those angles, the
  * same fallback hours GlassSky draws by stand in, so the widget ticks through the very day the app
- * paints.
+ * paints. The widget also lists the times still to come, so it ticks — inexactly, like the sky — a
+ * minute after each time it could be showing passes, and a past time never lingers on it.
  *
  * A content boundary that falls within one tick of the sky tick wins outright rather than losing on
  * time alone. Tzeit's boundary sits a minute after tzeit, so a strict "earlier wins" would hand
@@ -57,8 +60,11 @@ fun nextDayWidgetRefresh(
     now: Instant,
 ): DayWidgetRefresh {
     val earliest = now.plus(MinimumLead)
-    val content = maxOf(nextDayWidgetContentBoundary(location, settings, now), earliest)
-    val tick = maxOf(nextSkyTick(location, settings, earliest), earliest)
+    val days = daysAround(location, settings, now)
+    val content = maxOf(contentBoundary(location, settings, now, days), earliest)
+    val skyTick = maxOf(nextSkyTick(location, settings, earliest), earliest)
+    val passing = nextShownTimePassing(days, now)?.let { maxOf(it, earliest) }
+    val tick = if (passing != null && passing.isBefore(skyTick)) passing else skyTick
     return if (!content.isAfter(tick.plus(DayStep))) {
         DayWidgetRefresh(content, exact = true)
     } else {
@@ -80,19 +86,25 @@ fun nextDayWidgetContentBoundary(
     location: JewishLocation,
     settings: ZmanimCalculationSettings,
     now: Instant,
-): Instant {
+): Instant = contentBoundary(location, settings, now, daysAround(location, settings, now))
+
+/** Today and tomorrow at the location, computed as the widget computes them. */
+private fun daysAround(
+    location: JewishLocation,
+    settings: ZmanimCalculationSettings,
+    now: Instant,
+): List<ZmanimDay> {
     val today = now.atZone(location.zoneId).toLocalDate()
-    val observances = listOf(today, today.plusDays(1))
-        .map { date -> zmanimForDate(location, date, settings, now) }
-        .flatMap { day ->
-            listOfNotNull(
-                day.holyDayInfo?.startTime,
-                day.holyDayInfo?.endTime,
-                day.fastDayInfo?.startTime,
-                day.fastDayInfo?.endTime,
-            )
-        }
-        .map { it.plusSeconds(1) }
+    return listOf(today, today.plusDays(1)).map { date -> zmanimForDate(location, date, settings, now) }
+}
+
+private fun contentBoundary(
+    location: JewishLocation,
+    settings: ZmanimCalculationSettings,
+    now: Instant,
+    days: List<ZmanimDay>,
+): Instant {
+    val observances = days.flatMap { it.observanceInstants() }.map { it.plusSeconds(1) }
     val rolls = listOf(
         nextGregorianMidnight(location, now),
         nextTzeit(location, settings, now),
@@ -100,6 +112,27 @@ fun nextDayWidgetContentBoundary(
     )
     return (rolls + observances).filter { it.isAfter(now) }.min()
 }
+
+/**
+ * A minute after the next time the widget could be listing passes — any zman of today or tomorrow,
+ * or an observance boundary — so the list moves on to what is still to come. Null only where a day
+ * has no times at all.
+ */
+private fun nextShownTimePassing(days: List<ZmanimDay>, now: Instant): Instant? =
+    days.flatMap { day -> day.zmanimInstants() + day.observanceInstants() }
+        .filter { it.isAfter(now) }
+        .minOrNull()
+        ?.plusSeconds(60)
+
+private fun ZmanimDay.zmanimInstants(): List<Instant> =
+    groups.firstOrNull { it.title == ZmanimGroupTitle }?.items.orEmpty().mapNotNull { it.time }
+
+private fun ZmanimDay.observanceInstants(): List<Instant> = listOfNotNull(
+    holyDayInfo?.startTime,
+    holyDayInfo?.endTime,
+    fastDayInfo?.startTime,
+    fastDayInfo?.endTime,
+)
 
 /**
  * The next sky tick at or after [earliest]: quarter-hourly while the sun moves, otherwise the next
