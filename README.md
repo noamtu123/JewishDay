@@ -49,6 +49,10 @@ Requires JDK 17 and the Android SDK.
 Release builds are signed with a local keystore kept out of the repository; debug builds work
 without it.
 
+With [Task](https://taskfile.dev) installed, the same steps are wrapped in `Taskfile.yml`:
+`task check` compiles, tests and lints, `task release` builds the signed APK into `build/apk` and
+verifies its signature, and `task install` puts it on a connected device. Run `task` for the list.
+
 ## License
 
 Copyright (C) 2026 noamtu123
