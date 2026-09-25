@@ -44,6 +44,9 @@ data class ZmanimDay(
     // Which of the two names the header chip, when a fast and a holy day are both showing: the one
     // happening now rather than the one merely announced.
     val fastLeadsHeader: Boolean = false,
+    // The festival the displayed Hebrew date belongs to, erev included, for the widget's picture of
+    // it. Null on any other day.
+    val festival: Festival? = null,
 )
 
 /**

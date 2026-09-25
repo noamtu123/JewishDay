@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The widget picker's previews, set the way the widget sets the day over a daytime sky: deep navy
+  ink, at the same sizes (see DayWidgetLayout.kt), secondary text a little lighter.
+-->
+<resources>
+    <color name="widget_preview_ink">#1B2440</color>
+    <color name="widget_preview_ink_secondary">#D91B2440</color>
+
+    <style name="WidgetPreviewText">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/widget_preview_ink</item>
+        <item name="android:textAlignment">viewStart</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:autoSizeTextType">uniform</item>
+        <item name="android:autoSizeMinTextSize">12sp</item>
+        <item name="android:autoSizeStepGranularity">1sp</item>
+    </style>
+
+    <!--
+      Every text shrinks to its width rather than be cut short, since the picker may draw a preview
+      in a tighter cell than the phone's; each style's size is the most it grows to. Autosizing needs
+      a box of fixed height to size into, so each line has one, a line of its largest size tall. The
+      Hebrew date also shrinks to its box's height, as the widget's date does.
+    -->
+    <style name="WidgetPreviewText.HebrewDate">
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center_vertical|start</item>
+        <item name="android:autoSizeMaxTextSize">44sp</item>
+    </style>
+
+    <style name="WidgetPreviewText.Date">
+        <item name="android:layout_height">36dp</item>
+        <item name="android:autoSizeMaxTextSize">28sp</item>
+    </style>
+
+    <style name="WidgetPreviewText.Chip">
+        <item name="android:layout_height">38dp</item>
+        <item name="android:autoSizeMaxTextSize">30sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="WidgetPreviewText.Line">
+        <item name="android:layout_height">34dp</item>
+        <item name="android:autoSizeMaxTextSize">26sp</item>
+    </style>
+
+    <style name="WidgetPreviewText.Location">
+        <item name="android:layout_height">30dp</item>
+        <item name="android:autoSizeMaxTextSize">22sp</item>
+        <item name="android:textColor">@color/widget_preview_ink_secondary</item>
+    </style>
+
+    <!-- A time's label keeps to one line, so the times beneath them stand level. -->
+    <style name="WidgetPreviewText.TimeLabel">
+        <item name="android:layout_height">32dp</item>
+        <item name="android:textColor">@color/widget_preview_ink_secondary</item>
+        <item name="android:autoSizeMaxTextSize">24sp</item>
+    </style>
+
+    <style name="WidgetPreviewText.Time">
+        <item name="android:layout_height">46dp</item>
+        <item name="android:autoSizeMaxTextSize">36sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="WidgetPreviewTimeColumn">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:paddingHorizontal">4dp</item>
+    </style>
+
+    <style name="WidgetPreviewFrame">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:background">@drawable/day_widget_preview_sky</item>
+    </style>
+
+    <!-- The orientation is set on each column itself, so lint can see its weighted heights are meant. -->
+    <style name="WidgetPreviewColumn">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:paddingHorizontal">12dp</item>
+        <item name="android:paddingVertical">6dp</item>
+    </style>
+</resources>

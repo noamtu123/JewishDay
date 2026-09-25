@@ -67,6 +67,11 @@ android {
         compose = true
         buildConfig = true
     }
+
+    testOptions {
+        // The widget render test inflates the app's own layouts and strings.
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 kotlin {
@@ -84,6 +89,8 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
+    // Home-screen widget: Compose-style AppWidget layouts rendered to RemoteViews.
+    implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -100,6 +107,8 @@ dependencies {
     testImplementation(libs.junit)
     // android.jar's org.json is a stub in unit tests; the real one lets release parsing be tested.
     testImplementation(libs.json)
+    // Lays the widget and its picker previews out and draws them with real fonts (DayWidgetRenderTest).
+    testImplementation(libs.robolectric)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

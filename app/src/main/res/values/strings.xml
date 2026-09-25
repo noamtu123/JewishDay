@@ -1,4 +1,9 @@
-<resources>
+<!--
+  The app picks each text's language itself, from a name / name_hebrew pair, so it has no locale
+  folders to translate into. The one exception, values-iw, holds only what the system shows on the
+  app's behalf — the widget picker's labels and previews — which it can only resolve by locale.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="app_name">JewishDay</string>
     <string name="nav_zmanim">Zmanim</string>
     <string name="nav_zmanim_hebrew">זמנים</string>
@@ -173,6 +178,10 @@
     <string name="settings_hebrew_status_icon_hebrew">התראת תאריך עברי</string>
     <string name="settings_hebrew_status_icon_description">Show the Hebrew day as a persistent notification icon.</string>
     <string name="settings_hebrew_status_icon_description_hebrew">הצג את היום העברי כסמל התראה קבוע.</string>
+    <string name="settings_add_widget">Add widget to home screen</string>
+    <string name="settings_add_widget_hebrew">הוספת ווידג׳ט למסך הבית</string>
+    <string name="settings_add_widget_description">Today\'s Hebrew date, times and learning under the day\'s sky.</string>
+    <string name="settings_add_widget_description_hebrew">התאריך העברי, הזמנים והלימוד של היום מתחת לשמי היום.</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_description">Interface language for the app’s navigation and labels.</string>
     <string name="settings_12_hour_format">12-hour format</string>

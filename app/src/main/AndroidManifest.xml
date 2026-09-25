@@ -61,8 +61,45 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
+        <receiver
+            android:name=".widget.DayWidgetSmallReceiver"
+            android:exported="true"
+            android:label="@string/widget_day_small_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/day_widget_small_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.DayWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_day_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/day_widget_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.DayWidgetLargeReceiver"
+            android:exported="true"
+            android:label="@string/widget_day_large_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/day_widget_large_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.DayWidgetAlarmReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

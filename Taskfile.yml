@@ -1,0 +1,93 @@
+# Build and release tasks for JewishDay, run with go-task (https://taskfile.dev).
+# `task` lists them; `task release` builds, verifies and copies the signed APK to build/apk.
+#
+# Gradle here needs JDK 17. The defaults are Homebrew's openjdk@17 and android-commandlinetools;
+# set JAVA17_HOME / ANDROID_HOME in the environment to use others.
+# Signing reads the gitignored keystore.properties (storeFile, storePassword, keyAlias, keyPassword).
+
+version: '3'
+
+vars:
+  JDK: '{{.JAVA17_HOME | default "/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home"}}'
+  SDK: '{{.ANDROID_HOME | default "/opt/homebrew/share/android-commandlinetools"}}'
+  VERSION:
+    sh: sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts
+  BUILD_TOOLS:
+    sh: ls -d "{{.SDK}}"/build-tools/* | sort -V | tail -1
+  ADB: '{{.SDK}}/platform-tools/adb'
+  OUT: build/apk
+  RELEASE_APK: '{{.OUT}}/JewishDay-{{.VERSION}}-release.apk'
+  DEBUG_APK: '{{.OUT}}/JewishDay-{{.VERSION}}-debug.apk'
+
+env:
+  JAVA_HOME: '{{.JDK}}'
+  ANDROID_HOME: '{{.SDK}}'
+
+tasks:
+  default:
+    desc: List the tasks
+    cmds:
+      - task --list
+    silent: true
+
+  compile:
+    desc: Compile the app's Kotlin (release variant)
+    cmds:
+      - ./gradlew :app:compileReleaseKotlin --console=plain
+
+  test:
+    desc: Run the unit tests
+    cmds:
+      - ./gradlew :app:testReleaseUnitTest --console=plain
+
+  lint:
+    desc: Run Android lint (fails on errors)
+    cmds:
+      - ./gradlew :app:lintRelease --console=plain
+
+  check:
+    desc: Compile, test and lint in one Gradle run
+    cmds:
+      - ./gradlew :app:compileReleaseKotlin :app:testReleaseUnitTest :app:lintRelease --console=plain
+
+  debug:
+    desc: Build the debug APK into build/apk
+    cmds:
+      - ./gradlew :app:assembleDebug --console=plain
+      - mkdir -p {{.OUT}}
+      - cp app/build/outputs/apk/debug/app-debug.apk "{{.DEBUG_APK}}"
+      - echo "Debug APK -> {{.DEBUG_APK}}"
+
+  release:
+    desc: Test, lint and build the signed release APK into build/apk
+    preconditions:
+      - sh: test -f keystore.properties
+        msg: keystore.properties is missing, so the release APK would be unsigned. Create it next to release.jks first.
+    cmds:
+      - ./gradlew :app:compileReleaseKotlin :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease --console=plain
+      - mkdir -p {{.OUT}}
+      - cp app/build/outputs/apk/release/app-release.apk "{{.RELEASE_APK}}"
+      - task: verify
+
+  verify:
+    desc: Check the release APK's signature and print its certificate fingerprint
+    preconditions:
+      - sh: test -f "{{.RELEASE_APK}}"
+        msg: No release APK yet; run `task release` first.
+    cmds:
+      - '"{{.BUILD_TOOLS}}/apksigner" verify --print-certs "{{.RELEASE_APK}}" | grep -E "Signer #1 certificate (DN|SHA-256)"'
+      - shasum -a 256 "{{.RELEASE_APK}}"
+      - echo "Release APK -> {{.RELEASE_APK}}"
+
+  install:
+    desc: Install the release APK on the connected device (uninstall any build signed with another key first)
+    preconditions:
+      - sh: test -f "{{.RELEASE_APK}}"
+        msg: No release APK yet; run `task release` first.
+    cmds:
+      - '"{{.ADB}}" install -r "{{.RELEASE_APK}}"'
+
+  clean:
+    desc: Delete the Gradle build outputs
+    cmds:
+      - ./gradlew clean --console=plain

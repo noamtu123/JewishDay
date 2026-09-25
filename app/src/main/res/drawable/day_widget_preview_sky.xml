@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The widget's midday sky, for the picker's preview: the Glass theme's day blues, deeper at the top,
+  and the afternoon sun up and to the right with its soft corona. The widget itself draws the sky
+  of the hour; a preview shows one fixed sky.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:centerColor="#D6E4FA"
+                android:endColor="#D8E6FA"
+                android:startColor="#AEC9F6" />
+            <corners android:radius="16dp" />
+        </shape>
+    </item>
+    <item
+        android:width="72dp"
+        android:height="72dp"
+        android:gravity="top|right"
+        android:right="40dp"
+        android:top="-14dp">
+        <shape android:shape="oval">
+            <gradient
+                android:centerColor="#40FFE08A"
+                android:endColor="#00FFE08A"
+                android:gradientRadius="36dp"
+                android:startColor="#C0FFF4D6"
+                android:type="radial" />
+        </shape>
+    </item>
+    <item
+        android:width="18dp"
+        android:height="18dp"
+        android:gravity="top|right"
+        android:right="67dp"
+        android:top="13dp">
+        <shape android:shape="oval">
+            <solid android:color="#FFF8E2" />
+        </shape>
+    </item>
+</layer-list>

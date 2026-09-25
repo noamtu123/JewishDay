@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget's picture for Sukkot: a sukkah, its roof of greenery hung with fruit. On a pale disc, to read on day and night skies. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#E6FFFFFF"
+        android:pathData="M0.5,24a23.5,23.5 0 1,0 47,0a23.5,23.5 0 1,0 -47,0z" />
+    <path
+        android:fillColor="#F1D39B"
+        android:pathData="M12,22H36V38H12z" />
+    <path
+        android:fillColor="#6B4226"
+        android:pathData="M21,27.5H27a1,1 0 0,1 1,1V37a1,1 0 0,1 -1,1H21a1,1 0 0,1 -1,-1V28.5a1,1 0 0,1 1,-1z" />
+    <path
+        android:fillColor="#8B5A2B"
+        android:pathData="M11.5,22H13.5V38.5H11.5zM34.5,22H36.5V38.5H34.5zM23.2,22H24.8V27.5H23.2z" />
+    <path
+        android:strokeColor="#C9A56A"
+        android:strokeWidth="0.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M14,30H19M29,30H34M14,34H19M29,34H34" />
+    <path
+        android:fillColor="#4E9A3A"
+        android:pathData="M8.5,23.5L8.5,19.5C8.5,16.5 11.5,15.2 14,16.6C15.2,13.4 19.3,12.8 21.2,15.4C22.6,12.8 26.6,12.8 27.8,15.4C29.4,12.9 33.2,13.4 34.2,16.6C36.6,15.1 39.5,16.4 39.5,19.5L39.5,23.5z" />
+    <path
+        android:fillColor="#7CC05A"
+        android:pathData="M12.9,18.5a1.6,1.6 0 1,0 3.2,0a1.6,1.6 0 1,0 -3.2,0zM19.2,17.2a1.8,1.8 0 1,0 3.6,0a1.8,1.8 0 1,0 -3.6,0zM26.2,17.6a1.6,1.6 0 1,0 3.2,0a1.6,1.6 0 1,0 -3.2,0zM32.3,19a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0z" />
+    <path
+        android:strokeColor="#8B5A2B"
+        android:strokeWidth="0.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M16.5,23.5V25.5M31.5,23.5V25.5" />
+    <path
+        android:fillColor="#E53935"
+        android:pathData="M15,26.8a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0z" />
+    <path
+        android:fillColor="#F2B705"
+        android:pathData="M30,26.8a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0z" />
+    <path
+        android:fillColor="#8B5A2B"
+        android:pathData="M9.5,38H38.5a1,1 0 0,1 1,1V39a1,1 0 0,1 -1,1H9.5a1,1 0 0,1 -1,-1V39a1,1 0 0,1 1,-1z" />
+</vector>

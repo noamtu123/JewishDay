@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The large widget in the picker: the whole day, from the Hebrew date down to the location. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@android:id/background"
+    style="@style/WidgetPreviewFrame"
+    android:clipToOutline="true"
+    tools:targetApi="s">
+
+    <LinearLayout
+        style="@style/WidgetPreviewColumn"
+        android:orientation="vertical">
+
+        <TextView
+            style="@style/WidgetPreviewText.HebrewDate"
+            android:layout_height="58dp"
+            android:text="@string/widget_preview_hebrew_date" />
+
+        <TextView
+            style="@style/WidgetPreviewText.Date"
+            android:text="@string/widget_preview_weekday" />
+
+        <TextView
+            style="@style/WidgetPreviewText.Chip"
+            android:text="@string/widget_preview_chip" />
+
+        <include layout="@layout/day_widget_preview_times" />
+
+        <TextView
+            style="@style/WidgetPreviewText.Line"
+            android:text="@string/widget_preview_observance" />
+
+        <TextView
+            style="@style/WidgetPreviewText.Line"
+            android:text="@string/widget_preview_learning" />
+
+        <TextView
+            style="@style/WidgetPreviewText.Location"
+            android:text="@string/widget_preview_location" />
+    </LinearLayout>
+</FrameLayout>

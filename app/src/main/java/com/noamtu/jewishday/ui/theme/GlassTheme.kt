@@ -212,20 +212,12 @@ fun GlassBackdrop(modifier: Modifier = Modifier, content: @Composable () -> Unit
     }
 
     Box(modifier) {
+        // The eased values are read here, in the draw phase, so an animation frame only redraws the
+        // sky; read during composition they would recompose the whole backdrop at frame rate for the
+        // length of every ease. Gathered into a frame, the screen and the widget's bitmap (see
+        // [renderSkyBitmap]) draw the sky through the very same code.
         Canvas(Modifier.fillMaxSize()) {
-            // Deeper at the top, as a real sky is: darker by night, and by day toward the high
-            // bloom's blue, so a day sky has depth instead of fading to a flat white.
-            val zenith = if (sky.dark) lerp(base, Color.Black, 0.18f) else lerp(base, bloom0, 0.55f)
-            drawRect(Brush.verticalGradient(listOf(zenith, base, lerp(base, Color.White, 0.04f))))
-            // Blooms: one high on the far side, one mid-left, and the horizon glow — wide and low
-            // across the whole bottom edge, so dawn and dusk warm the horizon rather than a corner.
-            // The upper two drift a little with the sun, so the sky never sits quite still.
-            drawBloom(bloom0, bloomAlpha, Offset(size.width * (0.92f - sunArc * 0.25f), size.height * 0.06f), size.width * 0.85f)
-            drawBloom(bloom1, bloomAlpha, Offset(size.width * (0.02f + sunArc * 0.12f), size.height * 0.50f), size.width * 0.80f)
-            drawHorizon(bloom2, bloomAlpha)
-            drawStars(stars)
-            drawMoon(moon)
-            drawSun(sun, sunArc, sky.dark)
+            drawSky(SkyFrame(base, listOf(bloom0, bloom1, bloom2), bloomAlpha, stars, sun, moon, sunArc, sky.dark))
         }
         MaterialTheme(colorScheme = celestialAccent(if (sky.dark) GlassNightColors else GlassDayColors, sky)) {
             // The screens sit on transparent surfaces, which pass no content colour down; without
@@ -278,6 +270,30 @@ private fun celestialAccent(scheme: ColorScheme, sky: SkyFrame): ColorScheme {
         tertiaryContainer = if (sky.dark) light.rim.copy(alpha = 0.30f) else light.core,
         onTertiaryContainer = if (sky.dark) light.core else ink,
     )
+}
+
+/**
+ * The whole sky of one [frame]: the graded base, the blooms and horizon glow, then the stars, the
+ * moon and the sun. Internal rather than private because the home-screen widget cannot host a
+ * Compose canvas — it draws this same sky into a bitmap instead (see [renderSkyBitmap]), and the two
+ * must never drift apart.
+ */
+internal fun DrawScope.drawSky(frame: SkyFrame) {
+    val (base, blooms, bloomAlpha, stars, sun, moon, sunArc, dark) = frame
+    val (bloom0, bloom1, bloom2) = blooms
+    // Deeper at the top, as a real sky is: darker by night, and by day toward the high
+    // bloom's blue, so a day sky has depth instead of fading to a flat white.
+    val zenith = if (dark) lerp(base, Color.Black, 0.18f) else lerp(base, bloom0, 0.55f)
+    drawRect(Brush.verticalGradient(listOf(zenith, base, lerp(base, Color.White, 0.04f))))
+    // Blooms: one high on the far side, one mid-left, and the horizon glow — wide and low
+    // across the whole bottom edge, so dawn and dusk warm the horizon rather than a corner.
+    // The upper two drift a little with the sun, so the sky never sits quite still.
+    drawBloom(bloom0, bloomAlpha, Offset(size.width * (0.92f - sunArc * 0.25f), size.height * 0.06f), size.width * 0.85f)
+    drawBloom(bloom1, bloomAlpha, Offset(size.width * (0.02f + sunArc * 0.12f), size.height * 0.50f), size.width * 0.80f)
+    drawHorizon(bloom2, bloomAlpha)
+    drawStars(stars)
+    drawMoon(moon)
+    drawSun(sun, sunArc, dark)
 }
 
 /** A soft pool of light: the colour at the centre fading to nothing at [radius]. */

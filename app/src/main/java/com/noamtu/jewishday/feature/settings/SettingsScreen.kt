@@ -3,6 +3,7 @@
 package com.noamtu.jewishday.feature.settings
 
 import android.Manifest
+import android.appwidget.AppWidgetManager
 import android.os.Build
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -38,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noamtu.jewishday.R
@@ -60,6 +64,8 @@ import com.noamtu.jewishday.ui.components.ScreenSurface
 import com.noamtu.jewishday.ui.LocalUseHebrewInterface
 import com.noamtu.jewishday.ui.components.readableWidth
 import com.noamtu.jewishday.ui.localizedString
+import com.noamtu.jewishday.widget.DayWidgetReceiver
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -68,6 +74,10 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    // Asked once, not on every recomposition: it is a binder call, and a launcher that takes pin
+    // requests does not stop doing so while the settings are open.
+    val canPinWidget = remember(context) { AppWidgetManager.getInstance(context).isRequestPinAppWidgetSupported }
     var pendingNotificationTarget by remember { mutableStateOf<NotificationPermissionTarget?>(null) }
     var showThemeDialog by rememberSaveable { mutableStateOf(false) }
     var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
@@ -130,6 +140,23 @@ fun SettingsScreen(
                         },
                     )
                     SectionSettingsDivider()
+                    // Only a launcher that takes pin requests can add the widget from here; on any
+                    // other the row would be a dead tap, so it is not offered at all.
+                    if (canPinWidget) {
+                        SettingsActionRow(
+                            label = localizedString(R.string.settings_add_widget, R.string.settings_add_widget_hebrew),
+                            description = localizedString(
+                                R.string.settings_add_widget_description,
+                                R.string.settings_add_widget_description_hebrew,
+                            ),
+                            onClick = {
+                                scope.launch {
+                                    GlanceAppWidgetManager(context).requestPinGlanceAppWidget(DayWidgetReceiver::class.java)
+                                }
+                            },
+                        )
+                        SectionSettingsDivider()
+                    }
                     SettingsSwitchRow(
                         label = localizedString(R.string.settings_12_hour_format, R.string.settings_12_hour_format_hebrew),
                         description = localizedString(
@@ -490,6 +517,52 @@ private fun SettingsChoiceRow(
             text = value,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
+/**
+ * A row that does something when tapped — asks the launcher to pin the widget — rather than
+ * toggling or choosing a value. Modelled on [SettingsChoiceRow], with a chevron where the value
+ * would be: with neither a switch nor a value the row would read as plain text, so the chevron is
+ * what marks it tappable, in the primary colour the choice rows give their values. Auto-mirrored,
+ * it points the way the interface reads.
+ */
+@Composable
+private fun SettingsActionRow(
+    label: String,
+    description: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (description.isNotBlank()) {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Spacer(Modifier.width(18.dp))
+        Icon(
+            imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            // Decorative: the label already says what the row does, and the row is one button.
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
         )
     }
 }

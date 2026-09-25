@@ -164,6 +164,7 @@ fun zmanimForDate(
         fastDayInfo = fastDayInfo,
         holyDayInfo = holyDayInfo,
         fastLeadsHeader = fastLeadsHeader(fastDayInfo, holyDayInfo, now),
+        festival = festivalOf(displayJewishCalendar),
         groups = listOfNotNull(
             // The parsha lives at the top of the Shabbat section; when that section is dropped it
             // moves up here rather than disappearing.
