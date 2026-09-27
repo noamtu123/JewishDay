@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget's picture for Shavuot: the tablets of the covenant among greenery. On a pale disc, to read on day and night skies. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#E6FFFFFF"
+        android:pathData="M0.5,24a23.5,23.5 0 1,0 47,0a23.5,23.5 0 1,0 -47,0z" />
+    <path
+        android:fillColor="#C5CCD8"
+        android:pathData="M10.5,38V17.5C10.5,13 13.5,10 17,10C20.5,10 23.5,13 23.5,17.5V38zM24.5,38V17.5C24.5,13 27.5,10 31,10C34.5,10 37.5,13 37.5,17.5V38z" />
+    <path
+        android:strokeColor="#7C8799"
+        android:strokeWidth="1"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M10.5,38V17.5C10.5,13 13.5,10 17,10C20.5,10 23.5,13 23.5,17.5V38zM24.5,38V17.5C24.5,13 27.5,10 31,10C34.5,10 37.5,13 37.5,17.5V38z" />
+    <path
+        android:strokeColor="#6F7A8F"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M13.5,19H20.5M27.5,19H34.5M13.5,23H20.5M27.5,23H34.5M13.5,27H20.5M27.5,27H34.5M13.5,31H20.5M27.5,31H34.5M13.5,35H20.5M27.5,35H34.5" />
+    <path
+        android:fillColor="#5CAE4E"
+        android:pathData="M8.5,40.5C9.5,35.5 13.5,33.2 17,34.2C15,37.4 12,40 8.5,40.5zM39.5,40.5C38.5,35.5 34.5,33.2 31,34.2C33,37.4 36,40 39.5,40.5z" />
+    <path
+        android:fillColor="#F2B705"
+        android:pathData="M16.2,39.2a1.3,1.3 0 1,0 2.6,0a1.3,1.3 0 1,0 -2.6,0zM29.2,39.2a1.3,1.3 0 1,0 2.6,0a1.3,1.3 0 1,0 -2.6,0z" />
+</vector>

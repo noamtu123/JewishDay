@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    style="@style/Widget.JewishDay.Root"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_next_label"
+            style="@style/Widget.JewishDay.Text.Accent"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/widget_next_title"
+            style="@style/Widget.JewishDay.Text.Title"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/widget_following"
+            style="@style/Widget.JewishDay.Text.Secondary"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widget_next_time"
+        style="@style/Widget.JewishDay.Text.Title"
+        android:layout_marginStart="8dp"
+        android:fontFeatureSettings="tnum"
+        android:textColor="@color/widget_accent"
+        android:textSize="28sp" />
+</LinearLayout>

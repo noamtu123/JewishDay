@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/glass_row"
+    android:layout_width="match_parent"
+    android:layout_height="24dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp">
+
+    <TextView
+        android:id="@+id/glass_row_title"
+        style="@style/Widget.JewishDay.Glass.Text"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/glass_row_time"
+        style="@style/Widget.JewishDay.Glass.Text"
+        android:layout_marginStart="8dp"
+        android:fontFeatureSettings="tnum"
+        android:textSize="13sp" />
+</LinearLayout>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the widget picker shows (Android 12+): the layout with sample content. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layoutDirection="rtl"
+    style="@style/Widget.JewishDay.Glass.Root">
+
+    <ImageView
+        style="@style/Widget.JewishDay.Glass.Sky"
+        android:contentDescription="@null"
+        android:src="@drawable/widget_glass_preview_sky" />
+
+    <LinearLayout
+        style="@style/Widget.JewishDay.Glass.Pane"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_margin="10dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:text="@string/widget_preview_next_label"
+            style="@style/Widget.JewishDay.Glass.Text.Label" />
+
+        <TextView
+            android:text="@string/widget_preview_next_title"
+            style="@style/Widget.JewishDay.Glass.Text.Strong"
+            android:textSize="15sp" />
+
+        <TextView
+            android:text="@string/widget_preview_next_time"
+            style="@style/Widget.JewishDay.Glass.Text.Time"
+            android:textSize="30sp" />
+
+        <TextView
+            android:text="@string/widget_preview_following"
+            style="@style/Widget.JewishDay.Glass.Text.Label" />
+    </LinearLayout>
+</FrameLayout>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    style="@style/Widget.JewishDay.Root"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/widget_hebrew_date"
+        style="@style/Widget.JewishDay.Text.Title"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/widget_special_day"
+        style="@style/Widget.JewishDay.Text.Accent"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/widget_gregorian_date"
+        style="@style/Widget.JewishDay.Text.Secondary" />
+</LinearLayout>
