@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- WidgetRenderer.kt counts rows from these sizes (ZmanimChromeDp, ZmanimRowDp): keep them in step. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    style="@style/Widget.JewishDay.Root">
+
+    <TextView
+        android:id="@+id/widget_hebrew_date"
+        style="@style/Widget.JewishDay.Text.Title" />
+
+    <TextView
+        android:id="@+id/widget_special_day"
+        style="@style/Widget.JewishDay.Text.Accent"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/widget_rows"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="vertical" />
+</LinearLayout>

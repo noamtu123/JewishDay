@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget's picture for Tu BiShvat: a tree in almond blossom. On a pale disc, to read on day and night skies. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#E6FFFFFF"
+        android:pathData="M0.5,24a23.5,23.5 0 1,0 47,0a23.5,23.5 0 1,0 -47,0z" />
+    <path
+        android:fillColor="#7A4A22"
+        android:pathData="M22,39L22.8,29L19.5,24.5L21,23.5L23.8,26.5L26.2,22L27.8,23L25.3,29L26,39z" />
+    <path
+        android:fillColor="#3F8F3A"
+        android:pathData="M10.3,21.5a6.2,6.2 0 1,0 12.4,0a6.2,6.2 0 1,0 -12.4,0zM25.3,21.5a6.2,6.2 0 1,0 12.4,0a6.2,6.2 0 1,0 -12.4,0z" />
+    <path
+        android:fillColor="#5CAE4E"
+        android:pathData="M15.8,16.5a8.2,8.2 0 1,0 16.4,0a8.2,8.2 0 1,0 -16.4,0zM15.3,25a4.2,4.2 0 1,0 8.4,0a4.2,4.2 0 1,0 -8.4,0zM24.3,25a4.2,4.2 0 1,0 8.4,0a4.2,4.2 0 1,0 -8.4,0z" />
+    <path
+        android:fillColor="#F7A8C4"
+        android:pathData="M17,14.5a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0zM26,12.5a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0zM29,19.5a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0zM13.5,22.5a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0zM22,21a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0zM31.6,25a1.4,1.4 0 1,0 2.8,0a1.4,1.4 0 1,0 -2.8,0z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,14.5a0.5,0.5 0 1,0 1,0a0.5,0.5 0 1,0 -1,0zM27,12.5a0.5,0.5 0 1,0 1,0a0.5,0.5 0 1,0 -1,0zM30,19.5a0.5,0.5 0 1,0 1,0a0.5,0.5 0 1,0 -1,0zM14.5,22.5a0.5,0.5 0 1,0 1,0a0.5,0.5 0 1,0 -1,0zM23,21a0.5,0.5 0 1,0 1,0a0.5,0.5 0 1,0 -1,0zM32.55,25a0.45,0.45 0 1,0 0.9,0a0.45,0.45 0 1,0 -0.9,0z" />
+    <path
+        android:fillColor="#8BC34A"
+        android:pathData="M14,38.2H34a1,1 0 0,1 1,1V39.2a1,1 0 0,1 -1,1H14a1,1 0 0,1 -1,-1V39.2a1,1 0 0,1 1,-1z" />
+</vector>

@@ -78,7 +78,7 @@ class ShabbatHeaderTest {
         // The entry/exit card is on screen from here, so the chip needs something to say that is
         // not "שבת" — Shabbat has not come in yet.
         assertEquals("פרשת נצבים וילך", announced.parshaHebrew)
-        assertEquals("Parashat Nitzavim Vayeilech", announced.parsha)
+        assertEquals("Parashat Nitzavim-Vayeilech", announced.parsha)
     }
 
     @Test

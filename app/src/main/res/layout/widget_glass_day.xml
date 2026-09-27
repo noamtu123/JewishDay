@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DayWidgetLayout.kt budgets the height from these paddings and the pane's (HorizontalPaddingDp,
+     VerticalPaddingDp, TimesGapDp, TimesPanePaddingDp, TimeColumnPaddingDp): keep them in step.
+     Text sizes and which pieces show are set in code for the widget's frame. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    style="@style/Widget.JewishDay.Glass.Root">
+
+    <ImageView
+        android:id="@+id/glass_sky"
+        style="@style/Widget.JewishDay.Glass.Sky"
+        android:contentDescription="@null" />
+
+    <LinearLayout
+        android:id="@+id/day_column"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingTop="6dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="6dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/day_festival"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/day_hebrew_date"
+                style="@style/Widget.JewishDay.Glass.Text.Title"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:maxLines="2" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/day_gregorian_date"
+            style="@style/Widget.JewishDay.Glass.Text"
+            android:layout_width="match_parent"
+            android:maxLines="2" />
+
+        <TextView
+            android:id="@+id/day_chip"
+            style="@style/Widget.JewishDay.Glass.Text.Strong"
+            android:layout_width="match_parent"
+            android:maxLines="2" />
+
+        <LinearLayout
+            android:id="@+id/day_times"
+            style="@style/Widget.JewishDay.Glass.Pane"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:baselineAligned="false"
+            android:gravity="bottom"
+            android:orientation="horizontal"
+            android:paddingStart="0dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="0dp"
+            android:paddingBottom="4dp" />
+
+        <TextView
+            android:id="@+id/day_learning"
+            style="@style/Widget.JewishDay.Glass.Text"
+            android:layout_width="match_parent"
+            android:maxLines="2" />
+
+        <TextView
+            android:id="@+id/day_location"
+            style="@style/Widget.JewishDay.Glass.Text"
+            android:layout_width="match_parent"
+            android:maxLines="2" />
+    </LinearLayout>
+</FrameLayout>

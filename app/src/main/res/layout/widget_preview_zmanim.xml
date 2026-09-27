@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the widget picker shows (Android 12+): the layout with sample content. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layoutDirection="rtl"
+    style="@style/Widget.JewishDay.Root">
+
+    <TextView
+        android:text="@string/widget_preview_hebrew_date"
+        style="@style/Widget.JewishDay.Text.Title" />
+
+    <TextView
+        android:text="@string/widget_preview_special_day"
+        style="@style/Widget.JewishDay.Text.Accent" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_alot"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_past" />
+
+            <TextView
+                android:text="@string/widget_preview_alot_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_past" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_sunrise"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_past" />
+
+            <TextView
+                android:text="@string/widget_preview_sunrise_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_past" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_shema"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_past" />
+
+            <TextView
+                android:text="@string/widget_preview_shema_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_past" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_chatzot"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_past" />
+
+            <TextView
+                android:text="@string/widget_preview_chatzot_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_past" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:background="@drawable/widget_next_highlight"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_mincha_ketana"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_accent"
+                android:textStyle="bold" />
+
+            <TextView
+                android:text="@string/widget_preview_mincha_ketana_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_accent"
+                android:textStyle="bold" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_plag"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_primary" />
+
+            <TextView
+                android:text="@string/widget_preview_plag_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_primary" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_next_title"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_primary" />
+
+            <TextView
+                android:text="@string/widget_preview_next_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_primary" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_tzeit"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_primary" />
+
+            <TextView
+                android:text="@string/widget_preview_tzeit_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_primary" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
