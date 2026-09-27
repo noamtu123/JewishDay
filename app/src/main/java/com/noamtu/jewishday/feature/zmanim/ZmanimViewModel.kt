@@ -15,6 +15,7 @@ import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.DailyLearningGroupTitle
 import com.noamtu.jewishday.model.ShabbatGroupTitle
 import com.noamtu.jewishday.model.DailyLearningType
+import com.noamtu.jewishday.model.Festival
 import com.noamtu.jewishday.model.JewishLocation
 import com.noamtu.jewishday.model.isInIsrael
 import com.noamtu.jewishday.model.ZmanItem
@@ -97,6 +98,8 @@ data class ZmanimHeaderUi(
     val holyDaySequel: String? = null,
     val holyDaySequelHebrew: String? = null,
     val fastLeadsHeader: Boolean = false,
+    // The festival the Hebrew date belongs to, erev included, drawn beside the date; null otherwise.
+    val festival: Festival? = null,
 )
 
 @Immutable
@@ -472,6 +475,7 @@ private fun ZmanimDay.toUiState(
             holyDaySequel = holyDayInfo?.sequel,
             holyDaySequelHebrew = holyDayInfo?.sequelHebrew,
             fastLeadsHeader = fastLeadsHeader,
+            festival = festival,
         ),
         groups = uiGroups,
         showCandleLightingPrompt = showCandleLightingPrompt,

@@ -173,6 +173,10 @@
     <string name="settings_hebrew_status_icon_hebrew">התראת תאריך עברי</string>
     <string name="settings_hebrew_status_icon_description">Show the Hebrew day as a persistent notification icon.</string>
     <string name="settings_hebrew_status_icon_description_hebrew">הצג את היום העברי כסמל התראה קבוע.</string>
+    <string name="settings_add_widget">Add widget to home screen</string>
+    <string name="settings_add_widget_hebrew">הוספת ווידג׳ט למסך הבית</string>
+    <string name="settings_add_widget_description">Choose a widget and place it on your home screen.</string>
+    <string name="settings_add_widget_description_hebrew">בחירת ווידג׳ט והצבתו במסך הבית.</string>
     <string name="settings_language">Language</string>
     <string name="settings_language_description">Interface language for the app’s navigation and labels.</string>
     <string name="settings_12_hour_format">12-hour format</string>

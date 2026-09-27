@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget's picture for Rosh Hashana: an apple, dipped in honey for a sweet year. On a pale disc, to read on day and night skies. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#E6FFFFFF"
+        android:pathData="M0.5,24a23.5,23.5 0 1,0 47,0a23.5,23.5 0 1,0 -47,0z" />
+    <path
+        android:fillColor="#D93A3A"
+        android:pathData="M24,17C20,13.5 11.5,14.5 11.5,24C11.5,32 17,38.5 21,38.5C22.5,38.5 23,37.8 24,37.8C25,37.8 25.5,38.5 27,38.5C31,38.5 36.5,32 36.5,24C36.5,14.5 28,13.5 24,17z" />
+    <path
+        android:fillColor="#B82828"
+        android:pathData="M36.5,24C36.5,32 31,38.5 27,38.5C25.5,38.5 25,37.8 24,37.8C28.5,36 33.5,30 34,22C34.2,19.5 33.8,17.5 33,16C35.3,17.5 36.5,20.2 36.5,24z" />
+    <path
+        android:fillColor="#F4A09A"
+        android:pathData="M15.5,25.5C15.3,22 16.8,19.6 19.2,19C17.6,21.2 17,23.3 17.2,25.8z" />
+    <path
+        android:fillColor="#6B4226"
+        android:pathData="M23.2,17.5C23.2,14.5 24,12 25.5,10.5L26.8,11.4C25.5,12.8 24.8,15 24.8,17.5z" />
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M25.8,13.2C27.2,9.6 31,8.4 34.2,9.4C33.2,12.8 29.6,14.6 25.8,13.2z" />
+    <path
+        android:fillColor="#F2A900"
+        android:pathData="M30.5,30.5C32.5,30.5 33.5,32 33.5,33.5C33.5,35 32.2,36 30.8,36C29.4,36 28.2,35 28.2,33.6C28.2,32.4 29.2,31.6 30.5,30.5z" />
+</vector>

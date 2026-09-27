@@ -42,7 +42,7 @@ private fun jewishDayInfo(
     jewishCalendar: JewishCalendar,
 ): JewishDayInfo {
     val dayOfWeek = gregorianDate.dayOfWeek
-    val englishFormatter = HebrewDateFormatter()
+    val englishFormatter = englishHebrewDateFormatter()
     val hebrewFormatter = HebrewDateFormatter().apply {
         isHebrewFormat = true
     }

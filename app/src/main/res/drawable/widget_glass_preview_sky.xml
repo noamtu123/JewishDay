@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A still of the Glass sky at candle lighting, for the widget picker. The widgets themselves paint
+     the live sky (GlassWidgetSky.kt). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:centerColor="#FF6E47B0"
+                android:endColor="#FFFF7E6B"
+                android:startColor="#FF1E1A44" />
+            <corners android:radius="@dimen/widget_corner_radius" />
+        </shape>
+    </item>
+    <item
+        android:width="120dp"
+        android:height="120dp"
+        android:gravity="top|start"
+        android:left="0dp"
+        android:top="0dp">
+        <shape android:shape="oval">
+            <gradient
+                android:endColor="#005B4BC8"
+                android:gradientRadius="60dp"
+                android:startColor="#995B4BC8"
+                android:type="radial" />
+        </shape>
+    </item>
+    <item
+        android:width="72dp"
+        android:height="72dp"
+        android:gravity="top|end"
+        android:right="14dp"
+        android:top="10dp">
+        <shape android:shape="oval">
+            <gradient
+                android:centerColor="#55FF9A5C"
+                android:endColor="#00FF9A5C"
+                android:gradientRadius="36dp"
+                android:startColor="#FFFFF4D6"
+                android:type="radial" />
+        </shape>
+    </item>
+    <item
+        android:width="16dp"
+        android:height="16dp"
+        android:gravity="top|end"
+        android:right="42dp"
+        android:top="38dp">
+        <shape android:shape="oval">
+            <solid android:color="#FFFFE9C4" />
+        </shape>
+    </item>
+</layer-list>

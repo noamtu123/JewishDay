@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    style="@style/Widget.JewishDay.Glass.Root">
+
+    <ImageView
+        android:id="@+id/glass_sky"
+        style="@style/Widget.JewishDay.Glass.Sky"
+        android:contentDescription="@null" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="14dp">
+
+        <TextView
+            android:id="@+id/glass_hebrew_date"
+            style="@style/Widget.JewishDay.Glass.Text.Title" />
+
+        <TextView
+            android:id="@+id/glass_gregorian_date"
+            style="@style/Widget.JewishDay.Glass.Text.Label"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/glass_special_day"
+            style="@style/Widget.JewishDay.Glass.Text.Chip"
+            android:visibility="gone" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <LinearLayout
+            android:id="@+id/glass_pane"
+            style="@style/Widget.JewishDay.Glass.Pane"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/glass_next_label"
+                    style="@style/Widget.JewishDay.Glass.Text.Label" />
+
+                <TextView
+                    android:id="@+id/glass_next_title"
+                    style="@style/Widget.JewishDay.Glass.Text.Strong" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/glass_next_time"
+                style="@style/Widget.JewishDay.Glass.Text.Time"
+                android:layout_marginStart="8dp"
+                android:textSize="22sp" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

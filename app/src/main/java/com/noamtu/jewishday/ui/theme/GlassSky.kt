@@ -89,6 +89,37 @@ fun skyPhases(day: SkyDay, date: java.time.LocalDate, zone: ZoneId): List<SkyPha
         .map { SkyPhase(it.name!!, it.nameHebrew!!, it.at) }
 
 /**
+ * When the sky next changes, if it is standing still at [now]; null while it moves. Through the night
+ * the Night look holds from an hour after tzeit until forty minutes before alot (see [skyKeys]), so a
+ * widget painting it has nothing to redraw before then.
+ */
+fun skyStillUntil(now: Instant, day: SkyDay, zone: ZoneId): Instant? {
+    val midnight = now.atZone(zone).toLocalDate().atStartOfDay(zone).toInstant()
+    val keys = skyKeys(day, midnight)
+    val index = keys.indexOfLast { !it.at.isAfter(now) }.coerceIn(0, keys.size - 2)
+    return keys[index + 1].at.takeIf { keys[index].look == Night && keys[index + 1].look == Night }
+}
+
+/**
+ * When a picture of the sky taken at [now] is next worth redrawing: at the end of a still night (see
+ * [skyStillUntil]); otherwise a twelfth of the way through the blend it is in (see [skyKeys]). The
+ * dawn and dusk blends last an hour or so and change fast, so they move every few minutes; the long
+ * daytime ones change slowly and move rarely — always within [MinSkyRedraw] to [MaxSkyRedraw].
+ */
+fun nextSkyRedraw(now: Instant, day: SkyDay, zone: ZoneId): Instant {
+    skyStillUntil(now, day, zone)?.let { return it }
+    val midnight = now.atZone(zone).toLocalDate().atStartOfDay(zone).toInstant()
+    val keys = skyKeys(day, midnight)
+    val index = keys.indexOfLast { !it.at.isAfter(now) }.coerceIn(0, keys.size - 2)
+    val blend = Duration.between(keys[index].at, keys[index + 1].at)
+    return now.plus(blend.dividedBy(SkyRedrawsPerBlend).coerceIn(MinSkyRedraw, MaxSkyRedraw))
+}
+
+private const val SkyRedrawsPerBlend = 12L
+private val MinSkyRedraw: Duration = Duration.ofMinutes(5)
+private val MaxSkyRedraw: Duration = Duration.ofMinutes(20)
+
+/**
  * The sky at [now]: blended between the two pinned moments (see [skyKeys]) either side of it, so it
  * moves the whole time rather than switching on the hour.
  */

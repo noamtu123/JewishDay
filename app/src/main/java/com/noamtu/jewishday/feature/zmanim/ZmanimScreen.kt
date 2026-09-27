@@ -58,7 +58,9 @@ import com.noamtu.jewishday.R
 import com.noamtu.jewishday.data.LocationSource
 import com.noamtu.jewishday.data.locationSourceForName
 import com.noamtu.jewishday.model.CandleLightingMethod
+import com.noamtu.jewishday.model.Festival
 import com.noamtu.jewishday.ui.LocalUseHebrewInterface
+import com.noamtu.jewishday.ui.components.FestivalPicture
 import com.noamtu.jewishday.ui.components.InfoCard
 import com.noamtu.jewishday.ui.components.ScreenHorizontalPadding
 import com.noamtu.jewishday.ui.components.ScreenPaddingValues
@@ -510,7 +512,8 @@ private fun DateBar(
             // beside it? If so, switch to the "title" layout instead of overlapping.
             val dateOverlapsChip = chipLabel != null && run {
                 val contentWidthPx = with(density) { maxWidth.toPx() }
-                val dateWidthPx = textMeasurer.measure(jewishDate, headlineStyle).size.width
+                val pictureWidthPx = if (header.festival != null) with(density) { (FestivalPictureSize + FestivalPictureGap).toPx() } else 0f
+                val dateWidthPx = textMeasurer.measure(jewishDate, headlineStyle).size.width + pictureWidthPx
                 val chipTextWidthPx = textMeasurer.measure(chipLabel, chipLabelStyle).size.width
                 // Chip span = its text + its horizontal padding (10.dp each side). Require a few dp of
                 // real overlap before rearranging, so a near-miss (like a short "Fast of Esther") is
@@ -523,12 +526,12 @@ private fun DateBar(
                 // A long label can't fit beside the date, so give the Hebrew date its own line,
                 // centered like a title, and put the chip on the day line beside the civil date.
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
+                    JewishDateLine(
                         modifier = Modifier.fillMaxWidth(),
                         text = jewishDate,
+                        festival = header.festival,
                         style = headlineStyle,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        textAlign = TextAlign.Center,
+                        centered = true,
                     )
                     Spacer(Modifier.height(6.dp))
                     Row(
@@ -554,10 +557,10 @@ private fun DateBar(
                     }
                 }
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
+                    JewishDateLine(
                         text = jewishDate,
+                        festival = header.festival,
                         style = headlineStyle,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
@@ -570,6 +573,39 @@ private fun DateBar(
         }
     }
 }
+
+/**
+ * The Hebrew date, and on a festival its picture before it, on the side the date starts reading
+ * from — like an initial, and clear of the chip on the far side.
+ */
+@Composable
+private fun JewishDateLine(
+    text: String,
+    festival: Festival?,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+    centered: Boolean = false,
+) {
+    val color = MaterialTheme.colorScheme.onPrimaryContainer
+    if (festival == null) {
+        Text(modifier = modifier, text = text, style = style, color = color, textAlign = if (centered) TextAlign.Center else null)
+        return
+    }
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = if (centered) Arrangement.Center else Arrangement.Start,
+    ) {
+        FestivalPicture(festival, FestivalPictureSize)
+        Spacer(Modifier.width(FestivalPictureGap))
+        // A long date wraps beside the picture rather than pushing it off the card.
+        Text(modifier = Modifier.weight(1f, fill = false), text = text, style = style, color = color)
+    }
+}
+
+// The headline's own line height, so a festival day's date bar is no taller than any other day's.
+private val FestivalPictureSize = 32.dp
+private val FestivalPictureGap = 8.dp
 
 @Composable
 private fun ObservanceChip(

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    style="@style/Widget.JewishDay.Glass.Root">
+
+    <ImageView
+        android:id="@+id/glass_sky"
+        style="@style/Widget.JewishDay.Glass.Sky"
+        android:contentDescription="@null" />
+
+    <!-- The pane sits low, leaving the top of the widget to the sky and its sun or moon. -->
+    <LinearLayout
+        android:id="@+id/glass_pane"
+        style="@style/Widget.JewishDay.Glass.Pane"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_margin="10dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/glass_next_label"
+            style="@style/Widget.JewishDay.Glass.Text.Label" />
+
+        <TextView
+            android:id="@+id/glass_next_title"
+            style="@style/Widget.JewishDay.Glass.Text.Strong"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/glass_next_time"
+            style="@style/Widget.JewishDay.Glass.Text.Time"
+            android:textSize="30sp" />
+
+        <TextView
+            android:id="@+id/glass_following"
+            style="@style/Widget.JewishDay.Glass.Text.Label"
+            android:visibility="gone" />
+    </LinearLayout>
+</FrameLayout>

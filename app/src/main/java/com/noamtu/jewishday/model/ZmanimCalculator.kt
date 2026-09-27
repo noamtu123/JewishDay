@@ -42,7 +42,7 @@ fun zmanimForDate(
     } else {
         jewishCalendar
     }
-    val englishFormatter = HebrewDateFormatter()
+    val englishFormatter = englishHebrewDateFormatter()
     val hebrewFormatter = HebrewDateFormatter().apply { isHebrewFormat = true }
     val shabbatDates = shabbatDatesFor(date, location, settings, now)
     val shabbatStartCalendar = complexZmanimCalendar(location, shabbatDates.startDate, settings)
@@ -164,6 +164,7 @@ fun zmanimForDate(
         fastDayInfo = fastDayInfo,
         holyDayInfo = holyDayInfo,
         fastLeadsHeader = fastLeadsHeader(fastDayInfo, holyDayInfo, now),
+        festival = festivalOf(displayJewishCalendar),
         groups = listOfNotNull(
             // The parsha lives at the top of the Shabbat section; when that section is dropped it
             // moves up here rather than disappearing.
@@ -329,7 +330,7 @@ private val FastDayNames: Map<Int, Pair<String, String>> = mapOf(
     JewishCalendar.FAST_OF_GEDALYAH to ("Fast of Gedalyah" to "צום גדליה"),
     JewishCalendar.TISHA_BEAV to ("Tisha B'Av" to "תשעה באב"),
     JewishCalendar.SEVENTEEN_OF_TAMMUZ to ("17th of Tammuz" to "י״ז בתמוז"),
-    JewishCalendar.TENTH_OF_TEVES to ("10th of Teves" to "עשרה בטבת"),
+    JewishCalendar.TENTH_OF_TEVES to ("10th of Tevet" to "עשרה בטבת"),
     JewishCalendar.FAST_OF_ESTHER to ("Fast of Esther" to "תענית אסתר"),
     // Yom Kippur is deliberately absent: it is a holy day, so the header describes it as one —
     // entered with the candle-lighting tosefet and left at the holy-day exit, not as a plain fast.

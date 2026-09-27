@@ -126,9 +126,9 @@ class ZmanimModelsTest {
         assertEquals("Shabbat Isru Chag", requireNotNull(israelHolyDay).name)
         // In the diaspora it is the second day of Yom Tov, which the header names instead, so it
         // is deliberately absent from the event rows.
-        assertFalse(diasporaEvents.contains("Shavuos"))
+        assertFalse(diasporaEvents.contains("Shavuot"))
         val diasporaHolyDay = zmanimForDate(location = diasporaLocation, date = secondDayShavuot).holyDayInfo
-        assertTrue(requireNotNull(diasporaHolyDay).name, requireNotNull(diasporaHolyDay).name.contains("Shavuos"))
+        assertTrue(requireNotNull(diasporaHolyDay).name, requireNotNull(diasporaHolyDay).name.contains("Shavuot"))
         assertFalse(israelEvents == diasporaEvents)
     }
 

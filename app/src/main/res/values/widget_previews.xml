@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sample content for the widget picker's previews (layout/widget_preview_*). -->
+<resources>
+    <string name="widget_preview_hebrew_date" translatable="false">ל׳ תשרי תשפ״ז</string>
+    <string name="widget_preview_special_day" translatable="false">ראש חודש חשון</string>
+    <string name="widget_preview_gregorian_date" translatable="false">יום ראשון, 11 באוקטובר</string>
+    <string name="widget_preview_next_label" translatable="false">הזמן הבא</string>
+    <string name="widget_preview_next_title" translatable="false">שקיעה</string>
+    <string name="widget_preview_next_time" translatable="false">18:07</string>
+    <string name="widget_preview_following" translatable="false">אחריו: צאת הכוכבים 18:25</string>
+    <string name="widget_preview_parsha" translatable="false">פרשת נח</string>
+    <string name="widget_preview_entry_label" translatable="false">כניסת שבת</string>
+    <string name="widget_preview_entry_time" translatable="false">17:49</string>
+    <string name="widget_preview_exit_label" translatable="false">צאת שבת</string>
+    <string name="widget_preview_exit_time" translatable="false">18:58</string>
+    <string name="widget_preview_alot" translatable="false">עלות השחר</string>
+    <string name="widget_preview_alot_time" translatable="false">05:14</string>
+    <string name="widget_preview_sunrise" translatable="false">הנץ החמה</string>
+    <string name="widget_preview_sunrise_time" translatable="false">06:34</string>
+    <string name="widget_preview_shema" translatable="false">סוף זמן ק״ש (גר״א)</string>
+    <string name="widget_preview_shema_time" translatable="false">09:23</string>
+    <string name="widget_preview_chatzot" translatable="false">חצות היום</string>
+    <string name="widget_preview_chatzot_time" translatable="false">12:13</string>
+    <string name="widget_preview_mincha_ketana" translatable="false">מנחה קטנה</string>
+    <string name="widget_preview_mincha_ketana_time" translatable="false">15:22</string>
+    <string name="widget_preview_plag" translatable="false">פלג המנחה</string>
+    <string name="widget_preview_plag_time" translatable="false">16:36</string>
+    <string name="widget_preview_tzeit" translatable="false">צאת הכוכבים</string>
+    <string name="widget_preview_tzeit_time" translatable="false">18:25</string>
+</resources>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the widget picker shows (Android 12+): the layout with sample content. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layoutDirection="rtl"
+    style="@style/Widget.JewishDay.Root"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:text="@string/widget_preview_hebrew_date"
+        style="@style/Widget.JewishDay.Text.Title"
+        android:textSize="20sp" />
+
+    <TextView
+        android:text="@string/widget_preview_special_day"
+        style="@style/Widget.JewishDay.Text.Accent" />
+
+    <TextView
+        android:text="@string/widget_preview_gregorian_date"
+        style="@style/Widget.JewishDay.Text.Secondary" />
+</LinearLayout>

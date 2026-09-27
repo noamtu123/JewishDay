@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="widget_background">#F5FCFAF4</color>
+    <color name="widget_text_primary">#1C2A22</color>
+    <color name="widget_text_secondary">#5C6B62</color>
+    <color name="widget_text_past">#9AA59F</color>
+    <color name="widget_accent">#315B46</color>
+    <color name="widget_highlight">#1F315B46</color>
+
+    <dimen name="widget_corner_radius">20dp</dimen>
+    <dimen name="widget_padding">12dp</dimen>
+
+    <!-- The picker shows these in the phone's language, so each carries both. -->
+    <string name="widget_hebrew_date_label">Hebrew date · תאריך עברי</string>
+    <string name="widget_hebrew_date_description">Today\'s Hebrew date and what the day is · התאריך העברי של היום</string>
+    <string name="widget_next_zman_label">Next zman · הזמן הבא</string>
+    <string name="widget_next_zman_description">The next zman and the one after it · הזמן הבא והזמן שאחריו</string>
+    <string name="widget_zmanim_label">Today\'s zmanim · זמני היום</string>
+    <string name="widget_zmanim_description">Today\'s zmanim, with the next one highlighted · זמני היום, והבא מודגש</string>
+    <string name="widget_shabbat_label">Shabbat &amp; chag · שבת וחג</string>
+    <string name="widget_shabbat_description">Candle lighting and when Shabbat or chag goes out · הדלקת נרות וצאת שבת או חג</string>
+    <string name="widget_glass_date_label">Glassy sky · Hebrew date · שמי זכוכית · תאריך עברי</string>
+    <string name="widget_glass_date_description">The date and the next zman over the live Glass sky · התאריך והזמן הבא על שמי הזכוכית</string>
+    <string name="widget_glass_next_label">Glassy sky · Next zman · שמי זכוכית · הזמן הבא</string>
+    <string name="widget_glass_next_description">The next zman on a pane of glass over the live sky · הזמן הבא על זכוכית מעל השמיים</string>
+    <string name="widget_glass_zmanim_label">Glassy sky · Today\'s zmanim · שמי זכוכית · זמני היום</string>
+    <string name="widget_glass_zmanim_description">Today\'s zmanim on glass over the live sky · זמני היום על זכוכית מעל השמיים</string>
+    <string name="widget_glass_shabbat_label">Glassy sky · Shabbat &amp; chag · שמי זכוכית · שבת וחג</string>
+    <string name="widget_glass_shabbat_description">Shabbat or chag under the sky of its candle lighting · שבת או חג בשמי הדלקת הנרות</string>
+    <!-- The service's notification, shown only if a fix takes more than a few seconds. -->
+    <string name="widget_location_channel">Widget location · מיקום לווידג׳טים</string>
+    <string name="widget_location_updating">Updating the widgets\' location · מעדכן את מיקום הווידג׳טים</string>
+    <string name="widget_glass_day_label">Glassy sky · The day (draft) · שמי זכוכית · היום (טיוטה)</string>
+    <string name="widget_glass_day_description">The date, the next times and more, fitted to the widget\'s size · התאריך, הזמנים הבאים ועוד, לפי גודל הווידג׳ט</string>
+
+    <style name="Widget.JewishDay.Root" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:background">@drawable/widget_background</item>
+        <item name="android:padding">@dimen/widget_padding</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="Widget.JewishDay.Text" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textAlignment">viewStart</item>
+        <item name="android:textColor">@color/widget_text_primary</item>
+    </style>
+
+    <style name="Widget.JewishDay.Text.Title">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.JewishDay.Text.Accent">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/widget_accent</item>
+    </style>
+
+    <style name="Widget.JewishDay.Text.Secondary">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/widget_text_secondary</item>
+    </style>
+
+    <style name="Widget.JewishDay.Text.Row">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="Widget.JewishDay.Text.RowTime">
+        <item name="android:textSize">14sp</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
+    <!-- Glass widgets: every text colour is set in code from the sky (dark glass or light glass). -->
+    <style name="Widget.JewishDay.Glass.Root" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:background">@drawable/widget_glass_clip</item>
+    </style>
+
+    <style name="Widget.JewishDay.Glass.Sky" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:scaleType">fitXY</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+
+    <style name="Widget.JewishDay.Glass.Pane" parent="">
+        <item name="android:background">@drawable/widget_glass_pane_dark</item>
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+    </style>
+
+    <style name="Widget.JewishDay.Glass.Text" parent="">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:textAlignment">viewStart</item>
+        <item name="android:textColor">#FFF4F5FF</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="Widget.JewishDay.Glass.Text.Title">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.01</item>
+    </style>
+
+    <style name="Widget.JewishDay.Glass.Text.Label">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textColor">#FFCDD2EC</item>
+    </style>
+
+    <style name="Widget.JewishDay.Glass.Text.Strong">
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="Widget.JewishDay.Glass.Text.Time">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
+    <style name="Widget.JewishDay.Glass.Text.Chip">
+        <item name="android:layout_marginTop">6dp</item>
+        <item name="android:background">@drawable/widget_glass_accent_sun_dark</item>
+        <item name="android:paddingStart">8dp</item>
+        <item name="android:paddingEnd">8dp</item>
+        <item name="android:paddingTop">2dp</item>
+        <item name="android:paddingBottom">2dp</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

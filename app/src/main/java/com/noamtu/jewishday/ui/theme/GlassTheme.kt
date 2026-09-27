@@ -91,7 +91,7 @@ fun glassBorder(): BorderStroke? =
 // compass once aligned) — the sun's and candlelight's colour, so it belongs to the sky — and soft
 // coral for warnings and fasts. Every role is set — a role left out
 // falls back to Material's baseline purple, which is what made chips and the compass look foreign.
-private val GlassNightColors = darkColorScheme(
+internal val GlassNightColors = darkColorScheme(
     primary = Color(0xFFB9C8FF),
     onPrimary = Color(0xFF1A2466),
     primaryContainer = Color(0xFF36407F),
@@ -127,7 +127,7 @@ private val GlassNightColors = darkColorScheme(
 )
 
 // Glass over the day skies: ink text, indigo accents, deep gold for "good", brick for warnings.
-private val GlassDayColors = lightColorScheme(
+internal val GlassDayColors = lightColorScheme(
     primary = Color(0xFF3B4FB8),
     onPrimary = Color.White,
     primaryContainer = Color(0xFFDCE1FF),
@@ -251,9 +251,9 @@ data class CelestialLight(val core: Color, val rim: Color) {
 
 }
 
-private val DaySun = CelestialLight(core = Color(0xFFFFF4D6), rim = Color(0xFFFFE08A))
-private val SettingSun = CelestialLight(core = Color(0xFFFFC27A), rim = Color(0xFFFF9A5C))
-private val Moonlight = CelestialLight(core = Color(0xFFF8F7F8), rim = Color(0xFFE4E3EC))
+internal val DaySun = CelestialLight(core = Color(0xFFFFF4D6), rim = Color(0xFFFFE08A))
+internal val SettingSun = CelestialLight(core = Color(0xFFFFC27A), rim = Color(0xFFFF9A5C))
+internal val Moonlight = CelestialLight(core = Color(0xFFF8F7F8), rim = Color(0xFFE4E3EC))
 
 /**
  * The light the compass wears once aligned, under Glass; null under every other theme. Two lights,
@@ -263,7 +263,7 @@ private val Moonlight = CelestialLight(core = Color(0xFFF8F7F8), rim = Color(0xF
  */
 val LocalCelestialLight = staticCompositionLocalOf<CelestialLight?> { null }
 
-private fun celestialLight(sky: SkyFrame): CelestialLight = if (sky.sun > 0.01f) SettingSun else Moonlight
+internal fun celestialLight(sky: SkyFrame): CelestialLight = if (sky.sun > 0.01f) SettingSun else Moonlight
 
 /**
  * The "good" accent (the compass once aligned, its marker and pill, and the chips) is that same
@@ -281,7 +281,7 @@ private fun celestialAccent(scheme: ColorScheme, sky: SkyFrame): ColorScheme {
 }
 
 /** A soft pool of light: the colour at the centre fading to nothing at [radius]. */
-private fun DrawScope.drawBloom(color: Color, alpha: Float, center: Offset, radius: Float) {
+internal fun DrawScope.drawBloom(color: Color, alpha: Float, center: Offset, radius: Float) {
     // Four stops, not three: a long, even falloff, so a bloom has no visible rim.
     drawCircle(
         brush = Brush.radialGradient(
@@ -298,7 +298,7 @@ private fun DrawScope.drawBloom(color: Color, alpha: Float, center: Offset, radi
 }
 
 /** A glow along the bottom edge, strongest at the edge and gone by a third of the way up. */
-private fun DrawScope.drawHorizon(color: Color, alpha: Float) {
+internal fun DrawScope.drawHorizon(color: Color, alpha: Float) {
     drawRect(
         brush = Brush.verticalGradient(
             0f to Color.Transparent,
@@ -320,7 +320,12 @@ private fun DrawScope.drawSun(alpha: Float, arc: Float, dusk: Boolean) {
         x = size.width * (0.14f + arc * 0.72f),
         y = size.height * (0.42f - sin(arc * PI).toFloat() * 0.32f),
     )
-    val disc = size.width * 0.055f
+    drawSunDisc(alpha, center, disc = size.width * 0.055f, dusk = dusk)
+}
+
+/** The sun itself, centred on [center] with a disc of radius [disc]; the home-screen widgets draw it too. */
+internal fun DrawScope.drawSunDisc(alpha: Float, center: Offset, disc: Float, dusk: Boolean) {
+    if (alpha <= 0.01f) return
     val light = if (dusk) SettingSun else DaySun
     val core = light.core
     val rim = light.rim
@@ -359,9 +364,12 @@ private fun DrawScope.drawSun(alpha: Float, arc: Float, dusk: Boolean) {
  */
 private fun DrawScope.drawMoon(alpha: Float) {
     if (alpha <= 0.01f) return
-    val center = Offset(size.width * 0.78f, size.height * 0.13f)
-    val radius = size.width * 0.04f
+    drawCrescent(alpha, center = Offset(size.width * 0.78f, size.height * 0.13f), radius = size.width * 0.04f)
+}
 
+/** The crescent itself, centred on [center]; the home-screen widgets draw it too. */
+internal fun DrawScope.drawCrescent(alpha: Float, center: Offset, radius: Float) {
+    if (alpha <= 0.01f) return
     val shadow = center + Offset(-radius * 0.38f, -radius * 0.18f)
 
     // A faint wide halo, eased over many stops so it does not band, then the crescent's own light:
@@ -416,7 +424,7 @@ private fun DrawScope.drawMoon(alpha: Float) {
 /** The moon's white: a cool white with a light touch of warmth. */
 private val MoonFace = Color(0xFFF8F7F8)
 
-private fun DrawScope.drawGlow(color: Color, alpha: Float, center: Offset, from: Float, to: Float) {
+internal fun DrawScope.drawGlow(color: Color, alpha: Float, center: Offset, from: Float, to: Float) {
     val start = from / to
     val stops = Array(13) { i ->
         val t = i / 12f
