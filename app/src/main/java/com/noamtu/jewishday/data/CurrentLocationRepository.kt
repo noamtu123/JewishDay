@@ -65,6 +65,9 @@ class CurrentLocationRepository @Inject constructor(
 ) {
     private val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
     private val mainHandler = Handler(Looper.getMainLooper())
+    // Plain preferences, deliberately: only the DataStore is backed up (see backup_rules.xml), so the
+    // remembered fix never leaves the device.
+    private val rememberedFixPrefs = context.getSharedPreferences(RememberedFixPrefs, Context.MODE_PRIVATE)
     private val _currentLocationFix = MutableStateFlow<CurrentLocationFix?>(null)
     private var bestPublishedDeviceLocation: Location? = null
     private var activeLocationListener: LocationListener? = null
@@ -153,8 +156,9 @@ class CurrentLocationRepository @Inject constructor(
     }
 
     /**
-     * Drop any device fix so the app falls back to Jerusalem. Called when we can't get a location
-     * (permission denied, or the location switch is off) — the app never remembers a past location.
+     * Drop any device fix so the app falls back to Jerusalem, and forget the one remembered for
+     * background refreshes. Called when we can't get a location (permission denied, or the location
+     * switch is off) — the app keeps no location it is no longer allowed to use.
      */
     @Synchronized
     fun useJerusalemFallback() {
@@ -162,17 +166,50 @@ class CurrentLocationRepository @Inject constructor(
         bestPublishedDeviceLocation = null
         lastSuccessfulFreshLocationElapsed = 0L
         _currentLocationFix.value = null
+        forgetRememberedFix()
     }
 
     fun currentLocationOrDefault(): JewishLocation =
         developerOverrides.overrideLocation
             ?: currentLocation.value
             ?: getLastKnownJewishLocation()
+            ?: rememberedLocation()
             ?: defaultJerusalemLocation
 
     /**
+     * The last device fix the app was allowed to take, kept across process death. Location is
+     * foreground-only for this app, so with no screen showing Android hands the process neither a
+     * fresh fix nor its cached one — a widget or the date icon refreshing in the background would
+     * otherwise fall back to Jerusalem and compute a day that is not the user's. Zoned to the device's
+     * current zone like every fix, and forgotten the moment the app is told to stop using location
+     * ([useJerusalemFallback]), so it never outlives the permission it was taken under.
+     */
+    fun rememberedLocation(): JewishLocation? {
+        if (!rememberedFixPrefs.contains(RememberedLatitude)) return null
+        return JewishLocation(
+            name = CurrentLocationName,
+            latitude = Double.fromBits(rememberedFixPrefs.getLong(RememberedLatitude, 0L)),
+            longitude = Double.fromBits(rememberedFixPrefs.getLong(RememberedLongitude, 0L)),
+            elevationMeters = Double.fromBits(rememberedFixPrefs.getLong(RememberedElevation, 0L)),
+            zoneId = ZoneId.systemDefault(),
+        )
+    }
+
+    private fun rememberFix(location: Location) {
+        rememberedFixPrefs.edit()
+            .putLong(RememberedLatitude, location.latitude.toBits())
+            .putLong(RememberedLongitude, location.longitude.toBits())
+            .putLong(RememberedElevation, (if (location.hasAltitude()) location.altitude else 0.0).toBits())
+            .apply()
+    }
+
+    private fun forgetRememberedFix() {
+        rememberedFixPrefs.edit().clear().apply()
+    }
+
+    /**
      * Requests a fresh fix and suspends until one (or any cached value) is available,
-     * falling back to last-known/Jerusalem after [timeoutMillis]. Intended for
+     * falling back to last-known / remembered / Jerusalem after [timeoutMillis]. Intended for
      * background workers, which must not compute zmanim against a default location
      * just because the in-memory state was empty after process restart.
      */
@@ -241,6 +278,7 @@ class CurrentLocationRepository @Inject constructor(
 
         bestPublishedDeviceLocation = Location(candidate)
         _currentLocationFix.value = candidate.toCurrentLocationFix(context.hasFineLocationPermission())
+        rememberFix(candidate)
         return true
     }
 
@@ -282,6 +320,10 @@ class CurrentLocationRepository @Inject constructor(
         const val AwaitLocationTimeoutMillis = 10_000L
         const val AcceptablePreciseLocationAccuracyMeters = 100f
         const val AcceptableCoarseLocationAccuracyMeters = 5_000f
+        const val RememberedFixPrefs = "remembered_location_fix"
+        const val RememberedLatitude = "latitude"
+        const val RememberedLongitude = "longitude"
+        const val RememberedElevation = "elevation_meters"
     }
 }
 

@@ -25,6 +25,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.Surface
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -109,6 +111,7 @@ fun JewishDayApp(useHebrewInterface: Boolean = false) {
         var locationSettled by remember { mutableStateOf(false) }
         LocationAvailabilityPrompt(onSettled = { locationSettled = true })
         NotificationPermissionSetup(canPrompt = locationSettled)
+        GlassThemeNotice(canShow = locationSettled)
         // Last in the queue, so a first launch answers the system permission dialogs before this
         // one appears.
         AppUpdatePrompt(updateViewModel)
@@ -203,6 +206,45 @@ private fun AppUpdatePrompt(viewModel: AppUpdateViewModel) {
         },
         onDismiss = viewModel::dismiss,
     )
+}
+
+/**
+ * Once, after the update that made Glass the theme for everyone: a short note that the app moved
+ * them to it, and that Settings has their old theme and every other. Waits for the location prompt,
+ * so the two dialogs never stack.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GlassThemeNotice(
+    canShow: Boolean,
+    viewModel: GlassThemeNoticeViewModel = hiltViewModel(),
+) {
+    val pending by viewModel.pending.collectAsStateWithLifecycle()
+    if (!pending || !canShow) return
+    // A small card rather than an AlertDialog, whose fixed title, padding and button row make a
+    // two-line note look like a form.
+    BasicAlertDialog(onDismissRequest = viewModel::dismiss) {
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            tonalElevation = 6.dp,
+        ) {
+            Column(modifier = Modifier.padding(start = 20.dp, top = 16.dp, end = 8.dp, bottom = 4.dp)) {
+                Text(
+                    localizedString(R.string.glass_theme_notice_body, R.string.glass_theme_notice_body_hebrew),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(end = 12.dp),
+                )
+                TextButton(
+                    onClick = viewModel::dismiss,
+                    modifier = Modifier.align(Alignment.End),
+                ) {
+                    Text(localizedString(R.string.glass_theme_notice_ok, R.string.glass_theme_notice_ok_hebrew))
+                }
+            }
+        }
+    }
 }
 
 private enum class LocationPromptKind { None, Permission, Services }
