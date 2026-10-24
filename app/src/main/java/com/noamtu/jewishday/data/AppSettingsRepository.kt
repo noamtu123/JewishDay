@@ -63,7 +63,10 @@ enum class AppThemeOption(val storageValue: String) {
 
     companion object {
         /** The app-wide default applied on first launch and as a fallback. */
-        val Default = BlueWhite
+        val Default = Glass
+
+        // What an install that never picked a theme was on before Glass became the default.
+        internal val DefaultBeforeGlass = BlueWhite
 
         fun fromStorageValue(value: String?): AppThemeOption? =
             entries.firstOrNull { it.storageValue == value }
@@ -92,6 +95,11 @@ data class AppSettings(
      * a test build by accident, and a pre-release cannot be uninstalled back down from in place.
      */
     val includePreReleases: Boolean = false,
+    /**
+     * The theme an existing install was on when it was moved to Glass, while the message saying so
+     * has not been dismissed yet; null otherwise. See [AppSettingsRepository.introduceGlassTheme].
+     */
+    val themeBeforeGlass: AppThemeOption? = null,
 ) {
     val useHebrewInterface: Boolean get() = language.useHebrewInterface
 }
@@ -114,6 +122,16 @@ interface AppSettingsRepository {
      * from overriding the stored choice.
      */
     suspend fun seedLanguageDefault()
+
+    /**
+     * Once per install, before anything else is written: an existing install on any theme but Glass
+     * is moved to Glass, remembering what it was on, so the app can say so and offer the way back.
+     * A new install has nothing stored yet and simply starts on Glass, the default.
+     */
+    suspend fun introduceGlassTheme()
+
+    /** The user has read the message about the move to Glass, and kept it or gone back. */
+    suspend fun dismissGlassThemeNotice()
 
     suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean)
     suspend fun setAppLanguage(language: AppLanguage)
@@ -174,6 +192,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 candleLightingDefault = CandleLightingMethod.fromStorageValue(preferences[CandleLightingDefaultKey]),
                 alwaysUseJerusalem = preferences[AlwaysUseJerusalem] ?: false,
                 includePreReleases = preferences[IncludePreReleases] ?: false,
+                themeBeforeGlass = AppThemeOption.fromStorageValue(preferences[ThemeBeforeGlass]),
             )
         }
 
@@ -186,6 +205,34 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 preferences[AppLanguageKey] = AppLanguage.systemDefault().storageValue
             }
         }
+    }
+
+    override suspend fun introduceGlassTheme() {
+        var moved = false
+        val updatedPreferences = dataStore.edit { preferences ->
+            if (preferences[GlassThemeIntroduced] == true) return@edit
+            // Every install that has launched before stored its language at that first launch (see
+            // seedLanguageDefault, which runs after this); a new one has not, whatever else is there.
+            val launchedBefore = AppLanguageKey in preferences || UseHebrewInterface in preferences || ThemeOption in preferences
+            val previous = if (launchedBefore) {
+                storedThemeOption(preferences) ?: AppThemeOption.DefaultBeforeGlass
+            } else {
+                null
+            }
+            preferences[GlassThemeIntroduced] = true
+            if (previous != null && previous != AppThemeOption.Glass) {
+                preferences[ThemeOption] = AppThemeOption.Glass.storageValue
+                preferences.remove(BlueWhiteTheme)
+                preferences.remove(AmoledBlackTheme)
+                preferences[ThemeBeforeGlass] = previous.storageValue
+                moved = true
+            }
+        }
+        if (moved) startupSettingsCache.write(decodeRootUiSettings(updatedPreferences))
+    }
+
+    override suspend fun dismissGlassThemeNotice() {
+        dataStore.edit { preferences -> preferences.remove(ThemeBeforeGlass) }
     }
 
     override suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean) {
@@ -427,7 +474,11 @@ class DataStoreAppSettingsRepository @Inject constructor(
             // First launch: follow the device language.
             ?: AppLanguage.systemDefault()
 
-    private fun decodeThemeOption(preferences: Preferences): AppThemeOption {
+    private fun decodeThemeOption(preferences: Preferences): AppThemeOption =
+        storedThemeOption(preferences) ?: AppThemeOption.Default
+
+    /** The theme the user picked, or null if they never picked one. */
+    private fun storedThemeOption(preferences: Preferences): AppThemeOption? {
         // "Classic calm" was one theme that followed the system light/dark setting; what survives
         // of it is Olive grove, so that is where a stored "classic" lands.
         if (preferences[ThemeOption] == LegacyClassicTheme) return AppThemeOption.OliveGrove
@@ -435,7 +486,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
             ?: when {
                 preferences[AmoledBlackTheme] == true -> AppThemeOption.AmoledBlack
                 preferences[BlueWhiteTheme] == true -> AppThemeOption.BlueWhite
-                else -> AppThemeOption.Default
+                else -> null
             }
     }
 
@@ -462,6 +513,8 @@ class DataStoreAppSettingsRepository @Inject constructor(
         val AlwaysUseJerusalem = booleanPreferencesKey("always_use_jerusalem")
         val IncludePreReleases = booleanPreferencesKey("include_pre_releases")
         val ThemeOption = stringPreferencesKey("theme_option")
+        val GlassThemeIntroduced = booleanPreferencesKey("glass_theme_introduced")
+        val ThemeBeforeGlass = stringPreferencesKey("theme_before_glass")
         val BlueWhiteTheme = booleanPreferencesKey("blue_white_theme")
 
         /** Retained read-only: the storage value of the theme that used to follow the system. */

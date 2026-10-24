@@ -24,8 +24,8 @@ android {
         applicationId = "com.noamtu.jewishday"
         minSdk = 26
         targetSdk = 36
-        versionCode = 19
-        versionName = "1.2.1"
+        versionCode = 20
+        versionName = "1.3.0"
     }
 
     signingConfigs {

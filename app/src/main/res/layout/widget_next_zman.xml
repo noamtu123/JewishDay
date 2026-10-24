@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The next zman beside its time, and the one after it on a line of its own across the whole
+     widget, so neither is squeezed by the other. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    style="@style/Widget.JewishDay.Root"
+    android:gravity="center_vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_next_label"
+                style="@style/Widget.JewishDay.Text.Accent"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/widget_next_title"
+                style="@style/Widget.JewishDay.Text.Title"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_next_time"
+            style="@style/Widget.JewishDay.Text.Title"
+            android:layout_marginStart="8dp"
+            android:fontFeatureSettings="tnum"
+            android:textColor="@color/widget_accent"
+            android:textSize="26sp" />
+    </LinearLayout>
+
+    <!-- The time never gives way; a long name is what shortens. -->
+    <LinearLayout
+        android:id="@+id/widget_following"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/widget_following_title"
+            style="@style/Widget.JewishDay.Text.Secondary"
+            android:layout_width="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/widget_following_time"
+            style="@style/Widget.JewishDay.Text.Secondary"
+            android:layout_marginStart="6dp"
+            android:fontFeatureSettings="tnum" />
+    </LinearLayout>
+</LinearLayout>
