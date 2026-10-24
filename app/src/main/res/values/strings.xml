@@ -81,6 +81,8 @@
     <string name="mizrach_compass_dial_description_hebrew">חוגת המצפן. קודש הקודשים נמצא ב־%1$d מעלות מצפון האמיתי.</string>
     <string name="mizrach_compass_caption">Hold the phone flat or upright. The needle shows the direction to Kodesh HaKodashim.</string>
     <string name="mizrach_compass_caption_hebrew">החזק את הטלפון במאוזן או במאונך. המחט מצביעה לכיוון קודש הקודשים.</string>
+    <string name="mizrach_figure_eight_tip">For better accuracy, wave the phone in a figure-eight a few times.</string>
+    <string name="mizrach_figure_eight_tip_hebrew">לשיפור הדיוק מומלץ לנענע את הטלפון כמה פעמים בתנועה של הספרה שמונה.</string>
     <string name="mizrach_compass_accuracy_low">Compass accuracy is low. Move the phone in a figure-eight and keep it away from magnets.</string>
     <string name="mizrach_compass_accuracy_low_hebrew">דיוק המצפן נמוך. הזז את הטלפון בצורת שמונה והרחק אותו ממגנטים.</string>
     <string name="mizrach_compass_unreliable">Compass is unreliable right now — a magnet is likely interfering. Move the phone in a figure-eight and keep it away from magnets.</string>
@@ -213,6 +215,10 @@
     <string name="theme_amoled_black_hebrew">שחור AMOLED</string>
     <string name="theme_glass">Glassy sky</string>
     <string name="theme_glass_hebrew">שמי זכוכית</string>
+    <string name="glass_theme_notice_body">The app has moved to a new theme called Glassy sky. You can go back to your previous one, or pick another, in Settings → Theme.</string>
+    <string name="glass_theme_notice_body_hebrew">האפליקציה עברה לערכת נושא חדשה בשם שמי זכוכית. אפשר לחזור לקודמת או לבחור אחרת בהגדרות ← ערכת נושא.</string>
+    <string name="glass_theme_notice_ok">OK</string>
+    <string name="glass_theme_notice_ok_hebrew">הבנתי</string>
     <string name="settings_language_hebrew">שפה</string>
     <string name="settings_language_description_hebrew">שפת הממשק לניווט ולתוויות האפליקציה.</string>
     <string name="about_tagline">A modern Jewish companion app.</string>

@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="24dp"
+    android:layout_height="0dp"
+    android:layout_weight="1"
     android:background="@drawable/widget_next_highlight"
     android:gravity="center_vertical"
     android:orientation="horizontal"

@@ -3,19 +3,12 @@
 package com.noamtu.jewishday.widget
 
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
-import android.util.TypedValue
-import android.view.Gravity
 import android.view.View
 import android.widget.RemoteViews
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
 import com.noamtu.jewishday.R
-import com.noamtu.jewishday.data.hasLocationPermission
-import com.noamtu.jewishday.ui.components.iconRes
 import com.noamtu.jewishday.ui.theme.GlassDayColors
 import com.noamtu.jewishday.ui.theme.GlassNightColors
 import com.noamtu.jewishday.ui.theme.Moonlight
@@ -54,19 +47,90 @@ private class GlassInk(sky: SkyFrame) {
     }.toArgb()
 }
 
-internal fun glassDateViews(context: Context, content: WidgetContent, sky: SkyFrame, options: Bundle) =
-    glassViews(context, R.layout.widget_glass_date, sky, DateSky, options, content.rtl, 250, 110) { ink ->
+/**
+ * The date over the sky, and the next time on a pane. One row high the two sit side by side; from
+ * two rows the date heads the widget and the pane sits at the bottom, and as the widget grows the
+ * date and time grow with it and the pane lists the times after the next one, keeping the band
+ * between them open for the sun or moon.
+ */
+internal fun glassDateViews(context: Context, content: WidgetContent, sky: SkyFrame, options: Bundle): RemoteViews {
+    val (widthDp, heightDp) = widgetSizeDp(options, DefaultWideWidthDp, DefaultRegularHeightDp)
+    val shape = widgetShape(heightDp)
+    if (shape == WidgetShape.Strip) return glassDateStrip(context, content, sky, widthDp, heightDp)
+
+    val titleDp = fittedTextSize(content.hebrewDate, widthDp - 28f, 22f, minOf(if (shape == WidgetShape.Tall) 46f else 32f, heightDp * 0.16f))
+    val timeDp = if (shape == WidgetShape.Tall) (heightDp * 0.085f).coerceIn(24f, 34f) else 22f
+    val headerDp = 14 + titleDp * LineHeight + 18 + (if (content.specialDay != null) 28 else 0)
+    val paneDp = 16 + maxOf(34f, timeDp * LineHeight)
+    // Whatever height the sun needs is kept back; the rest of the open band goes to more times.
+    val spareDp = heightDp - headerDp - paneDp - 14 - heightDp * OpenSkyShare
+    val ahead = content.ahead.drop(1).take((spareDp / AheadRowDp).toInt().coerceIn(0, MaxAheadRows))
+    val paneTopDp = heightDp - 14 - paneDp - ahead.size * AheadRowDp - (if (ahead.isEmpty()) 0 else 4)
+    val skyLayout = if (shape == WidgetShape.Tall) openBandSky(headerDp / heightDp, paneTopDp / heightDp) else DateSky
+
+    return glassViews(context, R.layout.widget_glass_date, sky, skyLayout, widthDp, heightDp, content.rtl) { ink ->
         setText(R.id.glass_hebrew_date, content.hebrewDate, ink.primary)
+        setTextSizeDp(R.id.glass_hebrew_date, titleDp)
         setText(R.id.glass_gregorian_date, content.gregorianDate, ink.secondary)
         setChip(R.id.glass_special_day, content.specialDay, ink)
         setPane(R.id.glass_pane, ink)
         setText(R.id.glass_next_label, content.nextLabel, ink.secondary)
         setText(R.id.glass_next_title, content.next?.title ?: "—", ink.primary)
         setText(R.id.glass_next_time, content.next?.time.orEmpty(), ink.time)
+        setTextSizeDp(R.id.glass_next_time, timeDp)
+        removeAllViews(R.id.glass_ahead)
+        setViewVisibility(R.id.glass_ahead, if (ahead.isEmpty()) View.GONE else View.VISIBLE)
+        ahead.forEach { zman ->
+            addView(R.id.glass_ahead, glassRow(context, R.layout.widget_glass_row, zman, ink.primary).apply {
+                // Under the next time in the pane, flush with it rather than inset for a highlight.
+                setViewPadding(R.id.glass_row, 0, 0, 0, 0)
+            })
+        }
     }
+}
 
-internal fun glassNextZmanViews(context: Context, content: WidgetContent, sky: SkyFrame, options: Bundle) =
-    glassViews(context, R.layout.widget_glass_next, sky, NextSky, options, content.rtl, 110, 110) { ink ->
+/** One row high: the date at the start and the next time in a small pane at the end, if both fit. */
+private fun glassDateStrip(context: Context, content: WidgetContent, sky: SkyFrame, widthDp: Int, heightDp: Int): RemoteViews {
+    val next = content.next
+    // The pane is as wide as its longer line; it gives way if the date would be squeezed below legible.
+    val paneDp = next?.let { 24 + maxOf(minOf(it.title.length * CharWidthEm * 12, 130f), it.time.length * CharWidthEm * 20) } ?: 0f
+    val withPane = next != null && (widthDp - 24 - 10 - paneDp) / (content.hebrewDate.length * CharWidthEm) >= 20f
+    val dateWidthDp = widthDp - 24f - (if (withPane) 10 + paneDp else 0f)
+    val titleDp = fittedTextSize(content.hebrewDate, dateWidthDp, 18f, minOf(30f, heightDp * 0.3f))
+    // A row this short holds two lines under the date only if it is tall enough; the day's name wins.
+    val showGregorian = content.specialDay == null || heightDp >= TwoLinesUnderStripDp
+    return glassViews(context, R.layout.widget_glass_date_strip, sky, StripSky, widthDp, heightDp, content.rtl) { ink ->
+        setText(R.id.glass_hebrew_date, content.hebrewDate, ink.primary)
+        setTextSizeDp(R.id.glass_hebrew_date, titleDp)
+        setOptionalText(R.id.glass_gregorian_date, content.gregorianDate.takeIf { showGregorian })
+        setTextColor(R.id.glass_gregorian_date, ink.secondary)
+        setChip(R.id.glass_special_day, content.specialDay, ink)
+        setViewVisibility(R.id.glass_pane, if (withPane) View.VISIBLE else View.GONE)
+        setPane(R.id.glass_pane, ink)
+        setText(R.id.glass_next_title, next?.title.orEmpty(), ink.primary)
+        setText(R.id.glass_next_time, next?.time.orEmpty(), ink.time)
+    }
+}
+
+/**
+ * The next time. From two rows (its 3x2 default) it is a pane low in the widget under the sky; one
+ * row high it sits on the sky itself, with the one after it beneath only when that line fits whole.
+ */
+internal fun glassNextZmanViews(context: Context, content: WidgetContent, sky: SkyFrame, options: Bundle): RemoteViews {
+    val (widthDp, heightDp) = widgetSizeDp(options, DefaultListWidthDp, DefaultRegularHeightDp)
+    if (widgetShape(heightDp) == WidgetShape.Strip) {
+        val time = content.next?.time.orEmpty()
+        val following = content.following?.let { "${content.followingLabel}: ${it.title} ${it.time}" }
+            ?.takeIf { it.length * CharWidthEm * 11 <= widthDp - 28 }
+        return glassViews(context, R.layout.widget_glass_next_strip, sky, NextStripSky, widthDp, heightDp, content.rtl) { ink ->
+            setText(R.id.glass_next_title, content.next?.title ?: "—", ink.primary)
+            setText(R.id.glass_next_time, time, ink.time)
+            setTextSizeDp(R.id.glass_next_time, fittedTextSize(time, widthDp - 28f, 20f, minOf(34f, heightDp * 0.32f)))
+            setOptionalText(R.id.glass_following, following)
+            setTextColor(R.id.glass_following, ink.secondary)
+        }
+    }
+    return glassViews(context, R.layout.widget_glass_next, sky, NextSky, widthDp, heightDp, content.rtl) { ink ->
         setPane(R.id.glass_pane, ink)
         setText(R.id.glass_next_label, content.nextLabel, ink.secondary)
         setText(R.id.glass_next_title, content.next?.title ?: "—", ink.primary)
@@ -74,107 +138,96 @@ internal fun glassNextZmanViews(context: Context, content: WidgetContent, sky: S
         setOptionalText(R.id.glass_following, content.following?.let { "${content.followingLabel}: ${it.title} ${it.time}" })
         setTextColor(R.id.glass_following, ink.secondary)
     }
+}
 
-internal fun glassZmanimViews(context: Context, content: WidgetContent, sky: SkyFrame, options: Bundle) =
-    glassViews(context, R.layout.widget_glass_zmanim, sky, ZmanimSky, options, content.rtl, 250, 180) { ink ->
+internal fun glassZmanimViews(context: Context, content: WidgetContent, sky: SkyFrame, options: Bundle): RemoteViews {
+    val (widthDp, heightDp) = widgetSizeDp(options, DefaultListWidthDp, DefaultListHeightDp)
+    return glassViews(context, R.layout.widget_glass_zmanim, sky, ZmanimSky, widthDp, heightDp, content.rtl) { ink ->
         setText(R.id.glass_hebrew_date, content.hebrewDate, ink.primary)
         setChip(R.id.glass_special_day, content.specialDay, ink)
         setPane(R.id.glass_pane, ink)
         removeAllViews(R.id.glass_rows)
-        visibleRows(content, rowsThatFit(options, GlassZmanimChromeDp)).forEach { (index, zman) ->
+        val capacity = rowsThatFit(options, GlassZmanimChromeDp)
+        val rows = visibleRows(content, capacity)
+        rows.forEach { (index, zman) ->
             val isNext = index == content.nextIndex
             val color = when {
                 isNext -> ink.onAccent
                 zman.isPast -> ink.past
                 else -> ink.primary
             }
-            val row = RemoteViews(context.packageName, R.layout.widget_glass_row).apply {
-                setText(R.id.glass_row_title, zman.title, color)
-                setText(R.id.glass_row_time, zman.time, color)
-                if (isNext) setInt(R.id.glass_row, "setBackgroundResource", ink.accent)
-            }
+            val row = glassRow(context, R.layout.widget_glass_zman_slot, zman, color)
+            if (isNext) row.setInt(R.id.glass_row, "setBackgroundResource", ink.accent)
             addView(R.id.glass_rows, row)
+        }
+        addRowSpacers(context, R.id.glass_rows, rowSlots(options, GlassZmanimChromeDp) - rows.size)
+    }
+}
+
+/**
+ * What is coming and when it comes in and goes out. One row high the times sit beside the name; from
+ * two rows they are panes along the bottom, and on a taller widget the name and times grow with it
+ * while the band between keeps the sky of the candle lighting.
+ */
+internal fun glassShabbatViews(context: Context, content: WidgetContent, sky: SkyFrame, options: Bundle): RemoteViews {
+    val (widthDp, heightDp) = widgetSizeDp(options, DefaultWideWidthDp, DefaultRegularHeightDp)
+    val shape = widgetShape(heightDp)
+    val shabbat = content.shabbat
+    val title = shabbat?.title.orEmpty()
+    if (shape == WidgetShape.Strip) {
+        return glassViews(context, R.layout.widget_glass_shabbat_strip, sky, StripSky, widthDp, heightDp, content.rtl) { ink ->
+            setText(R.id.glass_shabbat_title, title, ink.primary)
+            setOptionalText(R.id.glass_shabbat_subtitle, shabbat?.subtitle)
+            setTextColor(R.id.glass_shabbat_subtitle, ink.secondary)
+            fillShabbatTimes(shabbat, ink)
         }
     }
 
-internal fun glassShabbatViews(context: Context, content: WidgetContent, sky: SkyFrame, options: Bundle) =
-    glassViews(context, R.layout.widget_glass_shabbat, sky, ShabbatSky, options, content.rtl, 250, 110) { ink ->
-        val shabbat = content.shabbat
-        setText(R.id.glass_shabbat_title, shabbat?.title.orEmpty(), ink.primary)
+    val titleDp = fittedTextSize(title, widthDp - 28f, 20f, minOf(if (shape == WidgetShape.Tall) 40f else 28f, heightDp * 0.15f))
+    val timeDp = if (shape == WidgetShape.Tall) (heightDp * 0.09f).coerceIn(24f, 36f) else 22f
+    val headerDp = 14 + titleDp * LineHeight + (if (shabbat?.subtitle != null) 28 else 0)
+    val paneTopDp = heightDp - 14 - 16 - 15 - timeDp * LineHeight
+    val skyLayout = if (shape == WidgetShape.Tall) openBandSky(headerDp / heightDp, paneTopDp / heightDp) else ShabbatSky
+    return glassViews(context, R.layout.widget_glass_shabbat, sky, skyLayout, widthDp, heightDp, content.rtl) { ink ->
+        setText(R.id.glass_shabbat_title, title, ink.primary)
+        setTextSizeDp(R.id.glass_shabbat_title, titleDp)
         setChip(R.id.glass_shabbat_subtitle, shabbat?.subtitle, ink)
-        setPane(R.id.glass_entry_pane, ink)
-        setPane(R.id.glass_exit_pane, ink)
-        setText(R.id.glass_entry_label, shabbat?.entryLabel.orEmpty(), ink.secondary)
-        setText(R.id.glass_entry_time, shabbat?.entryTime ?: "—", ink.time)
-        setText(R.id.glass_exit_label, shabbat?.exitLabel.orEmpty(), ink.secondary)
-        setText(R.id.glass_exit_time, shabbat?.exitTime ?: "—", ink.time)
+        fillShabbatTimes(shabbat, ink)
+        setTextSizeDp(R.id.glass_entry_time, timeDp)
+        setTextSizeDp(R.id.glass_exit_time, timeDp)
+    }
+}
+
+private fun RemoteViews.fillShabbatTimes(shabbat: WidgetShabbat?, ink: GlassInk) {
+    setPane(R.id.glass_entry_pane, ink)
+    setPane(R.id.glass_exit_pane, ink)
+    setText(R.id.glass_entry_label, shabbat?.entryHeading.orEmpty(), ink.secondary)
+    setText(R.id.glass_entry_time, shabbat?.entryTime ?: "—", ink.time)
+    setText(R.id.glass_exit_label, shabbat?.exitHeading.orEmpty(), ink.secondary)
+    setText(R.id.glass_exit_time, shabbat?.exitTime ?: "—", ink.time)
+}
+
+/** One time on a line, in [layout]: a fixed-height row, or a share of the zmanim list. */
+private fun glassRow(context: Context, layout: Int, zman: WidgetZman, color: Int) =
+    RemoteViews(context.packageName, layout).apply {
+        setText(R.id.glass_row_title, zman.title, color)
+        setText(R.id.glass_row_time, zman.time, color)
     }
 
 /**
- * The whole day on the sky, fitted to whatever frame the launcher gives it: [dayWidgetLayoutFor]
- * decides what fits and at what size, and each piece it leaves out is hidden whole.
+ * On a tall widget the sun and moon travel the open band between the header (ending at [headerBottom])
+ * and the panes (starting at [paneTop]), both fractions of the height, across most of the width.
  */
-internal fun glassDayViews(context: Context, content: WidgetContent, sky: SkyFrame, options: Bundle) =
-    glassViews(context, R.layout.widget_glass_day, sky, DaySky, options, content.rtl, DefaultDayWidthDp, DefaultDayHeightDp) { ink ->
-        val state = dayWidgetState(content)
-        val (widthDp, heightDp) = widgetSizeDp(options, DefaultDayWidthDp, DefaultDayHeightDp)
-        val layout = dayWidgetLayoutFor(state, DpSize(widthDp.dp, heightDp.dp), context.resources.configuration.fontScale)
-        val shown = layout.slots.toSet()
-        fun show(viewId: Int, slot: DayWidgetSlot) =
-            setViewVisibility(viewId, if (slot in shown) View.VISIBLE else View.GONE)
-
-        // A strip with a line or two floats them in the middle of its height; a fuller widget reads
-        // from the top down.
-        setInt(R.id.day_column, "setGravity", if (layout.slots.size <= 2) Gravity.CENTER_VERTICAL else Gravity.TOP)
-
-        setText(R.id.day_hebrew_date, state.hebrewDate, ink.primary)
-        setTextViewTextSize(R.id.day_hebrew_date, TypedValue.COMPLEX_UNIT_SP, layout.hebrewDateSp.toFloat())
-        val festival = state.festival
-        if (festival != null && layout.festivalIconDp > 0) {
-            setViewVisibility(R.id.day_festival, View.VISIBLE)
-            setImageViewResource(R.id.day_festival, festival.iconRes)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                setViewLayoutWidth(R.id.day_festival, layout.festivalIconDp.toFloat(), TypedValue.COMPLEX_UNIT_DIP)
-                setViewLayoutHeight(R.id.day_festival, layout.festivalIconDp.toFloat(), TypedValue.COMPLEX_UNIT_DIP)
-            }
-        } else {
-            setViewVisibility(R.id.day_festival, View.GONE)
-        }
-
-        show(R.id.day_gregorian_date, DayWidgetSlot.GregorianDate)
-        setText(R.id.day_gregorian_date, state.gregorianDate, ink.secondary)
-        setTextViewTextSize(R.id.day_gregorian_date, TypedValue.COMPLEX_UNIT_SP, GregorianDateSp.toFloat())
-
-        show(R.id.day_chip, DayWidgetSlot.Chip)
-        setText(R.id.day_chip, state.chip.orEmpty(), ink.time)
-        setTextViewTextSize(R.id.day_chip, TypedValue.COMPLEX_UNIT_SP, ChipSp.toFloat())
-
-        show(R.id.day_times, DayWidgetSlot.Times)
-        setPane(R.id.day_times, ink)
-        removeAllViews(R.id.day_times)
-        layout.times.forEach { time ->
-            val column = RemoteViews(context.packageName, R.layout.widget_glass_day_time).apply {
-                setText(R.id.day_time_label, time.label, ink.secondary)
-                setTextViewTextSize(R.id.day_time_label, TypedValue.COMPLEX_UNIT_SP, layout.timeLabelSp.toFloat())
-                setText(R.id.day_time_value, time.time, ink.time)
-                setTextViewTextSize(R.id.day_time_value, TypedValue.COMPLEX_UNIT_SP, TimeSp.toFloat())
-            }
-            addView(R.id.day_times, column)
-        }
-
-        show(R.id.day_learning, DayWidgetSlot.Learning)
-        setText(R.id.day_learning, state.learning.orEmpty(), ink.primary)
-        setTextViewTextSize(R.id.day_learning, TypedValue.COMPLEX_UNIT_SP, LineSp.toFloat())
-
-        show(R.id.day_location, DayWidgetSlot.Location)
-        setText(R.id.day_location, state.locationNote.orEmpty(), ink.secondary)
-        setTextViewTextSize(R.id.day_location, TypedValue.COMPLEX_UNIT_SP, LocationSp.toFloat())
-        // Tapping the warning takes a fix in place. Without permission there is none to take here, so
-        // the tap falls through to the widget's own: the app opens and asks for it.
-        if (content.locationMissing && context.hasLocationPermission()) {
-            setOnClickPendingIntent(R.id.day_location, WidgetLocationService.pendingIntent(context))
-        }
-    }
+private fun openBandSky(headerBottom: Float, paneTop: Float): SkyLayout {
+    val band = (paneTop - headerBottom).coerceAtLeast(0.12f)
+    return SkyLayout(
+        fromX = 0.14f,
+        toX = 0.86f,
+        horizonY = paneTop - band * 0.12f,
+        peakY = headerBottom + band * 0.32f,
+        lightSize = (band * 0.22f).coerceIn(0.05f, 0.09f),
+    )
+}
 
 /** A glass widget: its own sky painted to its size, and the content over it in the sky's glass. */
 private fun glassViews(
@@ -182,13 +235,11 @@ private fun glassViews(
     layout: Int,
     sky: SkyFrame,
     skyLayout: SkyLayout,
-    options: Bundle,
+    widthDp: Int,
+    heightDp: Int,
     rtl: Boolean,
-    defaultWidthDp: Int,
-    defaultHeightDp: Int,
     fill: RemoteViews.(GlassInk) -> Unit,
 ): RemoteViews = RemoteViews(context.packageName, layout).apply {
-    val (widthDp, heightDp) = widgetSizeDp(options, defaultWidthDp, defaultHeightDp)
     setImageViewBitmap(R.id.glass_sky, paintGlassSky(context, sky, skyLayout, widthDp, heightDp, rtl))
     fill(GlassInk(sky))
 }
@@ -215,13 +266,26 @@ private val DateSky = SkyLayout(fromX = 0.56f, toX = 0.94f, horizonY = 0.52f, pe
 private val NextSky = SkyLayout(fromX = 0.12f, toX = 0.88f, horizonY = 0.36f, peakY = 0.10f, lightSize = 0.075f)
 // Only the header strip is open above the list, so the arc there is shallow.
 private val ZmanimSky = SkyLayout(fromX = 0.60f, toX = 0.94f, horizonY = 0.13f, peakY = 0.06f, lightSize = 0.05f)
+// One row high there is no open band, so the lights take the middle, between the text and the panes.
+// The 2x1 next zman's text keeps to the start, so its lights keep to the end.
+private val NextStripSky = SkyLayout(fromX = 0.66f, toX = 0.92f, horizonY = 0.88f, peakY = 0.26f, lightSize = 0.14f)
+private val StripSky = SkyLayout(fromX = 0.40f, toX = 0.64f, horizonY = 0.92f, peakY = 0.24f, lightSize = 0.13f)
 private val ShabbatSky = SkyLayout(fromX = 0.58f, toX = 0.94f, horizonY = 0.40f, peakY = 0.12f, lightSize = 0.085f)
-// The day widget's text runs from the top down on the start side, so the lights keep high on the end side.
-private val DaySky = SkyLayout(fromX = 0.60f, toX = 0.94f, horizonY = 0.34f, peakY = 0.09f, lightSize = 0.07f)
 
 // widget_glass_zmanim.xml's padding, header, pane margin and pane padding, in dp.
-private const val GlassZmanimChromeDp = 80
+private const val GlassZmanimChromeDp = 72
 
-// The day widget before the launcher has reported a size: its picker size, four cells by two.
-private const val DefaultDayWidthDp = 250
-private const val DefaultDayHeightDp = 110
+// Height estimates for laying out by size: a line is about 1.3 of its text size, a listed time 24dp.
+private const val LineHeight = 1.3f
+private const val AheadRowDp = 24
+private const val MaxAheadRows = 4
+// The share of a widget's height kept open for the sky before more times are listed in it.
+private const val OpenSkyShare = 0.3f
+private const val TwoLinesUnderStripDp = 120
+
+// Sizes to lay out for before the launcher has reported one: the providers' target cells.
+internal const val DefaultWideWidthDp = 300
+internal const val DefaultRegularHeightDp = 190
+// The zmanim list's 3x3.
+internal const val DefaultListWidthDp = 225
+internal const val DefaultListHeightDp = 330
