@@ -164,7 +164,6 @@ fun zmanimForDate(
         fastDayInfo = fastDayInfo,
         holyDayInfo = holyDayInfo,
         fastLeadsHeader = fastLeadsHeader(fastDayInfo, holyDayInfo, now),
-        festival = festivalOf(displayJewishCalendar),
         groups = listOfNotNull(
             // The parsha lives at the top of the Shabbat section; when that section is dropped it
             // moves up here rather than disappearing.
@@ -513,25 +512,30 @@ private fun holyDayName(
 }
 
 /**
- * An erev only earns the chip when the day itself carries something to do that its Yom Tov does
- * not. On these two it does; on every other erev the coming Yom Tov is already on screen with its
- * entry and exit, and "ערב ראש השנה" beside that card says nothing the card does not.
+ * The erevs that go unnamed: on these the coming Yom Tov is already on screen with its entry and
+ * exit, and "ערב ראש השנה" beside that card says nothing the card does not. Erev Pesach (the chametz
+ * deadlines) and Erev Yom Kippur (the seudah mafseket) carry something of their own and keep their
+ * names.
+ *
+ * Listed by index rather than read from `isErevYomTov`, which also counts Hoshana Rabba and the last
+ * day of Chol Hamoed Pesach — days with a name of their own that must not be lost.
  */
-private val ErevDaysWorthNaming = setOf(
-    JewishCalendar.EREV_PESACH, // the chametz deadlines fall on it
-    JewishCalendar.EREV_YOM_KIPPUR, // the seudah mafseket falls on it
+private val UnnamedErevDays = setOf(
+    JewishCalendar.EREV_ROSH_HASHANA,
+    JewishCalendar.EREV_SUCCOS,
+    JewishCalendar.EREV_SHAVUOS,
 )
 
 /**
  * The day's own name when nothing else in the header is going to say it — "פורים", "חול המועד
- * סוכות", "אסרו חג", and the two erevs above.
+ * סוכות", "אסרו חג", "הושענא רבה", and Erev Pesach and Erev Yom Kippur.
  *
  * Null for a Yom Tov and for a fast, which the header names in full (with their entry and exit)
  * rather than as a bare chip.
  */
 private fun minorDayName(calendar: JewishCalendar, formatter: HebrewDateFormatter): String? {
     if (calendar.isYomTovAssurBemelacha || calendar.isTaanis) return null
-    if (calendar.isErevYomTov && calendar.yomTovIndex !in ErevDaysWorthNaming) return null
+    if (calendar.yomTovIndex in UnnamedErevDays) return null
     return formatter.formatYomTov(calendar).takeIf { it.isNotBlank() }
 }
 

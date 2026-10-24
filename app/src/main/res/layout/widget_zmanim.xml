@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- WidgetRenderer.kt counts rows from these sizes (ZmanimChromeDp, ZmanimRowDp): keep them in step. -->
+<!-- WidgetRenderer.kt counts rows from these sizes (ZmanimChromeDp, ZmanimRowDp): keep them in step.
+     The rows share the height left under the header equally, so the list fills it at any size. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     style="@style/Widget.JewishDay.Root">
@@ -16,7 +17,8 @@
     <LinearLayout
         android:id="@+id/widget_rows"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:layout_marginTop="4dp"
         android:orientation="vertical" />
 </LinearLayout>

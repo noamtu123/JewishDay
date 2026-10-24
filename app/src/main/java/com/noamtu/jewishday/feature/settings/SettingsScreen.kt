@@ -315,21 +315,29 @@ fun SettingsScreen(
             title = { Text(localizedString(R.string.settings_add_widget, R.string.settings_add_widget_hebrew)) },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                    WidgetKind.entries.forEach { kind ->
+                    WidgetKind.entries.groupBy { it.style }.forEach { (style, kinds) ->
                         Text(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(role = Role.Button) {
-                                    // The launcher takes it from here: it shows its own confirmation
-                                    // and places the widget, so the dialog's part is done.
-                                    AppWidgetManager.getInstance(context)
-                                        .requestPinAppWidget(ComponentName(context, kind.provider), null, null)
-                                    showAddWidgetDialog = false
-                                }
-                                .padding(vertical = 12.dp),
-                            text = if (useHebrew) kind.labelHebrew else kind.labelEnglish,
-                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.padding(top = if (style.ordinal == 0) 0.dp else 16.dp, bottom = 4.dp),
+                            text = if (useHebrew) style.labelHebrew else style.labelEnglish,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
                         )
+                        kinds.forEach { kind ->
+                            Text(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(role = Role.Button) {
+                                        // The launcher takes it from here: it shows its own confirmation
+                                        // and places the widget, so the dialog's part is done.
+                                        AppWidgetManager.getInstance(context)
+                                            .requestPinAppWidget(ComponentName(context, kind.provider), null, null)
+                                        showAddWidgetDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                text = if (useHebrew) kind.labelHebrew else kind.labelEnglish,
+                                style = MaterialTheme.typography.bodyLarge,
+                            )
+                        }
                     }
                 }
             },

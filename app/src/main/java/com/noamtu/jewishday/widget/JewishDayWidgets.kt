@@ -15,24 +15,38 @@ import dagger.hilt.components.SingletonComponent
 
 /**
  * The home-screen widgets the app offers, each with its own provider (and so its own picker entry).
- * The [glass] ones paint the Glass theme's live sky behind them. The names are the app's own, for its
- * "add widget" list; the picker shows the provider's bilingual label instead.
+ * The [glass] ones paint the Glass theme's live sky behind them; the rest are the minimal ones. The
+ * names are the app's own, for its "add widget" list, which heads each group with [WidgetStyle] and so
+ * leaves it out of the name; the picker shows the provider's bilingual label instead, which starts
+ * with the group so the two sort apart there too.
  */
 internal enum class WidgetKind(
     val provider: Class<out AppWidgetProvider>,
     val labelEnglish: String,
     val labelHebrew: String,
+    // The size its picker preview is laid out for: its default cells on a small phone (a cell is
+    // about 75dp wide and 100dp high there), so the preview is never fuller than the picker.
+    val previewWidthDp: Int,
+    val previewHeightDp: Int,
     val glass: Boolean = false,
 ) {
-    HebrewDate(HebrewDateWidget::class.java, "Hebrew date", "תאריך עברי"),
-    NextZman(NextZmanWidget::class.java, "Next zman", "הזמן הבא"),
-    Zmanim(ZmanimWidget::class.java, "Today's zmanim", "זמני היום"),
-    Shabbat(ShabbatWidget::class.java, "Shabbat & chag", "שבת וחג"),
-    GlassDate(GlassDateWidget::class.java, "Glassy sky · Hebrew date", "שמי זכוכית · תאריך עברי", glass = true),
-    GlassNextZman(GlassNextZmanWidget::class.java, "Glassy sky · Next zman", "שמי זכוכית · הזמן הבא", glass = true),
-    GlassZmanim(GlassZmanimWidget::class.java, "Glassy sky · Today's zmanim", "שמי זכוכית · זמני היום", glass = true),
-    GlassShabbat(GlassShabbatWidget::class.java, "Glassy sky · Shabbat & chag", "שמי זכוכית · שבת וחג", glass = true),
-    GlassDay(GlassDayWidget::class.java, "Glassy sky · The day (draft)", "שמי זכוכית · היום (טיוטה)", glass = true),
+    GlassDate(GlassDateWidget::class.java, "Hebrew date", "תאריך עברי", 300, 200, glass = true),
+    GlassNextZman(GlassNextZmanWidget::class.java, "Next zman", "הזמן הבא", 225, 200, glass = true),
+    GlassZmanim(GlassZmanimWidget::class.java, "Today's zmanim", "זמני היום", 225, 330, glass = true),
+    GlassShabbat(GlassShabbatWidget::class.java, "Shabbat & chag", "שבת וחג", 300, 200, glass = true),
+    HebrewDate(HebrewDateWidget::class.java, "Hebrew date", "תאריך עברי", 150, 100),
+    NextZman(NextZmanWidget::class.java, "Next zman", "הזמן הבא", 225, 100),
+    Zmanim(ZmanimWidget::class.java, "Today's zmanim", "זמני היום", 225, 330),
+    Shabbat(ShabbatWidget::class.java, "Shabbat & chag", "שבת וחג", 225, 100),
+    ;
+
+    val style: WidgetStyle get() = if (glass) WidgetStyle.Glass else WidgetStyle.Minimal
+}
+
+/** The two looks the widgets come in, in the order the "add widget" list shows them. */
+internal enum class WidgetStyle(val labelEnglish: String, val labelHebrew: String) {
+    Glass("Glassy sky", "שמי זכוכית"),
+    Minimal("Minimal", "מינימליסטי"),
 }
 
 /**
@@ -75,9 +89,6 @@ class GlassNextZmanWidget : JewishDayWidgetProvider()
 class GlassZmanimWidget : JewishDayWidgetProvider()
 
 class GlassShabbatWidget : JewishDayWidgetProvider()
-
-/** A draft: the whole day on the sky, fitting what it shows to the frame (DayWidgetLayout.kt). */
-class GlassDayWidget : JewishDayWidgetProvider()
 
 /** Refreshes the widgets at the alarm the updater sets, after a reboot or update, and when the clock or time zone changes. */
 class WidgetRefreshReceiver : BroadcastReceiver() {

@@ -12,8 +12,6 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <!-- Only for WidgetLocationService: one fix, started by tapping a widget's location note. -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
@@ -153,21 +151,6 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info_glass_shabbat" />
         </receiver>
-        <receiver
-            android:name=".widget.GlassDayWidget"
-            android:exported="false"
-            android:label="@string/widget_glass_day_label">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_info_glass_day" />
-        </receiver>
-        <service
-            android:name=".widget.WidgetLocationService"
-            android:exported="false"
-            android:foregroundServiceType="location" />
         <receiver
             android:name=".widget.WidgetRefreshReceiver"
             android:exported="true">

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- What the widget picker shows (Android 12+): the layout with sample content. -->
+<!-- What the widget picker shows on Android 12-14: the layout with sample content, by day.
+     Android 15+ shows the widget itself instead (WidgetUpdater.publishPreviews). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layoutDirection="rtl"
