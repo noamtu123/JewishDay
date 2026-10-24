@@ -6,7 +6,7 @@
     android:previewLayout="@layout/widget_preview_zmanim"
     android:minWidth="180dp"
     android:minHeight="180dp"
-    android:minResizeWidth="110dp"
+    android:minResizeWidth="150dp"
     android:minResizeHeight="110dp"
     android:targetCellWidth="3"
     android:targetCellHeight="3"

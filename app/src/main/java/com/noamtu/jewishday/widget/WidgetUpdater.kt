@@ -5,31 +5,33 @@ package com.noamtu.jewishday.widget
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
+import android.appwidget.AppWidgetProviderInfo
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Bundle
 import android.util.Log
+import androidx.core.content.edit
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
-import com.noamtu.jewishday.data.DailyLearningCache
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.data.JewishDayRepository
-import com.noamtu.jewishday.data.toZmanItems
 import com.noamtu.jewishday.di.ApplicationScope
 import com.noamtu.jewishday.model.JewishLocation
+import com.noamtu.jewishday.model.SkyDay
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.isInIsrael
 import com.noamtu.jewishday.model.nextZmanimRefreshBoundary
 import com.noamtu.jewishday.model.skyDayFor
-import com.noamtu.jewishday.model.withDailyLearningItems
 import com.noamtu.jewishday.model.zmanimForDate
 import com.noamtu.jewishday.ui.theme.SkyFrame
 import com.noamtu.jewishday.ui.theme.skyAt
 import com.noamtu.jewishday.ui.theme.nextSkyRedraw
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -64,7 +66,6 @@ class WidgetUpdater @Inject constructor(
     private val currentLocationRepository: CurrentLocationRepository,
     private val developerOverridesRepository: DeveloperOverridesRepository,
     private val jewishDayRepository: JewishDayRepository,
-    private val dailyLearningCache: DailyLearningCache,
     private val clock: Clock,
     @ApplicationScope private val scope: CoroutineScope,
 ) {
@@ -88,7 +89,6 @@ class WidgetUpdater @Inject constructor(
                         settings.language,
                         settings.use24HourTime,
                         settings.enabledZmanimTimes,
-                        settings.enabledDailyLearning,
                         settings.zmanimSettings,
                     )
                 },
@@ -105,31 +105,31 @@ class WidgetUpdater @Inject constructor(
         val widgets = WidgetKind.entries.associateWith { kind ->
             manager.getAppWidgetIds(ComponentName(context, kind.provider))
         }
-        if (widgets.values.all { it.isEmpty() }) {
-            cancelRefresh()
-            return@withLock
-        }
+        val placed = widgets.values.any { it.isNotEmpty() }
+        if (!placed) cancelRefresh()
         try {
             val settings = appSettingsRepository.settings.first()
             val zmanimSettings = settings.zmanimSettings
             val location = currentLocationRepository.currentLocationOrDefault()
             val now = clock.instant()
-            // The widgets never go to the network: daily learning comes from what the app last
-            // fetched for today, else the day keeps its offline rows.
-            val day = jewishDayRepository.getZmanim(location, zmanimSettings).let { computed ->
-                val cached = dailyLearningCache.read(computed.date, location.isInIsrael)
-                if (cached.isEmpty()) computed else computed.withDailyLearningItems(cached.toZmanItems())
-            }
-            val content = widgetContent(
+            val today = now.atZone(location.zoneId).toLocalDate()
+            // Each install (an update, or a test build over the same version) publishes them anew.
+            val installed = context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
+            val previewsFor = "$installed|$today|${settings.language.storageValue}"
+            val previewsDue = Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM &&
+                previewPreferences.getString(PreviewsForKey, null) != previewsFor
+            if (!placed && !previewsDue) return@withLock
+            val day = jewishDayRepository.getZmanim(location, zmanimSettings)
+            fun contentAt(at: Instant) = widgetContent(
                 day = day,
                 tomorrow = { zmanimForDate(location, day.date.plusDays(1), zmanimSettings, null, false) },
                 hebrew = settings.useHebrewInterface,
                 use24HourTime = settings.use24HourTime,
                 enabledZmanim = settings.enabledZmanimTimes,
-                now = now,
-                observanceBoundary = nextZmanimRefreshBoundary(location, zmanimSettings, now),
-                enabledLearning = settings.enabledDailyLearning,
+                now = at,
+                observanceBoundary = nextZmanimRefreshBoundary(location, zmanimSettings, at),
             )
+            val content = contentAt(now)
             val skies = WidgetSkies(
                 now = skyFor(location, zmanimSettings, now),
                 // Until Shabbat or the chag comes in, its widget shows the sky it will come in under.
@@ -139,9 +139,12 @@ class WidgetUpdater @Inject constructor(
                     ?.let { entry -> skyFor(location, zmanimSettings, entry) }
                     ?: skyFor(location, zmanimSettings, now),
             )
-            val placed = widgets.values.flatMap { it.asIterable() }.toSet()
-            drawn.keys.retainAll(placed)
-            val fontScale = context.resources.configuration.fontScale
+            val skyDay = skyDayFor(location, today, zmanimSettings)
+            if (previewsDue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                publishPreviews(manager, ::contentAt, skyDay, location, previewsFor)
+            }
+            if (!placed) return@withLock
+            drawn.keys.retainAll(widgets.values.flatMap { it.asIterable() }.toSet())
             widgets.forEach { (kind, ids) ->
                 ids.forEach { id ->
                     val options = manager.getAppWidgetOptions(id)
@@ -157,7 +160,6 @@ class WidgetUpdater @Inject constructor(
                             options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT),
                             options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT),
                         ),
-                        fontScale = fontScale,
                     )
                     if (drawn[id] != from) {
                         manager.updateAppWidget(id, renderWidget(context, kind, content, skies, options))
@@ -166,21 +168,62 @@ class WidgetUpdater @Inject constructor(
                 }
             }
             val hasGlass = widgets.any { (kind, ids) -> kind.glass && ids.isNotEmpty() }
-            val skyRedraw = nextSkyRedraw(now, skyDayFor(location, now.atZone(location.zoneId).toLocalDate(), zmanimSettings), location.zoneId)
+            val skyRedraw = nextSkyRedraw(now, skyDay, location.zoneId)
             scheduleRefresh(if (hasGlass) minOf(content.refreshAt, skyRedraw) else content.refreshAt)
         } catch (exception: Exception) {
             // Leave the widgets as they are and try again soon, rather than blanking them.
             Log.w(TAG, "Widget update failed; retrying later", exception)
-            scheduleRefresh(clock.instant().plus(RetryMinutes, ChronoUnit.MINUTES))
+            if (placed) scheduleRefresh(clock.instant().plus(RetryMinutes, ChronoUnit.MINUTES))
         }
+    }
+
+    private val previewPreferences by lazy { context.getSharedPreferences(PreviewPreferences, Context.MODE_PRIVATE) }
+
+    /**
+     * On Android 15 and up the picker can show each widget as it really draws, rather than the
+     * layout/widget_preview_* sketches older versions fall back to: today's date and times in the
+     * app's language, as they stand on a morning of today whatever the hour — the sky by day, and
+     * the list's past and coming times as they are under it — so a preview never shows a night sky.
+     * Published once a day and after each install (the system rate-limits it), and again whenever it was refused.
+     */
+    @androidx.annotation.RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
+    private fun publishPreviews(
+        manager: AppWidgetManager,
+        contentAt: (Instant) -> WidgetContent,
+        skyDay: SkyDay,
+        location: JewishLocation,
+        previewsFor: String,
+    ) {
+        val sunrise = skyDay.sunrise
+        val sunset = skyDay.sunset
+        // A morning sun, a little short of its height, sits clear of the widgets' text.
+        val morning = if (sunrise != null && sunset != null) {
+            sunrise.plus(Duration.between(sunrise, sunset).multipliedBy(2).dividedBy(5))
+        } else {
+            LocalDate.now(clock.withZone(location.zoneId)).atTime(10, 0).atZone(location.zoneId).toInstant()
+        }
+        val daySky = skyAt(morning, skyDay, location.zoneId)
+        val skies = WidgetSkies(now = daySky, shabbat = daySky)
+        val content = contentAt(morning)
+        val published = WidgetKind.entries.all { kind ->
+            // Laid out for the size it is placed at; the zmanim lists stretch to whatever the
+            // picker draws, so on a larger phone they fill it rather than leave a gap.
+            val size = Bundle().apply {
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, kind.previewWidthDp)
+                putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, kind.previewHeightDp)
+            }
+            val preview = renderWidget(context, kind, content, skies, size)
+            manager.setWidgetPreview(ComponentName(context, kind.provider), AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN, preview)
+        }
+        if (published) previewPreferences.edit { putString(PreviewsForKey, previewsFor) }
     }
 
     /**
      * Everything a widget's picture is drawn from. Equal to what it was last drawn from means the
-     * same picture: the content and sky are plain data, and the size and font scale are all that a
-     * renderer reads from the widget's options and the configuration.
+     * same picture: the content and sky are plain data, and the size is all that a renderer reads
+     * from the widget's options.
      */
-    private data class DrawnFrom(val content: WidgetContent, val sky: SkyFrame?, val size: List<Int>, val fontScale: Float)
+    private data class DrawnFrom(val content: WidgetContent, val sky: SkyFrame?, val size: List<Int>)
 
     private fun skyFor(location: JewishLocation, settings: ZmanimCalculationSettings, at: Instant): SkyFrame {
         val date = at.atZone(location.zoneId).toLocalDate()
@@ -222,5 +265,8 @@ class WidgetUpdater @Inject constructor(
         const val TAG = "WidgetUpdater"
         const val RetryMinutes = 15L
         const val AlarmRequestCode = 1120
+        // Not backed up: what this install last published belongs to this install.
+        const val PreviewPreferences = "widget_previews"
+        const val PreviewsForKey = "published_for"
     }
 }

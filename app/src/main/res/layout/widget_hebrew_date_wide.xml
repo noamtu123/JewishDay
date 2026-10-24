@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Hebrew date widget one row high and three or more wide: the two dates side by side. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    style="@style/Widget.JewishDay.Root"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_hebrew_date"
+            style="@style/Widget.JewishDay.Text.Title"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/widget_special_day"
+            style="@style/Widget.JewishDay.Text.Accent"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="1dp"
+        android:layout_height="32dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:background="@color/widget_text_past" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widget_weekday"
+            style="@style/Widget.JewishDay.Text.Secondary"
+            android:layout_gravity="end"
+            android:textAlignment="viewEnd" />
+
+        <TextView
+            android:id="@+id/widget_civil_date"
+            style="@style/Widget.JewishDay.Text"
+            android:layout_gravity="end"
+            android:textAlignment="viewEnd"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- What the widget picker shows (Android 12+): the layout with sample content. -->
+<!-- What the widget picker shows on Android 12-14: the layout with sample content, by day.
+     Android 15+ shows the widget itself instead (WidgetUpdater.publishPreviews). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layoutDirection="rtl"
@@ -15,13 +16,15 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:layout_marginTop="4dp"
         android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="24dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="6dp"
@@ -40,7 +43,28 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="24dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_tallit"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_past" />
+
+            <TextView
+                android:text="@string/widget_preview_tallit_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_past" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="6dp"
@@ -59,7 +83,28 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="24dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_shema_mga"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_past" />
+
+            <TextView
+                android:text="@string/widget_preview_shema_mga_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_past" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="6dp"
@@ -78,7 +123,48 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="24dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_tefillah_mga"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_past" />
+
+            <TextView
+                android:text="@string/widget_preview_tefillah_mga_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_past" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_tefillah"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_past" />
+
+            <TextView
+                android:text="@string/widget_preview_tefillah_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_past" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="6dp"
@@ -97,7 +183,28 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="24dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_mincha_gedola"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_past" />
+
+            <TextView
+                android:text="@string/widget_preview_mincha_gedola_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_past" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:background="@drawable/widget_next_highlight"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -119,7 +226,8 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="24dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="6dp"
@@ -138,26 +246,28 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="24dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="6dp"
             android:paddingEnd="6dp">
 
             <TextView
-                android:text="@string/widget_preview_next_title"
+                android:text="@string/widget_preview_sunset"
                 style="@style/Widget.JewishDay.Text.Row"
                 android:textColor="@color/widget_text_primary" />
 
             <TextView
-                android:text="@string/widget_preview_next_time"
+                android:text="@string/widget_preview_sunset_time"
                 style="@style/Widget.JewishDay.Text.RowTime"
                 android:layout_marginStart="8dp"
                 android:textColor="@color/widget_text_primary" />
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="24dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="6dp"
@@ -170,6 +280,26 @@
 
             <TextView
                 android:text="@string/widget_preview_tzeit_time"
+                style="@style/Widget.JewishDay.Text.RowTime"
+                android:layout_marginStart="8dp"
+                android:textColor="@color/widget_text_primary" />
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:text="@string/widget_preview_chatzot_halaila"
+                style="@style/Widget.JewishDay.Text.Row"
+                android:textColor="@color/widget_text_primary" />
+
+            <TextView
+                android:text="@string/widget_preview_chatzot_halaila_time"
                 style="@style/Widget.JewishDay.Text.RowTime"
                 android:layout_marginStart="8dp"
                 android:textColor="@color/widget_text_primary" />

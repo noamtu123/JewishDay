@@ -59,20 +59,22 @@ class MainActivity : ComponentActivity() {
         //  - anything a backup restored is judged, so the first launch after a reinstall clears it
         //    while settings carried from another phone are kept (the alternative is the UI reading
         //    settings that are about to be wiped);
+        //  - an existing install is moved to the Glass theme, once, before anything below writes a
+        //    first setting and makes a new install look like an old one;
         //  - the system-language default is persisted, so a later system-language change cannot
         //    silently flip the in-app language on the next launch.
         //
         // They used to be three separate runBlocking calls on the main thread during onCreate —
         // three dispatcher round trips, and each one re-entering DataStore on its own. One block
         // shares a single DataStore read across all of them and leaves one stall instead of three.
-        val cachedRootSettings = startupSettingsCache.read()
         val initialRootSettings = runBlocking(Dispatchers.IO) {
             restoredSettingsReconciler.reconcile()
+            appSettingsRepository.introduceGlassTheme()
             appSettingsRepository.seedLanguageDefault()
             // Only pay for the DataStore read when the synchronous cache had nothing. The cache is
             // SharedPreferences, which is excluded from backup, so it is empty in exactly the cases
-            // the reconciler above has just acted on.
-            cachedRootSettings ?: appSettingsRepository.rootUiSettings.first()
+            // the reconciler above has just acted on. Read after the move to Glass, which updates it.
+            startupSettingsCache.read() ?: appSettingsRepository.rootUiSettings.first()
         }
         setStartupWindowBackground(initialRootSettings.themeOption)
         enableEdgeToEdge()

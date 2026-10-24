@@ -110,6 +110,10 @@ class ShabbatHeaderTest {
         // The ordinary named days are untouched.
         assertEquals("פורים", dayNameOn(LocalDate.of(2026, 3, 3)))
         assertEquals("חול המועד פסח", dayNameOn(LocalDate.of(2026, 4, 4)))
+
+        // KosherJava counts these two as an erev too, but each is a day with a name of its own.
+        assertEquals("הושענא רבה", dayNameOn(LocalDate.of(2026, 10, 2)))
+        assertEquals("חול המועד פסח", dayNameOn(LocalDate.of(2026, 4, 7))) // 20 Nisan
     }
 
     @Test

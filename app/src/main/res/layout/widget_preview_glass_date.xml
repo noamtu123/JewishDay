@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- What the widget picker shows (Android 12+): the layout with sample content. -->
+<!-- What the widget picker shows on Android 12-14: the layout with sample content, by day.
+     Android 15+ shows the widget itself instead (WidgetUpdater.publishPreviews). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layoutDirection="rtl"
@@ -18,16 +19,17 @@
 
         <TextView
             android:text="@string/widget_preview_hebrew_date"
-            style="@style/Widget.JewishDay.Glass.Text.Title" />
+            style="@style/Widget.JewishDay.GlassDay.Text.Title"
+            android:textSize="28sp" />
 
         <TextView
             android:text="@string/widget_preview_gregorian_date"
-            style="@style/Widget.JewishDay.Glass.Text.Label"
+            style="@style/Widget.JewishDay.GlassDay.Text.Label"
             android:textSize="13sp" />
 
         <TextView
             android:text="@string/widget_preview_special_day"
-            style="@style/Widget.JewishDay.Glass.Text.Chip" />
+            style="@style/Widget.JewishDay.GlassDay.Text.Chip" />
 
         <FrameLayout
             android:layout_width="match_parent"
@@ -35,7 +37,7 @@
             android:layout_weight="1" />
 
         <LinearLayout
-            style="@style/Widget.JewishDay.Glass.Pane"
+            style="@style/Widget.JewishDay.GlassDay.Pane"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
@@ -49,16 +51,16 @@
 
                 <TextView
                     android:text="@string/widget_preview_next_label"
-                    style="@style/Widget.JewishDay.Glass.Text.Label" />
+                    style="@style/Widget.JewishDay.GlassDay.Text.Label" />
 
                 <TextView
                     android:text="@string/widget_preview_next_title"
-                    style="@style/Widget.JewishDay.Glass.Text.Strong" />
+                    style="@style/Widget.JewishDay.GlassDay.Text.Strong" />
             </LinearLayout>
 
             <TextView
                 android:text="@string/widget_preview_next_time"
-                style="@style/Widget.JewishDay.Glass.Text.Time"
+                style="@style/Widget.JewishDay.GlassDay.Text.Time"
                 android:layout_marginStart="8dp"
                 android:textSize="22sp" />
         </LinearLayout>

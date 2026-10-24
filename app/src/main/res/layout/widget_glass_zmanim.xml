@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- GlassWidgetRenderer.kt counts rows from these sizes (GlassZmanimChromeDp, ZmanimRowDp): keep them in step. -->
+<!-- GlassWidgetRenderer.kt counts rows from these sizes (GlassZmanimChromeDp, ZmanimRowDp): keep them in step.
+     The rows share the pane's height equally, so the list fills it at any size. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     style="@style/Widget.JewishDay.Glass.Root">
@@ -52,7 +53,7 @@
             <LinearLayout
                 android:id="@+id/glass_rows"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:orientation="vertical" />
         </LinearLayout>
     </LinearLayout>

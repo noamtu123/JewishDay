@@ -457,6 +457,18 @@ private fun CompassCard(
             color = MaterialTheme.colorScheme.onSecondaryContainer,
             textAlign = TextAlign.Center,
         )
+        // Calibrating helps any phone's compass, so the tip is always there — except while a warning
+        // below already asks for the figure-eight, which would say it twice.
+        if (hint?.first != R.string.mizrach_compass_accuracy_low && hint?.first != R.string.mizrach_compass_unreliable) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = localizedString(R.string.mizrach_figure_eight_tip, R.string.mizrach_figure_eight_tip_hebrew),
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f),
+                textAlign = TextAlign.Center,
+            )
+        }
         hint?.let { (english, hebrew) ->
             Spacer(Modifier.height(8.dp))
             val message = localizedString(english, hebrew)
