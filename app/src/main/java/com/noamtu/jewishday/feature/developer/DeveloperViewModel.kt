@@ -16,6 +16,7 @@ import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.model.englishHebrewDateFormatter
 import com.noamtu.jewishday.model.isInIsrael
 import com.noamtu.jewishday.model.jewishDayCivilDate
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
@@ -284,7 +285,7 @@ class DeveloperViewModel @Inject constructor(
 
     private fun describeDay(jewishCalendar: JewishCalendar): String {
         val parts = buildList {
-            HebrewDateFormatter().formatYomTov(jewishCalendar).takeIf { it.isNotBlank() }?.let(::add)
+            englishHebrewDateFormatter().formatYomTov(jewishCalendar).takeIf { it.isNotBlank() }?.let(::add)
             if (jewishCalendar.isRoshChodesh) add("Rosh Chodesh")
             if (jewishCalendar.isTaanis) add("Fast day")
             if (jewishCalendar.isChanukah) add("Chanukah day ${jewishCalendar.dayOfChanukah}")

@@ -13,8 +13,12 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Schedules an exact, idle-tolerant alarm at the next date boundary so the status-bar icon
- * flips right at midnight / sunset instead of whenever Doze next lets a deferred job run.
+ * Schedules an exact alarm at the next date boundary (tzeit or midnight) so the status-bar icon flips
+ * right then.
+ *
+ * Unlike the widgets' alarms, this one wakes the phone: the icon is also shown on the always-on
+ * display, which is read with the phone asleep, so it must already carry the new date by then. That
+ * is two wake-ups a day.
  */
 @Singleton
 class DateStatusIconAlarmScheduler @Inject constructor(

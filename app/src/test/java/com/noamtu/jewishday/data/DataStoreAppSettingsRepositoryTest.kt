@@ -142,6 +142,61 @@ class DataStoreAppSettingsRepositoryTest {
         }
     }
 
+    @Test
+    fun existingInstallIsMovedToGlassOnceAndToldWhatItWasOn() = withRepository { repository, cache ->
+        repository.seedLanguageDefault()
+        repository.setThemeOption(AppThemeOption.Midnight)
+
+        repository.introduceGlassTheme()
+        assertEquals(AppThemeOption.Glass, repository.settings.first().themeOption)
+        assertEquals(AppThemeOption.Midnight, repository.settings.first().themeBeforeGlass)
+        assertEquals(AppThemeOption.Glass, cache.read()?.themeOption)
+
+        // Going back is kept: the move happens once, not on every launch.
+        repository.setThemeOption(AppThemeOption.Midnight)
+        repository.dismissGlassThemeNotice()
+        repository.introduceGlassTheme()
+        assertEquals(AppThemeOption.Midnight, repository.settings.first().themeOption)
+        assertEquals(null, repository.settings.first().themeBeforeGlass)
+    }
+
+    @Test
+    fun installThatNeverPickedAThemeWasOnBlueWhite() = withRepository { repository, _ ->
+        repository.seedLanguageDefault()
+
+        repository.introduceGlassTheme()
+        assertEquals(AppThemeOption.Glass, repository.settings.first().themeOption)
+        assertEquals(AppThemeOption.BlueWhite, repository.settings.first().themeBeforeGlass)
+    }
+
+    @Test
+    fun newInstallStartsOnGlassWithoutAMessage() = withRepository { repository, _ ->
+        // A first launch has only what the restore check wrote before this runs.
+        repository.setIncludePreReleases(false)
+        repository.introduceGlassTheme()
+        assertEquals(AppThemeOption.Glass, repository.settings.first().themeOption)
+        assertEquals(null, repository.settings.first().themeBeforeGlass)
+    }
+
+    private fun withRepository(
+        block: suspend (DataStoreAppSettingsRepository, FakeStartupSettingsCache) -> Unit,
+    ) = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val cache = FakeStartupSettingsCache()
+        val repository = DataStoreAppSettingsRepository(
+            PreferenceDataStoreFactory.create(
+                scope = scope,
+                produceFile = { File(temporaryFolder.newFolder(), "settings.preferences_pb") },
+            ),
+            cache,
+        )
+        try {
+            block(repository, cache)
+        } finally {
+            scope.cancel()
+        }
+    }
+
     private class FakeStartupSettingsCache : StartupSettingsCache {
         private var settings: RootUiSettings? = null
 

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A still of the Glass sky by day, for the widget picker (the Day look in GlassSky.kt, with the
+     sun up). The widgets themselves paint the live sky (GlassWidgetSky.kt). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="270"
+                android:centerColor="#FFD6E4FA"
+                android:endColor="#FFEEF4FF"
+                android:startColor="#FFAFC8F6" />
+            <corners android:radius="@dimen/widget_corner_radius" />
+        </shape>
+    </item>
+    <item
+        android:width="140dp"
+        android:height="140dp"
+        android:gravity="bottom|start"
+        android:bottom="0dp"
+        android:left="0dp">
+        <shape android:shape="oval">
+            <gradient
+                android:endColor="#00BFE0F2"
+                android:gradientRadius="70dp"
+                android:startColor="#B3BFE0F2"
+                android:type="radial" />
+        </shape>
+    </item>
+    <item
+        android:width="76dp"
+        android:height="76dp"
+        android:gravity="top|end"
+        android:right="18dp"
+        android:top="6dp">
+        <shape android:shape="oval">
+            <gradient
+                android:centerColor="#66FFF1D0"
+                android:endColor="#00FFF1D0"
+                android:gradientRadius="38dp"
+                android:startColor="#FFFFFFFF"
+                android:type="radial" />
+        </shape>
+    </item>
+    <item
+        android:width="20dp"
+        android:height="20dp"
+        android:gravity="top|end"
+        android:right="46dp"
+        android:top="34dp">
+        <shape android:shape="oval">
+            <solid android:color="#FFFFF8E6" />
+        </shape>
+    </item>
+</layer-list>
