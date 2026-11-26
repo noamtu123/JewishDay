@@ -37,7 +37,17 @@ internal fun renderWidget(
         if (content.rtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR,
     )
     views.setOnClickPendingIntent(android.R.id.background, openAppIntent(context))
+    // The zmanim lists say what they show, which only their builders know (see WidgetSpokenText.kt).
+    spokenText(kind, content)?.let { views.setContentDescription(android.R.id.background, it) }
     return views
+}
+
+/** What TalkBack reads for a widget that shows the same things at every size. */
+private fun spokenText(kind: WidgetKind, content: WidgetContent): String? = when (kind) {
+    WidgetKind.HebrewDate -> hebrewDateSpoken(content)
+    WidgetKind.NextZman, WidgetKind.GlassNextZman -> nextZmanSpoken(content)
+    WidgetKind.Shabbat, WidgetKind.GlassShabbat -> shabbatSpoken(content)
+    WidgetKind.Zmanim, WidgetKind.GlassZmanim, WidgetKind.GlassDate -> null
 }
 
 /**
@@ -88,6 +98,7 @@ private fun zmanimViews(context: Context, content: WidgetContent, options: Bundl
         removeAllViews(R.id.widget_rows)
         val capacity = rowsThatFit(options, ZmanimChromeDp)
         val rows = visibleRows(content, capacity)
+        setContentDescription(android.R.id.background, zmanimSpoken(content, rows))
         rows.forEach { (index, zman) ->
             val layout = when {
                 index == content.nextIndex -> R.layout.widget_zman_row_next

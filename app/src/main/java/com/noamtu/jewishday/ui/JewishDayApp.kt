@@ -6,7 +6,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
@@ -401,6 +407,7 @@ private fun LocationPromptDialog(
                     stringResource(R.string.location_prompt_services_title)
                 },
                 textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { heading() },
             )
         },
         text = {
@@ -494,7 +501,13 @@ private fun JewishDayNavHost(updateViewModel: AppUpdateViewModel) {
                 containerColor = chromeColor,
                 topBar = {
                     CenterAlignedTopAppBar(
-                        title = { Text(stringResource(currentAppDestination.labelRes)) },
+                        // The screen's name: a heading, so TalkBack's heading navigation starts here.
+                        title = {
+                            Text(
+                                text = stringResource(currentAppDestination.labelRes),
+                                modifier = Modifier.semantics { heading() },
+                            )
+                        },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = chromeColor,
                             scrolledContainerColor = chromeColor,
@@ -589,7 +602,8 @@ private fun AppNavigationBar(
             NavigationBarItem(
                 selected = selected,
                 onClick = { onDestinationClick(destination.route) },
-                icon = { Icon(ImageVector.vectorResource(destination.icon), contentDescription = label) },
+                // The label beside it names the tab; labelling the icon too would read it twice.
+                icon = { Icon(ImageVector.vectorResource(destination.icon), contentDescription = null) },
                 label = { Text(label) },
             )
         }
@@ -608,7 +622,8 @@ private fun AppNavigationRail(
             NavigationRailItem(
                 selected = selected,
                 onClick = { onDestinationClick(destination.route) },
-                icon = { Icon(ImageVector.vectorResource(destination.icon), contentDescription = label) },
+                // The label beside it names the tab; labelling the icon too would read it twice.
+                icon = { Icon(ImageVector.vectorResource(destination.icon), contentDescription = null) },
                 label = { Text(label) },
             )
         }
@@ -653,7 +668,12 @@ private fun GlassNavigationPill(
                 .clip(CircleShape)
                 .background(glass.bar)
                 .border(1.dp, glass.edge, CircleShape)
-                .padding(6.dp),
+                // Only a large font size makes the tabs wider than the screen; then the pill scrolls
+                // rather than cutting the last tab off. At the default size they fit and it is still.
+                .horizontalScroll(rememberScrollState())
+                .padding(6.dp)
+                // A tab row to TalkBack, like the plain navigation bar: "Tab 1 of 2".
+                .selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             AppDestination.bottomBarDestinations.forEach { destination ->
@@ -664,7 +684,12 @@ private fun GlassNavigationPill(
                     modifier = Modifier
                         .clip(CircleShape)
                         .background(if (selected) glass.selected else Color.Transparent)
-                        .clickable { onDestinationClick(destination.route) }
+                        // A tab, and whether it is the current one, rather than a bare clickable.
+                        .selectable(
+                            selected = selected,
+                            role = Role.Tab,
+                            onClick = { onDestinationClick(destination.route) },
+                        )
                         .padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),

@@ -57,6 +57,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
@@ -219,7 +222,7 @@ private fun UpdateDialogShell(
                             label = "updateTitle",
                         ) { current ->
                             Text(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().semantics { heading() },
                                 text = current,
                                 style = MaterialTheme.typography.headlineMedium,
                                 fontWeight = FontWeight.Bold,
@@ -359,6 +362,7 @@ private fun HeroCard(
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
+                        modifier = Modifier.semantics { heading() },
                         text = title,
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
@@ -442,6 +446,7 @@ private fun ReleaseNotesContent(notes: String) {
     val sections = remember(notes, language) { parseReleaseNotes(notes, language) }
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
+            modifier = Modifier.semantics { heading() },
             text = stringResource(R.string.update_notes_title),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
@@ -475,6 +480,7 @@ private fun ReleaseNoteGroup(section: ReleaseNoteSection) {
                     )
                 }
                 Text(
+                    modifier = Modifier.semantics { heading() },
                     text = label,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold,
@@ -483,8 +489,13 @@ private fun ReleaseNoteGroup(section: ReleaseNoteSection) {
             }
         }
         section.items.forEach { item ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // One TalkBack stop per entry, without the bullet, which TalkBack would read as "bullet".
+            Row(
+                modifier = Modifier.semantics(mergeDescendants = true) {},
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 Text(
+                    modifier = Modifier.clearAndSetSemantics {},
                     text = "\u2022",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

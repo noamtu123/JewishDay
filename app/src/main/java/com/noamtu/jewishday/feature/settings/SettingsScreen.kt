@@ -17,6 +17,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -51,6 +52,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
@@ -207,7 +212,8 @@ fun SettingsScreen(
                     ExpandableSettingsHeader(
                         label = stringResource(R.string.settings_advanced_zmanim),
                         description = stringResource(R.string.settings_advanced_zmanim_description),
-                        resetContentDescription = stringResource(R.string.settings_reset),
+                        expanded = showAdvancedMethods,
+                        resetContentDescription = stringResource(R.string.settings_reset, stringResource(R.string.settings_advanced_zmanim)),
                         onToggle = { showAdvancedMethods = !showAdvancedMethods },
                         onReset = { viewModel.resetZmanimMethods() },
                     )
@@ -226,7 +232,8 @@ fun SettingsScreen(
                     ExpandableSettingsHeader(
                         label = stringResource(R.string.settings_zmanim_times_section),
                         description = stringResource(R.string.settings_zmanim_times_section_description),
-                        resetContentDescription = stringResource(R.string.settings_reset),
+                        expanded = showZmanimTimes,
+                        resetContentDescription = stringResource(R.string.settings_reset, stringResource(R.string.settings_zmanim_times_section)),
                         onToggle = { showZmanimTimes = !showZmanimTimes },
                         onReset = { viewModel.resetZmanimTimes() },
                     )
@@ -250,7 +257,8 @@ fun SettingsScreen(
                     ExpandableSettingsHeader(
                         label = stringResource(R.string.settings_daily_learning_section),
                         description = stringResource(R.string.settings_daily_learning_section_description),
-                        resetContentDescription = stringResource(R.string.settings_reset),
+                        expanded = showDailyLearning,
+                        resetContentDescription = stringResource(R.string.settings_reset, stringResource(R.string.settings_daily_learning_section)),
                         onToggle = { showDailyLearning = !showDailyLearning },
                         onReset = { viewModel.resetDailyLearning() },
                     )
@@ -272,9 +280,9 @@ fun SettingsScreen(
     if (showThemeDialog) {
         AlertDialog(
             onDismissRequest = { showThemeDialog = false },
-            title = { Text(stringResource(R.string.settings_theme)) },
+            title = { Text(stringResource(R.string.settings_theme), modifier = Modifier.semantics { heading() }) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     AppThemeOption.entries.forEach { themeOption ->
                         ThemeOptionRow(
                             label = themeOption.localizedLabel(),
@@ -299,12 +307,14 @@ fun SettingsScreen(
     if (showAddWidgetDialog) {
         AlertDialog(
             onDismissRequest = { showAddWidgetDialog = false },
-            title = { Text(stringResource(R.string.settings_add_widget)) },
+            title = { Text(stringResource(R.string.settings_add_widget), modifier = Modifier.semantics { heading() }) },
             text = {
                 Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     WidgetKind.entries.groupBy { it.style }.forEach { (style, kinds) ->
                         Text(
-                            modifier = Modifier.padding(top = if (style.ordinal == 0) 0.dp else 16.dp, bottom = 4.dp),
+                            modifier = Modifier
+                                .padding(top = if (style.ordinal == 0) 0.dp else 16.dp, bottom = 4.dp)
+                                .semantics { heading() },
                             text = stringResource(style.label),
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.primary,
@@ -340,9 +350,9 @@ fun SettingsScreen(
     if (showLanguageDialog) {
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
-            title = { Text(stringResource(R.string.settings_language)) },
+            title = { Text(stringResource(R.string.settings_language), modifier = Modifier.semantics { heading() }) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     AppLocales.supported.forEach { language ->
                         ThemeOptionRow(
                             label = AppLocales.displayName(language),
@@ -380,11 +390,14 @@ fun SettingsScreen(
 private fun ExpandableSettingsHeader(
     label: String,
     description: String,
+    expanded: Boolean,
     resetContentDescription: String,
     onToggle: () -> Unit,
     onReset: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val stateText = stringResource(if (expanded) R.string.a11y_expanded else R.string.a11y_collapsed)
+    val actionText = stringResource(if (expanded) R.string.a11y_action_collapse else R.string.a11y_action_expand)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -392,9 +405,16 @@ private fun ExpandableSettingsHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(
+            // Nothing on screen says whether the section is open but the rows under it, so TalkBack
+            // is told: "Zmanim to show, collapsed, double-tap to expand". A heading, since it heads
+            // its section.
             modifier = Modifier
                 .weight(1f)
-                .clickable(onClick = onToggle),
+                .clickable(onClickLabel = actionText, role = Role.Button, onClick = onToggle)
+                .semantics {
+                    stateDescription = stateText
+                    heading()
+                },
         ) {
             Text(
                 text = label,
@@ -451,7 +471,8 @@ private fun SettingsSectionTitle(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 4.dp, top = 8.dp, bottom = 2.dp),
+            .padding(start = 4.dp, top = 8.dp, bottom = 2.dp)
+            .semantics { heading() },
     )
 }
 
@@ -521,7 +542,8 @@ private fun SettingsChoiceRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            // Opens a dialog to choose from; TalkBack reads the label, description and value as one.
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(vertical = if (dense) 8.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1012,11 +1034,11 @@ private fun AdvancedZmanimChoices(
     activePicker?.let { pickerConfig ->
         AlertDialog(
             onDismissRequest = { activePicker = null },
-            title = { Text(pickerConfig.title) },
+            title = { Text(pickerConfig.title, modifier = Modifier.semantics { heading() }) },
             text = {
                 LazyColumn(
                     // Sized to its options (most zmanim have two or three), scrolling only past the cap.
-                    modifier = Modifier.heightIn(max = 420.dp),
+                    modifier = Modifier.heightIn(max = 420.dp).selectableGroup(),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(pickerConfig.options.size) { index ->
@@ -1099,18 +1121,21 @@ private fun CustomMethodDialog(
     val entered = value.toDoubleOrNull()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(prompt.title) },
+        title = { Text(prompt.title, modifier = Modifier.semantics { heading() }) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(description, style = MaterialTheme.typography.bodyMedium)
                 // A zman measured only one way has nothing to choose, so it goes straight to the field.
                 if (prompt.choices.size > 1) {
-                    prompt.choices.forEachIndexed { choiceIndex, option ->
-                        ThemeOptionRow(
-                            label = option.label,
-                            selected = choiceIndex == index,
-                            onClick = { selectedIndex = choiceIndex },
-                        )
+                    // The same spacing as the column around it, so grouping them changes nothing on screen.
+                    Column(modifier = Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        prompt.choices.forEachIndexed { choiceIndex, option ->
+                            ThemeOptionRow(
+                                label = option.label,
+                                selected = choiceIndex == index,
+                                onClick = { selectedIndex = choiceIndex },
+                            )
+                        }
                     }
                 }
                 OutlinedTextField(
@@ -1157,13 +1182,17 @@ private fun MinutesInputDialog(
 ) {
     var value by rememberSaveable { mutableStateOf(initialMinutes.toString()) }
     val minutes = value.toIntOrNull()
+    val fieldLabel = stringResource(R.string.a11y_minutes_field)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
+        title = { Text(title, modifier = Modifier.semantics { heading() }) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(description, style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(
+                    // No visible label (the dialog's text is the label), so TalkBack is told what
+                    // the number is.
+                    modifier = Modifier.semantics { contentDescription = fieldLabel },
                     value = value,
                     onValueChange = { entered ->
                         // Keep it to a plain 0-99 number; anything else simply isn't accepted.

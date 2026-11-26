@@ -200,7 +200,7 @@
     <string name="settings_zmanim_times_section_description">בחרו אילו זמנים יופיעו ברשימת הזמנים.</string>
     <string name="settings_daily_learning_section">לימוד יומי להצגה</string>
     <string name="settings_daily_learning_section_description">בחרו אילו מסלולי לימוד יומי יוצגו בלשונית הזמנים.</string>
-    <string name="settings_reset">איפוס</string>
+    <string name="settings_reset">איפוס %1$s</string>
     <string name="settings_cancel">ביטול</string>
     <string name="settings_save">שמירה</string>
     <string name="settings_method_option_default">%1$s (ברירת מחדל)</string>
@@ -286,7 +286,11 @@
     <string name="mizrach_no_compass_sensor">במכשיר זה אין חיישן מצפן, ולכן המחט מציגה את הכיוון כאילו הטלפון פונה צפונה.</string>
     <string name="mizrach_toward_jerusalem">לכיוון קודש הקודשים</string>
     <string name="mizrach_distance_km">%1$d ק״מ מקודש הקודשים</string>
-    <string name="mizrach_compass_dial_description">חוגת המצפן. קודש הקודשים נמצא ב־%1$d מעלות מצפון האמיתי.</string>
+    <plurals name="mizrach_compass_dial_description">
+        <item quantity="one">מצפן. קודש הקודשים נמצא במעלה אחת מהצפון האמיתי.</item>
+        <item quantity="two">מצפן. קודש הקודשים נמצא ב־%d מעלות מהצפון האמיתי.</item>
+        <item quantity="other">מצפן. קודש הקודשים נמצא ב־%d מעלות מהצפון האמיתי.</item>
+    </plurals>
     <string name="mizrach_compass_caption">החזק את הטלפון במאוזן או במאונך. המחט מצביעה לכיוון קודש הקודשים.</string>
     <string name="mizrach_figure_eight_tip">לשיפור הדיוק מומלץ לנענע את הטלפון כמה פעמים בתנועה של הספרה שמונה.</string>
     <string name="mizrach_compass_accuracy_low">דיוק המצפן נמוך. הזז את הטלפון בצורת שמונה והרחק אותו ממגנטים.</string>
@@ -336,4 +340,11 @@
     <string name="about_version">גרסה \u2066%1$s\u2069</string>
     <string name="about_github">צפייה בקוד המקור ב‑GitHub</string>
     <string name="about_email">צרו קשר באימייל</string>
+
+    <!-- Accessibility -->
+    <string name="a11y_expanded">מורחב</string>
+    <string name="a11y_collapsed">מכווץ</string>
+    <string name="a11y_action_expand">להרחיב</string>
+    <string name="a11y_action_collapse">לכווץ</string>
+    <string name="a11y_minutes_field">דקות</string>
 </resources>

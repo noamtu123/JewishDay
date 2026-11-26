@@ -63,11 +63,12 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -97,6 +98,8 @@ import com.noamtu.jewishday.ui.components.ScreenPaddingValues
 import com.noamtu.jewishday.ui.components.ScreenSurface
 import com.noamtu.jewishday.ui.components.ValuePill
 import com.noamtu.jewishday.ui.components.readableWidth
+import com.noamtu.jewishday.ui.components.spokenSentences
+import kotlinx.coroutines.delay
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -435,6 +438,16 @@ private fun CompassCard(
         compassSensorState = compassSensorState,
     )
     VibrateWhenAligned(aligned = alignment?.isAligned == true)
+    // What TalkBack says for the dial: where Kodesh HaKodashim is, then which way to turn (or, with
+    // no usable heading, why not). It is announced as it changes, but only once it has held for a
+    // moment, so a reading wavering around a boundary does not talk over itself.
+    val dialDescription = pluralStringResource(
+        R.plurals.mizrach_compass_dial_description,
+        mizrach.bearingDegrees,
+        mizrach.bearingDegrees,
+    )
+    val guidance = alignment?.label ?: hint?.let { stringResource(it) }
+    val spokenState = rememberSettled(spokenSentences(dialDescription, guidance), CompassSpeechSettleMillis)
 
     InfoCard(
         modifier = modifier,
@@ -447,6 +460,7 @@ private fun CompassCard(
             locationTrusted = locationTrusted,
             sensorStateProvider = { compassSensorState.value },
             alignment = alignment,
+            spokenState = spokenState,
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(Modifier.height(18.dp))
@@ -603,6 +617,7 @@ private fun CompassFace(
     locationTrusted: Boolean,
     sensorStateProvider: () -> CompassSensorState,
     alignment: CompassAlignment?,
+    spokenState: String,
     modifier: Modifier = Modifier,
 ) {
     val surface = MaterialTheme.colorScheme.surface.copy(alpha = 0.64f)
@@ -621,18 +636,19 @@ private fun CompassFace(
     val isAligned = alignment?.isAligned == true
 
     Box(
-        modifier = modifier,
+        // The dial, the degrees and the "turn left" pill are one TalkBack stop, which says what they
+        // show together (see [spokenState]) and announces it, politely, when it changes — "Turn left"
+        // becoming "Facing Kodesh HaKodashim" is the whole point of the screen for someone who cannot
+        // see the needle. The live heading itself is never spoken: it is read in the draw phase on
+        // purpose, and pulling it up here would recompose the screen at the sensor rate.
+        modifier = modifier.clearAndSetSemantics {
+            contentDescription = spokenState
+            liveRegion = LiveRegionMode.Polite
+        },
         contentAlignment = Alignment.Center,
     ) {
-        val dialDescription = stringResource(R.string.mizrach_compass_dial_description, bearingDegrees,
-        )
-        // A Canvas carries no text, so without this the needle is invisible to TalkBack. The
-        // description is keyed on the bearing only — the live heading is read in the draw phase on
-        // purpose, and pulling it up here would recompose the screen at the sensor rate.
         Canvas(
-            modifier = Modifier
-                .size(240.dp)
-                .semantics { contentDescription = dialDescription },
+            modifier = Modifier.size(240.dp),
         ) {
             // Sensor state is read here, in the draw phase, so each sensor tick only
             // redraws the needle instead of recomposing the whole screen.
@@ -696,11 +712,7 @@ private fun CompassFace(
             )
             if (alignment != null) {
                 Spacer(Modifier.height(8.dp))
-                // "Turn left" becoming "Facing Kodesh HaKodashim" is the whole point of the screen
-                // for someone who cannot see the needle, so it is announced rather than merely
-                // readable. Polite: it should not cut across what the user is already hearing.
                 ValuePill(
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                     text = alignment.label,
                     containerColor = if (isAligned) alignedColor else MaterialTheme.colorScheme.surface,
                     contentColor = if (isAligned) MaterialTheme.colorScheme.onTertiary else MaterialTheme.colorScheme.onSurface,
@@ -788,6 +800,23 @@ private fun DrawScope.drawNeedle(
 }
 
 private const val FadedNeedleAlpha = 0.35f
+
+// How long the compass's spoken state must hold before TalkBack announces it.
+private const val CompassSpeechSettleMillis = 1_000L
+
+/**
+ * [value], but only once it has stayed the same for [settleMillis]; until then, the last value that
+ * did. The first value is taken at once.
+ */
+@Composable
+private fun <T> rememberSettled(value: T, settleMillis: Long): T {
+    var settled by remember { mutableStateOf(value) }
+    LaunchedEffect(value) {
+        delay(settleMillis)
+        settled = value
+    }
+    return settled
+}
 
 private data class CompassAlignment(
     val isAligned: Boolean,

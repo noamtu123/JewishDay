@@ -17,8 +17,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,6 +48,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -68,6 +75,7 @@ import com.noamtu.jewishday.ui.components.ScreenVerticalPadding
 import com.noamtu.jewishday.ui.components.ScreenSurface
 import com.noamtu.jewishday.ui.components.ValuePill
 import com.noamtu.jewishday.ui.components.readableWidth
+import com.noamtu.jewishday.ui.components.spokenText
 
 @Composable
 fun ZmanimScreen(
@@ -265,7 +273,7 @@ private fun CandleLightingPrompt(
     var showCustomEntry by rememberSaveable { mutableStateOf(false) }
     var customMinutes by rememberSaveable { mutableStateOf("18") }
     Surface(
-        modifier = modifier.clickable { showDialog = true },
+        modifier = modifier.clickable(role = Role.Button) { showDialog = true },
         shape = MaterialTheme.shapes.large,
         color = glassOr(MaterialTheme.colorScheme.secondaryContainer),
         border = glassBorder(),
@@ -293,7 +301,7 @@ private fun CandleLightingPrompt(
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = {
-                Text(stringResource(R.string.zmanim_candle_prompt_title))
+                Text(stringResource(R.string.zmanim_candle_prompt_title), modifier = Modifier.semantics { heading() })
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -337,15 +345,19 @@ private fun CandleLightingPrompt(
     }
     if (showCustomEntry) {
         val minutes = customMinutes.toIntOrNull()
+        val fieldLabel = stringResource(R.string.a11y_minutes_field)
         AlertDialog(
             onDismissRequest = { showCustomEntry = false },
             title = {
-                Text(stringResource(R.string.zmanim_candle_prompt_title))
+                Text(stringResource(R.string.zmanim_candle_prompt_title), modifier = Modifier.semantics { heading() })
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(stringResource(R.string.zmanim_candle_prompt_body))
                     OutlinedTextField(
+                        // The field has no visible label (the question above it is the label), so
+                        // TalkBack is told what the number is.
+                        modifier = Modifier.semantics { contentDescription = fieldLabel },
                         value = customMinutes,
                         onValueChange = { typed ->
                             if (typed.length <= 3 && typed.all(Char::isDigit)) customMinutes = typed
@@ -483,18 +495,25 @@ private fun DateBar(
     val parshaName = header.parshaName?.resolve()
     val chipLabel = underWayName ?: dayName ?: parshaName
     val jewishDate = header.jewishDate.resolve()
+    val gregorianDate = header.gregorianDate.resolve()
     val headlineStyle = MaterialTheme.typography.headlineSmall
     val chipLabelStyle = MaterialTheme.typography.labelLarge
     val density = LocalDensity.current
+    val largeFont = density.fontScale > 1f
     val textMeasurer = rememberTextMeasurer()
     Surface(
-        modifier = modifier,
+        // One TalkBack stop, the dates first and then the day: in the compact layout the chip is
+        // drawn before the dates, which is the order TalkBack would otherwise read them in. A heading,
+        // so the screen's top can be jumped to.
+        modifier = modifier.clearAndSetSemantics {
+            contentDescription = spokenText(jewishDate, gregorianDate, chipLabel)
+            heading()
+        },
         shape = MaterialTheme.shapes.large,
         color = glassOr(MaterialTheme.colorScheme.primaryContainer),
         border = glassBorder(),
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
-            val gregorianDate = header.gregorianDate.resolve()
             // Would the prominent Hebrew-date line run past the fast chip's left edge if the chip sat
             // beside it? If so, switch to the "title" layout instead of overlapping.
             val dateOverlapsChip = chipLabel != null && run {
@@ -520,18 +539,39 @@ private fun DateBar(
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(6.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            modifier = Modifier.weight(1f),
-                            text = gregorianDate,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        ObservanceChip(label = chipLabel, style = chipLabelStyle)
+                    if (largeFont) {
+                        // Under a larger font size the chip can be wide enough to squeeze the civil
+                        // date to nothing beside it, so there it moves under the date instead.
+                        FlowRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                        ) {
+                            Text(
+                                modifier = Modifier.align(Alignment.CenterVertically).padding(end = 12.dp),
+                                text = gregorianDate,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                            )
+                            ObservanceChip(
+                                label = chipLabel,
+                                style = chipLabelStyle,
+                                modifier = Modifier.align(Alignment.CenterVertically),
+                            )
+                        }
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                modifier = Modifier.weight(1f),
+                                text = gregorianDate,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
+                            )
+                            Spacer(Modifier.width(12.dp))
+                            ObservanceChip(label = chipLabel, style = chipLabelStyle)
+                        }
                     }
                 }
             } else {
@@ -593,16 +633,14 @@ private fun ObservanceTimesCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier,
+        // Start then end as one TalkBack stop, whichever side of the card each is drawn on.
+        modifier = modifier.clearAndSetSemantics { contentDescription = spokenText(startText, endText) },
         shape = MaterialTheme.shapes.large,
         color = glassOr(MaterialTheme.colorScheme.secondaryContainer),
         border = glassBorder(),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        val rowModifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)
+        val times: @Composable RowScope.() -> Unit = {
             Text(
                 text = startText,
                 style = MaterialTheme.typography.bodyMedium,
@@ -612,6 +650,18 @@ private fun ObservanceTimesCard(
                 text = endText,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+        }
+        if (LocalDensity.current.fontScale > 1f) {
+            // Under a larger font size the two lines may not fit side by side, and the end would be
+            // squeezed off the card; there it moves to a line of its own instead.
+            FlowRow(modifier = rowModifier, horizontalArrangement = Arrangement.SpaceBetween) { times() }
+        } else {
+            Row(
+                modifier = rowModifier,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                content = times,
             )
         }
     }
@@ -629,7 +679,8 @@ private fun ZmanimGroupHeader(
         modifier = modifier
             .fillMaxWidth()
             .then(if (glass) Modifier else Modifier.background(MaterialTheme.colorScheme.background))
-            .padding(top = 16.dp, bottom = 6.dp, start = 4.dp, end = 4.dp),
+            .padding(top = 16.dp, bottom = 6.dp, start = 4.dp, end = 4.dp)
+            .semantics { heading() },
         text = group.title?.resolve().orEmpty(),
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
@@ -648,13 +699,20 @@ private fun ZmanimRow(
     val rambam = remember(rawValue, resolver) { if (row.isRambam) rambamRowText(rawValue, resolver.language) else null }
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
+    val titleText = row.title.resolve()
 
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+    BoxWithConstraints(
+        // One TalkBack stop that reads the way it would be said — "Sunrise, 6:42 AM", then the
+        // caption saying how it is reckoned — rather than a stop for each text. The value is read
+        // whole, even where the screen trims it (a Rambam row) to fit.
+        modifier = modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics { contentDescription = spokenText(titleText, rawValue, description) },
+    ) {
         val valueStyle = MaterialTheme.typography.labelLarge
         val titleStyle = MaterialTheme.typography.bodyLarge
         val rowWidth = with(density) { (maxWidth - 8.dp).roundToPx().coerceAtLeast(0) }
         val pillExtraWidth = with(density) { (12.dp + 24.dp).roundToPx() }
-        val titleText = row.title.resolve()
         val titleWidth = textMeasurer.measure(
             text = AnnotatedString(titleText),
             style = titleStyle,

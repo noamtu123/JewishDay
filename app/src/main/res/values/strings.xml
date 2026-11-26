@@ -374,8 +374,8 @@
     <string name="settings_daily_learning_section">Daily learning to show</string>
     <!-- Description under that section's title. -->
     <string name="settings_daily_learning_section_description">Choose which daily-study tracks appear on the Zmanim tab.</string>
-    <!-- Accessibility label of the button that resets a Settings section to its defaults. -->
-    <string name="settings_reset">Reset</string>
+    <!-- Accessibility label of the button that resets a Settings section to its defaults. %1$s: the section's title, e.g. "Zmanim to show". -->
+    <string name="settings_reset">Reset %1$s</string>
     <!-- Button that closes a dialog without changing anything. -->
     <string name="settings_cancel">Cancel</string>
     <!-- Button that saves the number typed into a Settings dialog. -->
@@ -540,8 +540,11 @@
     <string name="mizrach_toward_jerusalem">toward Kodesh HaKodashim</string>
     <!-- Distance to Jerusalem. %1$d: kilometres. -->
     <string name="mizrach_distance_km">%1$d km away</string>
-    <!-- Accessibility description of the compass dial. %1$d: the bearing in degrees. -->
-    <string name="mizrach_compass_dial_description">Compass dial. Kodesh HaKodashim is at %1$d degrees from true north.</string>
+    <!-- Read aloud by TalkBack for the compass, before whether the phone faces Kodesh HaKodashim or which way to turn. %d: the bearing in degrees. -->
+    <plurals name="mizrach_compass_dial_description">
+        <item quantity="one">Compass. Kodesh HaKodashim is at %d degree from true north.</item>
+        <item quantity="other">Compass. Kodesh HaKodashim is at %d degrees from true north.</item>
+    </plurals>
     <!-- How to hold the phone, under the compass. -->
     <string name="mizrach_compass_caption">Hold the phone flat or upright. The needle shows the direction to Kodesh HaKodashim.</string>
     <!-- Tip for calibrating the compass. -->
@@ -634,4 +637,16 @@
     <string name="about_github">View source on GitHub</string>
     <!-- About row: email the developer. -->
     <string name="about_email">Contact by email</string>
+
+    <!-- ==== Accessibility (read aloud by TalkBack; never shown) ==== -->
+    <!-- State of a Settings section whose rows are showing. -->
+    <string name="a11y_expanded">Expanded</string>
+    <!-- State of a Settings section whose rows are hidden. -->
+    <string name="a11y_collapsed">Collapsed</string>
+    <!-- What tapping a hidden Settings section does. TalkBack says "Double-tap to" before it. -->
+    <string name="a11y_action_expand">expand</string>
+    <!-- What tapping an open Settings section does. TalkBack says "Double-tap to" before it. -->
+    <string name="a11y_action_collapse">collapse</string>
+    <!-- Name of a number field that takes a count of minutes (candle lighting, tosefet). -->
+    <string name="a11y_minutes_field">Minutes</string>
 </resources>
