@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.widget
 
+import com.noamtu.jewishday.i18n.TestText
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.ZmanimTimeOption
 import com.noamtu.jewishday.model.defaultJerusalemLocation
@@ -30,7 +31,7 @@ class WidgetContentTest {
     ) = widgetContent(
         day = zmanimForDate(date = date, settings = settings, now = now),
         tomorrow = { zmanimForDate(date = date.plusDays(1), settings = settings, hebrewDateRolled = false) },
-        hebrew = hebrew,
+        text = if (hebrew) TestText.hebrew else TestText.english,
         use24HourTime = true,
         enabledZmanim = enabled,
         now = now,

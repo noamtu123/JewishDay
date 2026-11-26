@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.update
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.animation.AnimatedVisibility
@@ -27,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.noamtu.jewishday.R
-import com.noamtu.jewishday.ui.localizedString
 
 /**
  * The standing offer of an update, shown at the top of the app whenever one is waiting.
@@ -68,13 +68,13 @@ fun UpdateBanner(
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = localizedString(R.string.update_banner_title, R.string.update_banner_title_hebrew),
+                        text = stringResource(R.string.update_banner_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
                     Text(
-                        text = localizedString(R.string.update_banner_subtitle, R.string.update_banner_subtitle_hebrew),
+                        text = stringResource(R.string.update_banner_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                     )

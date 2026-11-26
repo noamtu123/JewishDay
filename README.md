@@ -36,6 +36,11 @@ in the same spirit of openness: every release still goes through tests, lint, an
 - A foreground service that keeps the always-on Hebrew-date notification current
 - Gradle build; single release variant, tested and linted on each build
 
+## Translating
+
+The app is translated with Android's standard string resources, one folder per language. See
+[TRANSLATING.md](TRANSLATING.md) to improve a translation or add a language.
+
 ## Building
 
 Requires JDK 17 and the Android SDK.

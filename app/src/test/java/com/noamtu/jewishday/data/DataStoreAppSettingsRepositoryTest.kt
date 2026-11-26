@@ -49,14 +49,12 @@ class DataStoreAppSettingsRepositoryTest {
         )
 
         try {
-            // First launch follows the device language, so pin the expected default to
-            // the same resolution the repository uses rather than a hard-coded value.
-            val defaultLanguage = AppLanguage.systemDefault()
-            assertEquals(AppSettings(language = defaultLanguage), repository.settings.first())
-            assertEquals(RootUiSettings(language = defaultLanguage), repository.rootUiSettings.first())
+            // Nothing records a language until the first launch settles one (AppLanguageController).
+            assertEquals(AppSettings(), repository.settings.first())
+            assertEquals(RootUiSettings(), repository.rootUiSettings.first())
 
             repository.setHebrewDateStatusIconEnabled(true)
-            repository.setAppLanguage(AppLanguage.Hebrew)
+            repository.setAppLanguage("he")
             repository.setUse24HourTime(false)
             repository.setThemeOption(AppThemeOption.Midnight)
             repository.setCandleLightingPromptHandled(true)
@@ -64,7 +62,7 @@ class DataStoreAppSettingsRepositoryTest {
             assertEquals(
                 AppSettings(
                     hebrewDateStatusIconEnabled = true,
-                    language = AppLanguage.Hebrew,
+                    language = "he",
                     use24HourTime = false,
                     themeOption = AppThemeOption.Midnight,
                     candleLightingPromptHandled = true,
@@ -72,17 +70,11 @@ class DataStoreAppSettingsRepositoryTest {
                 repository.settings.first(),
             )
             assertEquals(
-                RootUiSettings(
-                    themeOption = AppThemeOption.Midnight,
-                    language = AppLanguage.Hebrew,
-                ),
+                RootUiSettings(themeOption = AppThemeOption.Midnight),
                 repository.rootUiSettings.first(),
             )
             assertEquals(
-                RootUiSettings(
-                    themeOption = AppThemeOption.Midnight,
-                    language = AppLanguage.Hebrew,
-                ),
+                RootUiSettings(themeOption = AppThemeOption.Midnight),
                 startupSettingsCache.read(),
             )
         } finally {
@@ -144,7 +136,8 @@ class DataStoreAppSettingsRepositoryTest {
 
     @Test
     fun existingInstallIsMovedToGlassOnceAndToldWhatItWasOn() = withRepository { repository, cache ->
-        repository.seedLanguageDefault()
+        // Every install that has launched has its language recorded.
+        repository.setAppLanguage("en")
         repository.setThemeOption(AppThemeOption.Midnight)
 
         repository.introduceGlassTheme()
@@ -162,7 +155,7 @@ class DataStoreAppSettingsRepositoryTest {
 
     @Test
     fun installThatNeverPickedAThemeWasOnBlueWhite() = withRepository { repository, _ ->
-        repository.seedLanguageDefault()
+        repository.setAppLanguage("en")
 
         repository.introduceGlassTheme()
         assertEquals(AppThemeOption.Glass, repository.settings.first().themeOption)

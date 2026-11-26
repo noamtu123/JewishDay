@@ -2,7 +2,9 @@
 
 package com.noamtu.jewishday
 
+import android.content.Context
 import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,6 +22,8 @@ import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.RestoredSettingsReconciler
 import com.noamtu.jewishday.data.StartupSettingsCache
 import com.noamtu.jewishday.data.hasLocationPermission
+import com.noamtu.jewishday.i18n.AppLanguageController
+import com.noamtu.jewishday.i18n.AppLocales
 import com.noamtu.jewishday.ui.JewishDayApp
 import com.noamtu.jewishday.ui.theme.JewishDayTheme
 import com.noamtu.jewishday.ui.theme.appThemeBackgroundColor
@@ -43,6 +47,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var restoredSettingsReconciler: RestoredSettingsReconciler
 
+    @Inject
+    lateinit var appLanguageController: AppLanguageController
+
     private var startupWindowBackgroundColor: Int? = null
 
     /**
@@ -51,6 +58,11 @@ class MainActivity : ComponentActivity() {
      * does not sit in front of the launch. Every later one does — see [onStart] / [onStop].
      */
     private var reopened = false
+
+    /** Android 12 and older have no per-app language, so the activity takes the app's by hand. */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLocales.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,20 +73,29 @@ class MainActivity : ComponentActivity() {
         //    settings that are about to be wiped);
         //  - an existing install is moved to the Glass theme, once, before anything below writes a
         //    first setting and makes a new install look like an old one;
-        //  - the system-language default is persisted, so a later system-language change cannot
-        //    silently flip the in-app language on the next launch.
+        //  - the app's language is settled: on an install's first launch it is set from the settings
+        //    (an upgrade, a restore) or the phone's language, so a later system-language change
+        //    cannot silently flip it; afterwards the settings just record it (AppLanguageController).
         //
         // They used to be three separate runBlocking calls on the main thread during onCreate —
         // three dispatcher round trips, and each one re-entering DataStore on its own. One block
         // shares a single DataStore read across all of them and leaves one stall instead of three.
+        val displayedLanguage = AppLocales.displayTag(resources.configuration)
+        var languageChanged = false
         val initialRootSettings = runBlocking(Dispatchers.IO) {
             restoredSettingsReconciler.reconcile()
             appSettingsRepository.introduceGlassTheme()
-            appSettingsRepository.seedLanguageDefault()
+            languageChanged = appLanguageController.syncOnLaunch(displayed = displayedLanguage)
             // Only pay for the DataStore read when the synchronous cache had nothing. The cache is
             // SharedPreferences, which is excluded from backup, so it is empty in exactly the cases
             // the reconciler above has just acted on. Read after the move to Glass, which updates it.
             startupSettingsCache.read() ?: appSettingsRepository.rootUiSettings.first()
+        }
+        // Android 13+ recreates the activity for a new per-app language by itself; older versions
+        // only read it as the activity is created (see attachBaseContext).
+        if (languageChanged && Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            recreate()
+            return
         }
         setStartupWindowBackground(initialRootSettings.themeOption)
         enableEdgeToEdge()
@@ -96,7 +117,7 @@ class MainActivity : ComponentActivity() {
             }
 
             JewishDayTheme(themeOption = rootSettings.themeOption) {
-                JewishDayApp(useHebrewInterface = rootSettings.useHebrewInterface)
+                JewishDayApp()
             }
         }
     }

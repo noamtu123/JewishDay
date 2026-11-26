@@ -2,6 +2,10 @@
 
 package com.noamtu.jewishday.model
 
+import com.noamtu.jewishday.i18n.TestText
+import com.noamtu.jewishday.i18n.en
+import com.noamtu.jewishday.i18n.he
+import com.noamtu.jewishday.model.ZmanimGroupKind
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -36,7 +40,7 @@ class HolyDaySequenceTest {
         assertEquals(first.minusDays(1), requireNotNull(info.startTime).atZone(zone).toLocalDate())
         assertEquals(holyDayExitForDate(date = second), info.endTime)
         // Tzom Gedalyah begins the morning after the chag, so it belongs in the warning.
-        assertEquals("חג כפול + צום", info.sequelHebrew)
+        assertEquals("חג כפול + צום", info.sequel?.he())
     }
 
     @Test
@@ -53,7 +57,7 @@ class HolyDaySequenceTest {
         assertEquals(holyDayExitForDate(date = second), after.endTime)
         assertTrue(after.isUnderWay)
         // The warning narrows, though — one chag day left, then the fast.
-        assertEquals("חג + צום", after.sequelHebrew)
+        assertEquals("חג + צום", after.sequel?.he())
     }
 
     @Test
@@ -65,21 +69,21 @@ class HolyDaySequenceTest {
         // The span runs to the end of Shabbat, and each end is named for its own day. One day of
         // chag, so it is "החג" rather than an ordinal.
         assertEquals(holyDayExitForDate(date = shabbat), info.endTime)
-        assertEquals("החג", info.entryTermHebrew)
-        assertEquals("שבת", info.exitTermHebrew)
-        assertEquals("חג + שבת", info.sequelHebrew)
-        assertTrue(info.nameHebrew, info.nameHebrew.contains("שבועות"))
+        assertEquals("כניסת החג", TestText.hebrew.string(info.entryTerm.starts))
+        assertEquals("צאת שבת", TestText.hebrew.string(info.exitTerm.ends))
+        assertEquals("חג + שבת", info.sequel?.he())
+        assertTrue(info.name.he(), info.name.he().contains("שבועות"))
 
         // Once the chag itself is out the name follows Shabbat — carrying "אסרו חג", since that is
         // the day's own name and the chip is the only place left that says it — while the span's
         // times are unchanged.
         val chagOut = requireNotNull(holyDayExitForDate(date = shavuot)).plus(Duration.ofMinutes(5))
         val next = requireNotNull(infoOn(shavuot, chagOut))
-        assertEquals("שבת אסרו חג", next.nameHebrew)
+        assertEquals("שבת אסרו חג", next.name.he())
         assertEquals(info.startTime, next.startTime)
         assertEquals(holyDayExitForDate(date = shabbat), next.endTime)
         // Only Shabbat is left, and one thing ahead is not a warning.
-        assertNull(next.sequelHebrew)
+        assertNull(next.sequel?.he())
     }
 
     @Test
@@ -88,11 +92,11 @@ class HolyDaySequenceTest {
         val shabbat = LocalDate.of(2029, 5, 19)
         val info = requireNotNull(infoOn(shabbat, hoursBeforeSunset(shabbat, 3)))
 
-        assertEquals("שבת", info.nameHebrew)
-        assertEquals("שבת + חג", info.sequelHebrew)
+        assertEquals("שבת", info.name.he())
+        assertEquals("שבת + חג", info.sequel?.he())
         // Shabbat brings the stretch in and the chag takes it out, which is what the two ends say.
-        assertEquals("שבת", info.entryTermHebrew)
-        assertEquals("החג", info.exitTermHebrew)
+        assertEquals("כניסת שבת", TestText.hebrew.string(info.entryTerm.starts))
+        assertEquals("צאת החג", TestText.hebrew.string(info.exitTerm.ends))
         assertEquals(holyDayExitForDate(date = shabbat.plusDays(1)), info.endTime)
     }
 
@@ -103,10 +107,10 @@ class HolyDaySequenceTest {
         val bothAtOnce = LocalDate.of(2026, 9, 12)
         val info = requireNotNull(infoOn(bothAtOnce, hoursBeforeSunset(bothAtOnce, 3)))
 
-        assertTrue(info.nameHebrew, info.nameHebrew.contains("ושבת"))
-        assertTrue(info.nameHebrew, info.nameHebrew.contains("השנה"))
+        assertTrue(info.name.he(), info.name.he().contains("ושבת"))
+        assertTrue(info.name.he(), info.name.he().contains("השנה"))
         // Two days of chag, one of which is itself Shabbat — said with "and", not "+".
-        assertEquals("חג כפול ושבת + צום", info.sequelHebrew)
+        assertEquals("חג כפול ושבת + צום", info.sequel?.he())
     }
 
     @Test
@@ -117,23 +121,23 @@ class HolyDaySequenceTest {
         val shabbat = LocalDate.of(2028, 9, 23)
 
         val onFirst = requireNotNull(infoOn(first, hoursBeforeSunset(first, 3)))
-        assertEquals("חג כפול + שבת + צום", onFirst.sequelHebrew)
+        assertEquals("חג כפול + שבת + צום", onFirst.sequel?.he())
 
         // With one day gone, only the pair is left, so the warning narrows to it.
         val onSecond = requireNotNull(infoOn(second, hoursBeforeSunset(second, 3)))
-        assertEquals("חג + שבת + צום", onSecond.sequelHebrew)
+        assertEquals("חג + שבת + צום", onSecond.sequel?.he())
 
         // And the last day has nothing after it.
         val onShabbat = requireNotNull(infoOn(shabbat, hoursBeforeSunset(shabbat, 3)))
-        assertEquals("שבת", onShabbat.nameHebrew)
+        assertEquals("שבת", onShabbat.name.he())
         // Shabbat is the last forbidden day, but the deferred fast still follows it.
-        assertEquals("שבת + צום", onShabbat.sequelHebrew)
+        assertEquals("שבת + צום", onShabbat.sequel?.he())
         // The span still reaches back to Thursday's candle lighting and out at Shabbat's exit, and
         // names both ends: two days of chag then Shabbat.
         assertEquals(first.minusDays(1), requireNotNull(onShabbat.startTime).atZone(zone).toLocalDate())
         assertEquals(holyDayExitForDate(date = shabbat), onShabbat.endTime)
-        assertEquals("חג ראשון", onShabbat.entryTermHebrew)
-        assertEquals("שבת", onShabbat.exitTermHebrew)
+        assertEquals("כניסת חג ראשון", TestText.hebrew.string(onShabbat.entryTerm.starts))
+        assertEquals("צאת שבת", TestText.hebrew.string(onShabbat.exitTerm.ends))
     }
 
     @Test
@@ -143,7 +147,7 @@ class HolyDaySequenceTest {
         val shabbat = LocalDate.of(2029, 5, 19)
         val info = requireNotNull(infoOn(shabbat, hoursBeforeSunset(shabbat, 3)))
 
-        assertTrue(requireNotNull(info.sequelHebrew), requireNotNull(info.sequelHebrew).startsWith("שבת +"))
+        assertTrue(requireNotNull(info.sequel?.he()), requireNotNull(info.sequel?.he()).startsWith("שבת +"))
     }
 
     @Test
@@ -154,12 +158,12 @@ class HolyDaySequenceTest {
         val duringChag = zmanimForDate(date = secondDay, now = hoursBeforeSunset(secondDay, 3))
 
         assertNull(duringChag.fastDayInfo)
-        assertTrue(requireNotNull(duringChag.holyDayInfo).nameHebrew.contains("השנה"))
+        assertTrue(requireNotNull(duringChag.holyDayInfo).name.he().contains("השנה"))
 
         // Once the chag goes out the fast takes over the header.
         val chagOut = requireNotNull(holyDayExitForDate(date = secondDay)).plus(Duration.ofMinutes(5))
         val afterChag = zmanimForDate(date = secondDay, now = chagOut)
-        assertEquals("צום גדליה", requireNotNull(afterChag.fastDayInfo).nameHebrew)
+        assertEquals("צום גדליה", requireNotNull(afterChag.fastDayInfo).name.he())
         assertNull(afterChag.holyDayInfo)
     }
 
@@ -179,18 +183,18 @@ class HolyDaySequenceTest {
         // so — otherwise nothing on screen tells you how far the stretch reaches.
         val first = LocalDate.of(2029, 9, 10)
         val twoDay = requireNotNull(infoOn(first, hoursBeforeSunset(first, 3)))
-        assertEquals("חג ראשון", twoDay.entryTermHebrew)
-        assertEquals("חג שני", twoDay.exitTermHebrew)
+        assertEquals("כניסת חג ראשון", TestText.hebrew.string(twoDay.entryTerm.starts))
+        assertEquals("צאת חג שני", TestText.hebrew.string(twoDay.exitTerm.ends))
 
         // A single-day Yom Tov is just "the chag", and Shabbat is Shabbat.
         val yomKippur = LocalDate.of(2026, 9, 21)
         val kippur = requireNotNull(infoOn(yomKippur, hoursBeforeSunset(yomKippur, 3)))
-        assertEquals("החג", kippur.entryTermHebrew)
-        assertEquals("החג", kippur.exitTermHebrew)
+        assertEquals("כניסת החג", TestText.hebrew.string(kippur.entryTerm.starts))
+        assertEquals("צאת החג", TestText.hebrew.string(kippur.exitTerm.ends))
         val saturday = LocalDate.of(2026, 9, 5)
         val lone = requireNotNull(infoOn(saturday, hoursBeforeSunset(saturday, 3)))
-        assertEquals("שבת", lone.entryTermHebrew)
-        assertEquals("שבת", lone.exitTermHebrew)
+        assertEquals("כניסת שבת", TestText.hebrew.string(lone.entryTerm.starts))
+        assertEquals("צאת שבת", TestText.hebrew.string(lone.exitTerm.ends))
     }
 
     @Test
@@ -218,14 +222,14 @@ class HolyDaySequenceTest {
         val onShabbat = zmanimForDate(date = saturday, now = hoursBeforeSunset(saturday, 4))
 
         // The section's times are the header's entry and exit, so it goes.
-        assertEquals(null, onShabbat.groups.firstOrNull { it.title == "Shabbat" })
+        assertEquals(null, onShabbat.groups.firstOrNull { it.kind == ZmanimGroupKind.Shabbat })
         // Rabbeinu Tam is the one row it carried that is not a duplicate, so it moves to the day.
-        val zmanim = requireNotNull(onShabbat.groups.firstOrNull { it.title == "Zmanim" }).items
-        val rabbeinuTam = requireNotNull(zmanim.first { it.title == "Rabbeinu Tam" }.time)
+        val zmanim = requireNotNull(onShabbat.groups.firstOrNull { it.kind == ZmanimGroupKind.Zmanim }).items
+        val rabbeinuTam = requireNotNull(zmanim.first { it.title.en() == "Rabbeinu Tam" }.time)
         // Computed from today, which on Shabbat is the same day the section used.
         assertTrue(rabbeinuTam.isAfter(requireNotNull(tzeitForDate(date = saturday))))
         // And the parsha moves up rather than disappearing with the section.
-        assertNotNull(onShabbat.groups.flatMap { it.items }.firstOrNull { it.title == "Weekly Parsha" })
+        assertNotNull(onShabbat.groups.flatMap { it.items }.firstOrNull { it.title.en() == "Weekly Parsha" })
     }
 
     @Test
@@ -234,9 +238,9 @@ class HolyDaySequenceTest {
         val onFriday = zmanimForDate(date = friday, now = hoursBeforeSunset(friday, 4))
 
         // Friday's list is not Shabbat's, so the section is still doing work.
-        assertNotNull(onFriday.groups.firstOrNull { it.title == "Shabbat" })
-        val zmanim = requireNotNull(onFriday.groups.firstOrNull { it.title == "Zmanim" }).items
-        assertEquals(null, zmanim.firstOrNull { it.title == "Rabbeinu Tam" })
+        assertNotNull(onFriday.groups.firstOrNull { it.kind == ZmanimGroupKind.Shabbat })
+        val zmanim = requireNotNull(onFriday.groups.firstOrNull { it.kind == ZmanimGroupKind.Zmanim }).items
+        assertEquals(null, zmanim.firstOrNull { it.title.en() == "Rabbeinu Tam" })
 
         // Nor is it a duplicate once Shabbat is over and it points at next week.
         val afterMotzei = LocalDate.of(2026, 9, 5)
@@ -244,7 +248,7 @@ class HolyDaySequenceTest {
             date = afterMotzei,
             now = requireNotNull(holyDayExitForDate(date = afterMotzei)).plus(Duration.ofMinutes(30)),
         )
-        assertNotNull(later.groups.firstOrNull { it.title == "Shabbat" })
+        assertNotNull(later.groups.firstOrNull { it.kind == ZmanimGroupKind.Shabbat })
     }
 
     @Test
@@ -259,7 +263,7 @@ class HolyDaySequenceTest {
             infoOn(secondDay, requireNotNull(sunsetForDate(date = secondDay)).plus(Duration.ofMinutes(2))),
         )
         assertTrue(afterSunset.isUnderWay)
-        assertTrue(afterSunset.nameHebrew, afterSunset.nameHebrew.contains("השנה"))
+        assertTrue(afterSunset.name.he(), afterSunset.name.he().contains("השנה"))
 
         val justBeforeExit = requireNotNull(infoOn(secondDay, exit.minus(Duration.ofMinutes(2))))
         assertTrue(justBeforeExit.isUnderWay)
@@ -276,7 +280,7 @@ class HolyDaySequenceTest {
         val chagOut = requireNotNull(holyDayExitForDate(date = secondDay)).plus(Duration.ofMinutes(5))
         val fast = requireNotNull(zmanimForDate(date = secondDay, now = chagOut).fastDayInfo)
 
-        assertEquals("צום גדליה", fast.nameHebrew)
+        assertEquals("צום גדליה", fast.name.he())
         assertEquals(false, fast.isUnderWay)
 
         // Come dawn, it is named.
@@ -304,8 +308,8 @@ class HolyDaySequenceTest {
         val saturday = LocalDate.of(2026, 9, 5)
         val info = requireNotNull(infoOn(saturday, hoursBeforeSunset(saturday, 3)))
 
-        assertEquals("שבת", info.nameHebrew)
-        assertNull(info.sequelHebrew)
+        assertEquals("שבת", info.name.he())
+        assertNull(info.sequel?.he())
     }
 
     @Test

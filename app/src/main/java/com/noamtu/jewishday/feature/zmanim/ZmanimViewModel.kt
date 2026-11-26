@@ -11,16 +11,21 @@ import com.noamtu.jewishday.data.DailyLearningRepository
 import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.data.JewishDayRepository
+import com.noamtu.jewishday.R
+import com.noamtu.jewishday.i18n.DateStyle
+import com.noamtu.jewishday.i18n.LanguageFormatter
+import com.noamtu.jewishday.i18n.UiText
+import com.noamtu.jewishday.i18n.pluralText
+import com.noamtu.jewishday.i18n.uiText
+import com.noamtu.jewishday.i18n.verbatim
 import com.noamtu.jewishday.model.CandleLightingMethod
-import com.noamtu.jewishday.model.DailyLearningGroupTitle
-import com.noamtu.jewishday.model.ShabbatGroupTitle
 import com.noamtu.jewishday.model.DailyLearningType
 import com.noamtu.jewishday.model.JewishLocation
 import com.noamtu.jewishday.model.isInIsrael
 import com.noamtu.jewishday.model.ZmanItem
 import com.noamtu.jewishday.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.model.ZmanimDay
-import com.noamtu.jewishday.model.ZmanimGroupTitle
+import com.noamtu.jewishday.model.ZmanimGroupKind
 import com.noamtu.jewishday.model.ZmanimTimeOption
 import com.noamtu.jewishday.model.dateBoundaryTicker
 import com.noamtu.jewishday.model.defaultJerusalemLocation
@@ -29,8 +34,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -64,62 +67,50 @@ data class ZmanimUiState(
     val developerTimeOverrideActive: Boolean = false,
 )
 
-/** Date header pinned at the top of the tab: the Jewish date with the Gregorian date beneath. */
+/**
+ * Date header pinned at the top of the tab: the Jewish date with the Gregorian date beneath. Like the
+ * rest of the state it holds [UiText], worded by the screen in the app's current language — so a
+ * language change needs no new state, and the view model never holds a sentence.
+ */
 @Immutable
 data class ZmanimHeaderUi(
-    val jewishDate: String,
-    val jewishDateHebrew: String,
-    val gregorianDate: String,
-    val gregorianDateHebrew: String,
+    val jewishDate: UiText,
+    val gregorianDate: UiText,
     // The name of the location the times were computed for; the UI turns this into a small caption
     // when it isn't a fresh current-location fix (last-known, Jerusalem, or a named place).
     val locationName: String = "",
-    val fastName: String? = null,
-    val fastNameHebrew: String? = null,
+    val fastName: UiText? = null,
     // Fully written lines: "כניסת הצום 04:10", "יציאת הצום מחר 20:17".
-    val fastStart: String? = null,
-    val fastStartHebrew: String? = null,
-    val fastEnd: String? = null,
-    val fastEndHebrew: String? = null,
-    val holyDayName: String? = null,
-    val holyDayNameHebrew: String? = null,
+    val fastStart: UiText? = null,
+    val fastEnd: UiText? = null,
+    val holyDayName: UiText? = null,
     // The day's own name ("ערב פסח", "פורים") and, ahead of Shabbat, the coming week's parasha.
     // Both are fallbacks for the chip, behind whatever is actually under way.
-    val dayName: String? = null,
-    val dayNameHebrew: String? = null,
-    val parshaName: String? = null,
-    val parshaNameHebrew: String? = null,
-    val holyDayStart: String? = null,
-    val holyDayStartHebrew: String? = null,
-    val holyDayEnd: String? = null,
-    val holyDayEndHebrew: String? = null,
+    val dayName: UiText? = null,
+    val parshaName: UiText? = null,
+    val holyDayStart: UiText? = null,
+    val holyDayEnd: UiText? = null,
     // Set when another holy day begins the moment this one ends.
-    val holyDaySequel: String? = null,
-    val holyDaySequelHebrew: String? = null,
+    val holyDaySequel: UiText? = null,
     val fastLeadsHeader: Boolean = false,
 )
 
 @Immutable
 data class ZmanimGroupUi(
     val key: String,
-    val title: String,
-    val titleHebrew: String,
+    // Null for the untitled group of the day's events.
+    val title: UiText?,
     val rows: List<ZmanimRowUi>,
 )
 
 @Immutable
 data class ZmanimRowUi(
     val key: String,
-    val title: String,
-    val titleHebrew: String,
-    val description: String,
-    val descriptionHebrew: String,
-    val value: String,
-    val valueHebrew: String,
-    // Alternative renderings of the value (most informative first), used to decide whether it fits
-    // beside the title; currently only the merged Rambam Yomi row provides more than one.
-    val valueCandidates: List<String> = emptyList(),
-    val valueHebrewCandidates: List<String> = emptyList(),
+    val title: UiText,
+    val description: UiText,
+    val value: UiText,
+    // A Rambam Yomi row, whose value the screen trims to fit (see [rambamRowText]).
+    val isRambam: Boolean = false,
 )
 
 private data class ZmanimSettingsSnapshot(
@@ -346,17 +337,17 @@ class ZmanimViewModel @Inject constructor(
  * Drops the Zmanim rows and Daily-Learning rows the user has hidden, then removes any group
  * left empty. Rows without an id (always-on) and other groups are untouched.
  */
-private fun ZmanimDay.filterForDisplay(
+internal fun ZmanimDay.filterForDisplay(
     enabledZmanimTimes: Set<ZmanimTimeOption>,
     enabledDailyLearning: Set<DailyLearningType>,
 ): ZmanimDay {
     val zmanimIds = enabledZmanimTimes.mapTo(mutableSetOf()) { it.storageValue }
     val learningIds = enabledDailyLearning.mapTo(mutableSetOf()) { it.storageValue }
     val filtered = groups.mapNotNull { group ->
-        val items = when (group.title) {
-            ZmanimGroupTitle, ShabbatGroupTitle -> group.items.filter { it.id == null || it.id in zmanimIds }
-            DailyLearningGroupTitle -> group.items.filter { it.id == null || it.id in learningIds }
-            else -> group.items
+        val items = when (group.kind) {
+            ZmanimGroupKind.Zmanim, ZmanimGroupKind.Shabbat -> group.items.filter { it.id == null || it.id in zmanimIds }
+            ZmanimGroupKind.DailyLearning -> group.items.filter { it.id == null || it.id in learningIds }
+            ZmanimGroupKind.Events -> group.items
         }
         if (items.isEmpty()) null else group.copy(items = items)
     }
@@ -368,17 +359,21 @@ private fun ZmanimDay.filterForDisplay(
  * lists the 1-chapter and 3-chapter references on separate lines, so they read as one section
  * rather than two look-alike rows.
  */
-private fun ZmanimDay.mergeRambamRows(): ZmanimDay {
+internal fun ZmanimDay.mergeRambamRows(): ZmanimDay {
     val merged = groups.map { group ->
-        if (group.title != DailyLearningGroupTitle) return@map group
+        if (group.kind != ZmanimGroupKind.DailyLearning) return@map group
         val one = group.items.firstOrNull { it.id == DailyLearningType.RambamYomi.storageValue }
         val three = group.items.firstOrNull { it.id == DailyLearningType.RambamYomiThreeChapters.storageValue }
         if (one == null || three == null) return@map group
         val mergedRow = one.copy(
-            description = "Daily Rambam cycle",
-            descriptionHebrew = "הרמב״ם היומי",
-            value = "1 chapter: ${one.value.orEmpty()}\n3 chapters: ${three.value.orEmpty()}",
-            valueHebrew = "פרק אחד: ${one.valueHebrew.orEmpty()}\n3 פרקים: ${three.valueHebrew.orEmpty()}",
+            description = uiText(R.string.learning_rambam_merged_description),
+            value = uiText(
+                R.string.learning_rambam_merged,
+                pluralText(R.plurals.learning_rambam_chapters, 1),
+                one.value ?: verbatim(""),
+                pluralText(R.plurals.learning_rambam_chapters, 3),
+                three.value ?: verbatim(""),
+            ),
         )
         val items = group.items.mapNotNull { item ->
             when (item.id) {
@@ -392,41 +387,25 @@ private fun ZmanimDay.mergeRambamRows(): ZmanimDay {
     return copy(groups = merged)
 }
 
-private fun ZmanimDay.toUiState(
+internal fun ZmanimDay.toUiState(
     use24HourTime: Boolean,
     showCandleLightingPrompt: Boolean,
     developerTimeOverrideActive: Boolean,
     dayOffset: Int,
 ): ZmanimUiState {
-    // Always format the "English" date/time in English regardless of the device locale — otherwise
-    // a Hebrew system locale makes Locale.getDefault() render the English header in Hebrew too.
-    val englishLocale = Locale.ENGLISH
-    val hebrewLocale = Locale.forLanguageTag("he")
-    val timePattern = if (use24HourTime) "HH:mm" else "h:mm a"
-    val englishTimeFormatter = DateTimeFormatter.ofPattern(timePattern, englishLocale).withZone(zoneId)
-    val hebrewTimeFormatter = DateTimeFormatter.ofPattern(timePattern, hebrewLocale).withZone(zoneId)
-    // The weekday and the day-of-month come from different days, so they are formatted separately:
-    // the weekday belongs to the Jewish day and rolls at tzeit — Thursday evening is already
-    // "Friday", along with the Hebrew date above it — while the day-of-month is the calendar date
-    // the times below belong to, which turns over at midnight.
-    val englishWeekdayFormatter = DateTimeFormatter.ofPattern("EEEE", englishLocale)
-    val englishDayMonthFormatter = DateTimeFormatter.ofPattern("MMMM d", englishLocale)
-    // Hebrew writes the month with a "ב" prefix ("17 ביולי"). CLDR keeps that prefix as a literal
-    // in the locale's own date pattern rather than in the month name, so a custom pattern has to
-    // carry it explicitly — MMMM alone yields the bare "יולי".
-    val hebrewWeekdayFormatter = DateTimeFormatter.ofPattern("EEEE", hebrewLocale)
-    val hebrewDayMonthFormatter = DateTimeFormatter.ofPattern("d 'ב'MMMM", hebrewLocale)
+    fun time(instant: Instant): UiText = UiText.Time(instant, zoneId, use24HourTime)
 
     val uiGroups = groups.mapIndexed { groupIndex, group ->
         ZmanimGroupUi(
-            key = "group:$groupIndex:${group.title}",
-            title = group.title,
-            titleHebrew = group.titleHebrew,
+            key = "group:$groupIndex:${group.kind}",
+            title = group.kind.title?.let { uiText(it) },
             rows = group.items.mapIndexed { itemIndex, item ->
-                item.toUiRow(
-                    key = "row:$groupIndex:$itemIndex:${item.title}",
-                    englishTimeFormatter = englishTimeFormatter,
-                    hebrewTimeFormatter = hebrewTimeFormatter,
+                ZmanimRowUi(
+                    key = "row:$groupIndex:$itemIndex:${item.id ?: item.kind ?: ""}",
+                    title = item.title,
+                    description = item.description,
+                    value = item.value ?: item.time?.let(::time) ?: verbatim("--"),
+                    isRambam = item.id.isRambamId(),
                 )
             },
         )
@@ -434,43 +413,32 @@ private fun ZmanimDay.toUiState(
 
     return ZmanimUiState(
         header = ZmanimHeaderUi(
-            jewishDate = hebrewDateEnglish,
-            jewishDateHebrew = hebrewDateHebrew,
-            gregorianDate = "${displayedDate.format(englishWeekdayFormatter)}, ${date.format(englishDayMonthFormatter)}",
-            gregorianDateHebrew = "${displayedDate.format(hebrewWeekdayFormatter)}, ${date.format(hebrewDayMonthFormatter)}",
+            jewishDate = hebrewDate,
+            // The weekday and the day-of-month come from different days: the weekday belongs to the
+            // Jewish day and rolls at tzeit — Thursday evening is already "Friday", along with the
+            // Hebrew date above it — while the day-of-month is the calendar date the times below
+            // belong to, which turns over at midnight.
+            gregorianDate = uiText(
+                R.string.header_date,
+                UiText.Date(displayedDate, DateStyle.Weekday),
+                UiText.Date(date, DateStyle.DayMonth),
+            ),
             locationName = locationName,
             // The fast's name belongs to it only while it is on; the times show a day ahead.
             fastName = fastDayInfo?.takeIf { it.isUnderWay }?.name,
-            fastNameHebrew = fastDayInfo?.takeIf { it.isUnderWay }?.nameHebrew,
-            fastStart = fastDayInfo?.startTime?.let { observanceLine("Fast starts", it, englishTimeFormatter) },
-            fastStartHebrew = fastDayInfo?.startTime?.let { observanceLine("כניסת הצום", it, hebrewTimeFormatter) },
-            fastEnd = fastDayInfo?.endTime?.let { observanceLine("Fast ends", it, englishTimeFormatter) },
-            fastEndHebrew = fastDayInfo?.endTime?.let { observanceLine("צאת הצום", it, hebrewTimeFormatter) },
+            fastStart = fastDayInfo?.startTime?.let { observanceLine(R.string.fast_starts, time(it)) },
+            fastEnd = fastDayInfo?.endTime?.let { observanceLine(R.string.fast_ends, time(it)) },
             // The name belongs to the holy day only while it is in; the times show a day ahead.
             holyDayName = holyDayInfo?.takeIf { it.isUnderWay }?.name,
-            holyDayNameHebrew = holyDayInfo?.takeIf { it.isUnderWay }?.nameHebrew,
             dayName = dayName,
-            dayNameHebrew = dayNameHebrew,
             // While Shabbat is only announced — from the moment the entry/exit card appears — the
             // parasha gives the card a heading without claiming Shabbat has begun.
             parshaName = holyDayInfo?.takeUnless { it.isUnderWay }?.parsha,
-            parshaNameHebrew = holyDayInfo?.takeUnless { it.isUnderWay }?.parshaHebrew,
             // The two ends of the span are named separately: a Yom Tov entering on Friday goes out
             // on Shabbat, so "כניסת החג" is paired with "צאת שבת".
-            holyDayStart = holyDayInfo?.startTime?.let {
-                observanceLine("${holyDayInfo.entryTerm} starts", it, englishTimeFormatter)
-            },
-            holyDayStartHebrew = holyDayInfo?.startTime?.let {
-                observanceLine("כניסת ${holyDayInfo.entryTermHebrew}", it, hebrewTimeFormatter)
-            },
-            holyDayEnd = holyDayInfo?.endTime?.let {
-                observanceLine("${holyDayInfo.exitTerm} ends", it, englishTimeFormatter)
-            },
-            holyDayEndHebrew = holyDayInfo?.endTime?.let {
-                observanceLine("צאת ${holyDayInfo.exitTermHebrew}", it, hebrewTimeFormatter)
-            },
+            holyDayStart = holyDayInfo?.startTime?.let { observanceLine(holyDayInfo.entryTerm.starts, time(it)) },
+            holyDayEnd = holyDayInfo?.endTime?.let { observanceLine(holyDayInfo.exitTerm.ends, time(it)) },
             holyDaySequel = holyDayInfo?.sequel,
-            holyDaySequelHebrew = holyDayInfo?.sequelHebrew,
             fastLeadsHeader = fastLeadsHeader,
         ),
         groups = uiGroups,
@@ -480,51 +448,34 @@ private fun ZmanimDay.toUiState(
     )
 }
 
-private fun ZmanItem.toUiRow(
-    key: String,
-    englishTimeFormatter: DateTimeFormatter,
-    hebrewTimeFormatter: DateTimeFormatter,
-): ZmanimRowUi {
-    val resolvedValueHebrew = valueHebrew ?: time.formatTime(hebrewTimeFormatter)
-    val displayValueHebrew = if (id.isRambamId()) {
-        resolvedValueHebrew.lines().joinToString("\n", transform = ::rambamLineWithoutHalachot)
-    } else {
-        resolvedValueHebrew
-    }
-    return ZmanimRowUi(
-        key = key,
-        title = title,
-        titleHebrew = titleHebrew,
-        description = description,
-        descriptionHebrew = descriptionHebrew,
-        value = value ?: time.formatTime(englishTimeFormatter),
-        valueHebrew = displayValueHebrew,
-        valueCandidates = rambamValueCandidates(value ?: time.formatTime(englishTimeFormatter), id, chapterWords = listOf("chapters", "chapter")),
-        valueHebrewCandidates = rambamValueCandidates(displayValueHebrew, id, chapterWords = listOf("פרקים", "פרק")),
-    )
-}
-
-/**
- * Rendering candidates for a merged Rambam Yomi value ("פרק אחד: <ref1>\n3 פרקים: <ref2>"). The
- * "פרק אחד"/"3 פרקים" labels are always kept; the only variation offered is dropping the inner
- * "פרק"/"chapter" word from the references so the (still two-line) bubble is narrow enough to sit
- * beside the title when the halacha names are short. The row places whichever candidate fits beside
- * the title there, and stacks the full one below only when neither fits.
- */
-private fun rambamValueCandidates(value: String, id: String?, chapterWords: List<String>): List<String> {
-    if (!id.isRambamId()) return emptyList()
-    val lines = value.lines().map { rambamPrefixAndReference(it) }
-    val full = lines.joinToString("\n") { (label, reference) -> label + reference }
-    val abbreviated = lines.joinToString("\n") { (label, reference) -> label + abbreviateRambamReference(reference, chapterWords) }
-    return listOf(full, abbreviated).distinct()
-}
-
 private fun String?.isRambamId(): Boolean =
     this == DailyLearningType.RambamYomi.storageValue || this == DailyLearningType.RambamYomiThreeChapters.storageValue
 
-private fun rambamLineWithoutHalachot(line: String): String {
-    val (label, reference) = rambamPrefixAndReference(line)
-    return label + reference.removePrefix("הלכות ").trimStart()
+/** One line of an observance card: what the time is, then the time — "צאת חג שני 19:20". */
+private fun observanceLine(label: Int, time: UiText): UiText = uiText(R.string.observance_line, uiText(label), time)
+
+/** How a Rambam Yomi row reads once worded: the value it shows, and the forms of it that may fit. */
+data class RambamRowText(val value: String, val candidates: List<String>)
+
+/**
+ * A worded Rambam Yomi value as its row shows it ("פרק אחד: <ref1>\n3 פרקים: <ref2>" when both
+ * tracks share the row), with the forms the row may place beside its title. The "פרק אחד"/"3 פרקים"
+ * labels are always kept; the only variation offered is dropping the inner "פרק"/"chapter" word from
+ * the references so the (still two-line) bubble is narrow enough to sit beside the title when the
+ * halacha names are short. The row places whichever candidate fits beside the title there, and stacks
+ * the full one below only when neither fits.
+ */
+fun rambamRowText(value: String, language: LanguageFormatter): RambamRowText {
+    val display = value.lines().joinToString("\n") { line ->
+        val (label, reference) = rambamPrefixAndReference(line)
+        label + language.rambamRowReference(reference)
+    }
+    val lines = display.lines().map { rambamPrefixAndReference(it) }
+    val full = lines.joinToString("\n") { (label, reference) -> label + reference }
+    val abbreviated = lines.joinToString("\n") { (label, reference) ->
+        label + abbreviateRambamReference(reference, language.rambamChapterWords)
+    }
+    return RambamRowText(display, listOf(full, abbreviated).distinct())
 }
 
 /** Splits a Rambam line into its "פרק אחד: "/"3 פרקים: " label (empty when unmerged) and reference. */
@@ -547,12 +498,6 @@ private fun abbreviateRambamReference(reference: String, chapterWords: List<Stri
     }
     return result.replace(Regex("\\s+"), " ").trim()
 }
-
-private fun Instant?.formatTime(formatter: DateTimeFormatter): String = this?.let(formatter::format) ?: "--"
-
-/** One line of an observance card: what the time is, then the time — "צאת חג שני 19:20". */
-private fun observanceLine(label: String, time: Instant, formatter: DateTimeFormatter): String =
-    "$label ${formatter.format(time)}"
 
 /** A year either way is plenty for looking something up, and keeps the stepper from running off. */
 private const val MaxDayOffset = 365

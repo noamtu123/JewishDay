@@ -54,9 +54,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.unit.LayoutDirection
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -83,6 +80,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.i18n.ProvideTextResolver
 import com.noamtu.jewishday.feature.about.AboutScreen
 import com.noamtu.jewishday.feature.developer.DeveloperScreen
 import com.noamtu.jewishday.feature.mizrach.MizrachScreen
@@ -95,16 +93,14 @@ import com.noamtu.jewishday.update.AppUpdateViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun JewishDayApp(useHebrewInterface: Boolean = false) {
-    val layoutDirection = if (useHebrewInterface) LayoutDirection.Rtl else LayoutDirection.Ltr
-    CompositionLocalProvider(
-        LocalUseHebrewInterface provides useHebrewInterface,
-        LocalLayoutDirection provides layoutDirection,
-    ) {
+fun JewishDayApp() {
+    // The activity is already in the app's language — strings, layout direction and all — so all
+    // that is left is a resolver for the text the view models describe.
+    ProvideTextResolver {
         // Shared deliberately: the banner in the scaffold and the dialog below are two views of
         // one update, so they must be looking at the same state.
         val updateViewModel: AppUpdateViewModel = hiltViewModel()
-        JewishDayNavHost(useHebrewInterface = useHebrewInterface, updateViewModel = updateViewModel)
+        JewishDayNavHost(updateViewModel = updateViewModel)
         // The two flows share the system permission dialog, which can only show one at a time.
         // Ask for location first; only once that's settled do we ask for notifications.
         var locationSettled by remember { mutableStateOf(false) }
@@ -230,7 +226,7 @@ private fun GlassThemeNotice(
         ) {
             Column(modifier = Modifier.padding(start = 20.dp, top = 16.dp, end = 8.dp, bottom = 4.dp)) {
                 Text(
-                    localizedString(R.string.glass_theme_notice_body, R.string.glass_theme_notice_body_hebrew),
+                    stringResource(R.string.glass_theme_notice_body),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(end = 12.dp),
@@ -239,7 +235,7 @@ private fun GlassThemeNotice(
                     onClick = viewModel::dismiss,
                     modifier = Modifier.align(Alignment.End),
                 ) {
-                    Text(localizedString(R.string.glass_theme_notice_ok, R.string.glass_theme_notice_ok_hebrew))
+                    Text(stringResource(R.string.glass_theme_notice_ok))
                 }
             }
         }
@@ -400,9 +396,9 @@ private fun LocationPromptDialog(
         title = {
             Text(
                 text = if (isPermission) {
-                    localizedString(R.string.location_prompt_permission_title, R.string.location_prompt_permission_title_hebrew)
+                    stringResource(R.string.location_prompt_permission_title)
                 } else {
-                    localizedString(R.string.location_prompt_services_title, R.string.location_prompt_services_title_hebrew)
+                    stringResource(R.string.location_prompt_services_title)
                 },
                 textAlign = TextAlign.Center,
             )
@@ -410,9 +406,9 @@ private fun LocationPromptDialog(
         text = {
             Text(
                 text = if (isPermission) {
-                    localizedString(R.string.location_prompt_permission_body, R.string.location_prompt_permission_body_hebrew)
+                    stringResource(R.string.location_prompt_permission_body)
                 } else {
-                    localizedString(R.string.location_prompt_services_body, R.string.location_prompt_services_body_hebrew)
+                    stringResource(R.string.location_prompt_services_body)
                 },
                 textAlign = TextAlign.Center,
             )
@@ -426,17 +422,17 @@ private fun LocationPromptDialog(
                 Button(onClick = onAllow, modifier = Modifier.fillMaxWidth()) {
                     Text(
                         if (isPermission) {
-                            localizedString(R.string.location_prompt_grant, R.string.location_prompt_grant_hebrew)
+                            stringResource(R.string.location_prompt_grant)
                         } else {
-                            localizedString(R.string.location_prompt_turn_on, R.string.location_prompt_turn_on_hebrew)
+                            stringResource(R.string.location_prompt_turn_on)
                         },
                     )
                 }
                 TextButton(onClick = onUseJerusalemOnce, modifier = Modifier.fillMaxWidth()) {
-                    Text(localizedString(R.string.location_prompt_jerusalem_once, R.string.location_prompt_jerusalem_once_hebrew))
+                    Text(stringResource(R.string.location_prompt_jerusalem_once))
                 }
                 TextButton(onClick = onUseJerusalemAlways, modifier = Modifier.fillMaxWidth()) {
-                    Text(localizedString(R.string.location_prompt_jerusalem_always, R.string.location_prompt_jerusalem_always_hebrew))
+                    Text(stringResource(R.string.location_prompt_jerusalem_always))
                 }
             }
         },
@@ -467,7 +463,7 @@ private fun android.content.Context.openAppSettings() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUpdateViewModel) {
+private fun JewishDayNavHost(updateViewModel: AppUpdateViewModel) {
     val navController = rememberNavController()
     val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -490,7 +486,6 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUp
             if (useNavigationRail) {
                 AppNavigationRail(
                     currentDestination = currentDestination,
-                    useHebrewInterface = useHebrewInterface,
                     onDestinationClick = navController::navigateTopLevelTo,
                 )
             }
@@ -499,24 +494,24 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUp
                 containerColor = chromeColor,
                 topBar = {
                     CenterAlignedTopAppBar(
-                        title = { Text(stringResource(currentAppDestination.labelRes(useHebrewInterface))) },
+                        title = { Text(stringResource(currentAppDestination.labelRes)) },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = chromeColor,
                             scrolledContainerColor = chromeColor,
                         ),
                         actions = {
-                            val reportLabel = localizedString(R.string.report_issue, R.string.report_issue_hebrew)
+                            val reportLabel = stringResource(R.string.report_issue)
                             IconButton(onClick = { context.openFeedbackEmail() }) {
                                 Icon(ImageVector.vectorResource(R.drawable.ic_bug_report), contentDescription = reportLabel)
                             }
                             if (currentAppDestination != AppDestination.Settings) {
-                                val settingsLabel = stringResource(AppDestination.Settings.labelRes(useHebrewInterface))
+                                val settingsLabel = stringResource(AppDestination.Settings.labelRes)
                                 IconButton(onClick = { navController.navigateSecondaryTo(AppDestination.Settings.route) }) {
                                     Icon(ImageVector.vectorResource(AppDestination.Settings.icon), contentDescription = settingsLabel)
                                 }
                             }
                             if (currentAppDestination != AppDestination.About) {
-                                val aboutLabel = stringResource(AppDestination.About.labelRes(useHebrewInterface))
+                                val aboutLabel = stringResource(AppDestination.About.labelRes)
                                 IconButton(onClick = { navController.navigateSecondaryTo(AppDestination.About.route) }) {
                                     Icon(ImageVector.vectorResource(AppDestination.About.icon), contentDescription = aboutLabel)
                                 }
@@ -528,7 +523,6 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUp
                     if (!useNavigationRail) {
                         AppNavigationBar(
                             currentDestination = currentDestination,
-                            useHebrewInterface = useHebrewInterface,
                             onDestinationClick = navController::navigateTopLevelTo,
                         )
                     }
@@ -582,17 +576,16 @@ private fun android.content.Context.openFeedbackEmail() {
 @Composable
 private fun AppNavigationBar(
     currentDestination: NavDestination?,
-    useHebrewInterface: Boolean,
     onDestinationClick: (String) -> Unit,
 ) {
     if (LocalGlassTheme.current) {
-        GlassNavigationPill(currentDestination, useHebrewInterface, onDestinationClick)
+        GlassNavigationPill(currentDestination, onDestinationClick)
         return
     }
     NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
         AppDestination.bottomBarDestinations.forEach { destination ->
             val selected = currentDestination.isSelected(destination)
-            val label = stringResource(destination.labelRes(useHebrewInterface))
+            val label = stringResource(destination.labelRes)
             NavigationBarItem(
                 selected = selected,
                 onClick = { onDestinationClick(destination.route) },
@@ -606,13 +599,12 @@ private fun AppNavigationBar(
 @Composable
 private fun AppNavigationRail(
     currentDestination: NavDestination?,
-    useHebrewInterface: Boolean,
     onDestinationClick: (String) -> Unit,
 ) {
     NavigationRail(containerColor = if (LocalGlassTheme.current) LocalGlassStyle.current.bar else MaterialTheme.colorScheme.surface) {
         AppDestination.bottomBarDestinations.forEach { destination ->
             val selected = currentDestination.isSelected(destination)
-            val label = stringResource(destination.labelRes(useHebrewInterface))
+            val label = stringResource(destination.labelRes)
             NavigationRailItem(
                 selected = selected,
                 onClick = { onDestinationClick(destination.route) },
@@ -625,9 +617,6 @@ private fun AppNavigationRail(
 
 private fun NavDestination?.isSelected(destination: AppDestination): Boolean =
     this?.hierarchy?.any { it.route == destination.route } == true
-
-private fun AppDestination.labelRes(useHebrewInterface: Boolean): Int =
-    if (useHebrewInterface) hebrewLabelRes else labelRes
 
 private fun NavHostController.navigateTopLevelTo(route: String) {
     navigate(route) {
@@ -649,7 +638,6 @@ private fun NavHostController.navigateSecondaryTo(route: String) {
 @Composable
 private fun GlassNavigationPill(
     currentDestination: NavDestination?,
-    useHebrewInterface: Boolean,
     onDestinationClick: (String) -> Unit,
 ) {
     val glass = LocalGlassStyle.current
@@ -670,7 +658,7 @@ private fun GlassNavigationPill(
         ) {
             AppDestination.bottomBarDestinations.forEach { destination ->
                 val selected = currentDestination.isSelected(destination)
-                val label = stringResource(destination.labelRes(useHebrewInterface))
+                val label = stringResource(destination.labelRes)
                 val contentColor = if (selected) glass.onSelected else MaterialTheme.colorScheme.onSurface
                 Row(
                     modifier = Modifier

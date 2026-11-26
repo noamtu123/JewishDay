@@ -1,236 +1,637 @@
-<resources>
-    <string name="app_name">JewishDay</string>
-    <string name="nav_zmanim">Zmanim</string>
-    <string name="nav_zmanim_hebrew">זמנים</string>
-    <string name="nav_mizrach">Prayer Compass</string>
-    <string name="nav_mizrach_hebrew">מצפן תפילה</string>
-    <string name="nav_settings">Settings</string>
-    <string name="nav_settings_hebrew">הגדרות</string>
-    <string name="nav_about">About</string>
-    <string name="nav_about_hebrew">אודות</string>
-    <string name="nav_developer">Developer</string>
-    <string name="nav_developer_hebrew">מפתח</string>
-    <string name="report_issue">Report bug or request feature</string>
-    <string name="report_issue_hebrew">דיווח באג או בקשת פיצ׳ר</string>
-    <string name="zmanim_developer_time_override">Developer time override is on — every time here is simulated, not the real one. Turn it off in About → Developer tools.</string>
-    <string name="zmanim_developer_time_override_hebrew">עקיפת הזמן של כלי המפתחים פעילה — כל הזמנים כאן מדומים ואינם אמיתיים. יש לכבות אותה באודות ← כלי מפתחים.</string>
-    <string name="zmanim_candle_prompt_question">How many minutes before sunset do you welcome Shabbat?</string>
-    <string name="zmanim_candle_prompt_question_hebrew">כמה דקות לפני שקיעה אתה מקבל שבת?</string>
-    <string name="zmanim_candle_prompt_choose">Choose</string>
-    <string name="zmanim_candle_prompt_choose_hebrew">בחר</string>
-    <string name="zmanim_candle_prompt_title">Welcome Shabbat</string>
-    <string name="zmanim_candle_prompt_title_hebrew">קבלת שבת</string>
-    <string name="zmanim_candle_prompt_body">Choose how many minutes before sunset:</string>
-    <string name="zmanim_candle_prompt_body_hebrew">בחר כמה דקות לפני שקיעה:</string>
-    <string name="zmanim_candle_prompt_minutes">%1$d minutes</string>
-    <string name="zmanim_candle_prompt_minutes_hebrew">%1$d דקות</string>
-    <string name="zmanim_candle_prompt_custom">Custom</string>
-    <string name="zmanim_candle_prompt_custom_hebrew">מותאם אישית</string>
-    <string name="zmanim_candle_prompt_save">Save</string>
-    <string name="zmanim_candle_prompt_save_hebrew">שמירה</string>
-    <string name="zmanim_day_today">Today</string>
-    <string name="zmanim_day_today_hebrew">היום</string>
-    <string name="zmanim_day_back_to_today">Back to today</string>
-    <string name="zmanim_day_back_to_today_hebrew">חזרה להיום</string>
-    <string name="zmanim_day_previous">Previous day</string>
-    <string name="zmanim_day_previous_hebrew">יום קודם</string>
-    <string name="zmanim_day_next">Next day</string>
-    <string name="zmanim_day_next_hebrew">יום הבא</string>
-    <string name="zmanim_loading">Calculating zmanim</string>
-    <string name="zmanim_loading_hebrew">מחשב זמנים</string>
-    <string name="mizrach_from">From %1$s</string>
-    <string name="mizrach_from_hebrew">מ־%1$s</string>
-    <string name="mizrach_from_current">From your current location</string>
-    <string name="mizrach_from_current_hebrew">מהמיקום הנוכחי</string>
-    <string name="mizrach_from_jerusalem">From Jerusalem</string>
-    <string name="mizrach_from_jerusalem_hebrew">מירושלים</string>
-    <string name="zmanim_location_jerusalem">Times based on Jerusalem</string>
-    <string name="zmanim_location_jerusalem_hebrew">הזמנים מבוססים על ירושלים</string>
-    <string name="zmanim_location_named">Times based on %1$s</string>
-    <string name="zmanim_location_named_hebrew">הזמנים מבוססים על %1$s</string>
-    <string name="mizrach_degrees">%1$d°</string>
-    <string name="mizrach_need_location">Allow location so Prayer Compass can calculate from where you are now.</string>
-    <string name="mizrach_need_location_hebrew">יש לאפשר מיקום כדי לחשב את הכיוון לקודש הקודשים מהמקום הנוכחי.</string>
-    <string name="mizrach_allow_location">Allow location</string>
-    <string name="mizrach_allow_location_hebrew">אפשר מיקום</string>
-    <string name="mizrach_waiting_location">Waiting for current location…</string>
-    <string name="mizrach_waiting_location_hebrew">ממתין למיקום הנוכחי…</string>
-    <string name="mizrach_location_accuracy_low">Location accuracy is too low for confident alignment. Try again for a better fix.</string>
-    <string name="mizrach_location_accuracy_low_hebrew">דיוק המיקום נמוך מדי לכיוון ודאי. נסה שוב לקבלת מיקום מדויק יותר.</string>
-    <string name="mizrach_precise_location_required">Precise location is required for confident alignment.</string>
-    <string name="mizrach_precise_location_required_hebrew">נדרש מיקום מדויק לכיוון ודאי.</string>
-    <string name="mizrach_allow_precise_location">Allow precise location</string>
-    <string name="mizrach_allow_precise_location_hebrew">אפשר מיקום מדויק</string>
-    <string name="mizrach_developer_location_compass">Live alignment is disabled while using a developer location override.</string>
-    <string name="mizrach_developer_location_compass_hebrew">הכיוון החי מושבת בעת שימוש במיקום מפתחים חלופי.</string>
-    <string name="mizrach_retry_location">Try location again</string>
-    <string name="mizrach_retry_location_hebrew">נסה שוב את המיקום</string>
-    <string name="mizrach_location_off">Location is turned off. Turn it on so Prayer Compass can find where you are now.</string>
-    <string name="mizrach_location_off_hebrew">המיקום כבוי. יש להפעיל אותו כדי שהמצפן יוכל למצוא את המקום הנוכחי.</string>
-    <string name="mizrach_turn_on_location">Turn on location</string>
-    <string name="mizrach_turn_on_location_hebrew">הפעל מיקום</string>
-    <string name="mizrach_heading_unavailable">Waiting for the compass sensor…</string>
-    <string name="mizrach_heading_unavailable_hebrew">ממתין לחיישן המצפן…</string>
-    <string name="mizrach_no_compass_sensor">This device has no compass sensor, so the needle shows the bearing as if the phone were facing north.</string>
-    <string name="mizrach_no_compass_sensor_hebrew">במכשיר זה אין חיישן מצפן, ולכן המחט מציגה את הכיוון כאילו הטלפון פונה צפונה.</string>
-    <string name="mizrach_toward_jerusalem">toward Kodesh HaKodashim</string>
-    <string name="mizrach_toward_jerusalem_hebrew">לכיוון קודש הקודשים</string>
-    <string name="mizrach_distance_km">%1$d km away</string>
-    <string name="mizrach_distance_km_hebrew">%1$d ק״מ מקודש הקודשים</string>
-    <string name="mizrach_compass_dial_description">Compass dial. Kodesh HaKodashim is at %1$d degrees from true north.</string>
-    <string name="mizrach_compass_dial_description_hebrew">חוגת המצפן. קודש הקודשים נמצא ב־%1$d מעלות מצפון האמיתי.</string>
-    <string name="mizrach_compass_caption">Hold the phone flat or upright. The needle shows the direction to Kodesh HaKodashim.</string>
-    <string name="mizrach_compass_caption_hebrew">החזק את הטלפון במאוזן או במאונך. המחט מצביעה לכיוון קודש הקודשים.</string>
-    <string name="mizrach_figure_eight_tip">For better accuracy, wave the phone in a figure-eight a few times.</string>
-    <string name="mizrach_figure_eight_tip_hebrew">לשיפור הדיוק מומלץ לנענע את הטלפון כמה פעמים בתנועה של הספרה שמונה.</string>
-    <string name="mizrach_compass_accuracy_low">Compass accuracy is low. Move the phone in a figure-eight and keep it away from magnets.</string>
-    <string name="mizrach_compass_accuracy_low_hebrew">דיוק המצפן נמוך. הזז את הטלפון בצורת שמונה והרחק אותו ממגנטים.</string>
-    <string name="mizrach_compass_unreliable">Compass is unreliable right now — a magnet is likely interfering. Move the phone in a figure-eight and keep it away from magnets.</string>
-    <string name="mizrach_compass_unreliable_hebrew">המצפן אינו אמין כרגע — כנראה שמגנט מפריע. הזז את הטלפון בצורת שמונה והרחק אותו ממגנטים.</string>
-    <string name="mizrach_compass_low_confidence">Compass reading is approximate right now.</string>
-    <string name="mizrach_compass_low_confidence_hebrew">קריאת המצפן משוערת כרגע.</string>
-    <string name="mizrach_aligned">Facing Kodesh HaKodashim</string>
-    <string name="mizrach_aligned_hebrew">מכוון לקודש הקודשים</string>
-    <string name="mizrach_turn_left">Turn left</string>
-    <string name="mizrach_turn_left_hebrew">פנה שמאלה</string>
-    <string name="mizrach_turn_right">Turn right</string>
-    <string name="mizrach_turn_right_hebrew">פנה ימינה</string>
-    <string name="update_available_title">Update available</string>
-    <string name="update_available_title_hebrew">קיים עדכון</string>
-    <string name="update_downloading_title">Downloading</string>
-    <string name="update_downloading_title_hebrew">מוריד</string>
-    <string name="update_installing_title">Installing</string>
-    <string name="update_installing_title_hebrew">מתקין</string>
-    <string name="update_installing_body">Confirm the installation when Android asks.</string>
-    <string name="update_installing_body_hebrew">יש לאשר את ההתקנה כשאנדרואיד מבקש.</string>
-    <string name="update_downgrade_body">This is the latest stable release, and it is an earlier build than the test version you are running. Installing it takes you back to it.</string>
-    <string name="update_downgrade_body_hebrew">זו הגרסה היציבה האחרונה, והיא מוקדמת יותר מגרסת הבדיקה שמותקנת אצלך. התקנתה תחזיר אותך אליה.</string>
-    <string name="update_failed_title">Update failed</string>
-    <string name="update_failed_title_hebrew">העדכון נכשל</string>
-    <string name="update_failed_body">The update could not be installed. You can try again.</string>
-    <string name="update_failed_body_hebrew">לא הצלחנו להתקין את העדכון. אפשר לנסות שוב.</string>
-    <string name="update_permission_title">Allow installing updates</string>
-    <string name="update_permission_title_hebrew">אישור להתקנת עדכונים</string>
-    <string name="update_permission_body">Android needs your permission for JewishDay to install its own updates.</string>
-    <string name="update_permission_body_hebrew">אנדרואיד צריך את אישורך כדי ש-JewishDay יתקין עדכונים בעצמו.</string>
-    <string name="update_action_download">Update</string>
-    <string name="update_action_download_hebrew">עדכון</string>
-    <string name="update_action_retry">Try again</string>
-    <string name="update_action_retry_hebrew">ניסיון נוסף</string>
-    <string name="update_action_open_settings">Open settings</string>
-    <string name="update_action_open_settings_hebrew">פתיחת ההגדרות</string>
-    <string name="update_action_later">Later</string>
-    <string name="update_action_later_hebrew">אחר כך</string>
-    <string name="update_action_close">Close</string>
-    <string name="update_action_close_hebrew">סגירה</string>
-    <string name="update_size">%1$s MB</string>
-    <string name="update_size_hebrew">%1$s מ״ב</string>
-    <string name="update_progress_detail">%1$s MB of %2$s MB · %3$d%%</string>
-    <string name="update_progress_detail_hebrew">%1$s מתוך %2$s מ״ב · %3$d%%</string>
-    <string name="update_progress_downloaded">%1$s MB downloaded</string>
-    <string name="update_progress_downloaded_hebrew">ירדו %1$s מ״ב</string>
-    <string name="update_banner_title">Update available</string>
-    <string name="update_banner_title_hebrew">קיים עדכון</string>
-    <string name="update_banner_subtitle">A new version is ready to install</string>
-    <string name="update_banner_subtitle_hebrew">גרסה חדשה מוכנה להתקנה</string>
-    <string name="update_notes_title">What\'s new</string>
-    <string name="update_notes_title_hebrew">מה חדש</string>
-    <string name="location_prompt_permission_title">Allow location</string>
-    <string name="location_prompt_permission_title_hebrew">אישור מיקום</string>
-    <string name="location_prompt_permission_body">JewishDay uses your location for accurate zmanim and the prayer compass. Without it, times are calculated for Jerusalem.</string>
-    <string name="location_prompt_permission_body_hebrew">האפליקציה משתמשת במיקום שלך לזמנים מדויקים ולמצפן התפילה. בלעדיו, הזמנים מחושבים לפי ירושלים.</string>
-    <string name="location_prompt_services_title">Turn on location</string>
-    <string name="location_prompt_services_title_hebrew">הפעלת מיקום</string>
-    <string name="location_prompt_services_body">Location is turned off. Turn it on for accurate zmanim and the prayer compass. Until then, times are calculated for Jerusalem.</string>
-    <string name="location_prompt_services_body_hebrew">המיקום כבוי. יש להפעיל אותו לזמנים מדויקים ולמצפן התפילה. עד אז, הזמנים מחושבים לפי ירושלים.</string>
-    <string name="location_prompt_grant">Grant permission</string>
-    <string name="location_prompt_grant_hebrew">אפשר גישה למיקום</string>
-    <string name="location_prompt_turn_on">Turn on location</string>
-    <string name="location_prompt_turn_on_hebrew">הפעל מיקום</string>
-    <string name="location_prompt_jerusalem_once">Use Jerusalem this time</string>
-    <string name="location_prompt_jerusalem_once_hebrew">השתמש בירושלים הפעם</string>
-    <string name="location_prompt_jerusalem_always">Always use Jerusalem</string>
-    <string name="location_prompt_jerusalem_always_hebrew">השתמש תמיד בירושלים</string>
-    <string name="settings_zmanim_options">Zmanim calculation methods and zmanim to show</string>
-    <string name="settings_zmanim_options_hebrew">שיטות חישוב זמנים וזמנים להצגה</string>
-    <string name="settings_advanced_zmanim">Detailed Calculation Methods</string>
-    <string name="settings_advanced_zmanim_hebrew">שיטות חישוב מפורטות</string>
-    <string name="settings_advanced_zmanim_description">Choose the exact halachic method for each displayed zman.</string>
-    <string name="settings_advanced_zmanim_description_hebrew">בחר את שיטת ההלכה המדויקת לכל זמן מוצג.</string>
-    <string name="settings_reset">Reset</string>
-    <string name="settings_reset_hebrew">איפוס</string>
-    <string name="settings_daily_learning_section">Daily learning to show</string>
-    <string name="settings_daily_learning_section_hebrew">לימוד יומי להצגה</string>
-    <string name="settings_daily_learning_section_description">Choose which daily-study tracks appear on the Zmanim tab.</string>
-    <string name="settings_daily_learning_section_description_hebrew">בחרו אילו מסלולי לימוד יומי יוצגו בלשונית הזמנים.</string>
-    <string name="settings_zmanim_times_section">Zmanim to show</string>
-    <string name="settings_zmanim_times_section_hebrew">זמנים להצגה</string>
-    <string name="settings_zmanim_times_section_description">Choose which times appear in the Zmanim list.</string>
-    <string name="settings_zmanim_times_section_description_hebrew">בחרו אילו זמנים יופיעו ברשימת הזמנים.</string>
-    <string name="settings_cancel">Cancel</string>
-    <string name="settings_cancel_hebrew">ביטול</string>
-    <string name="settings_summary">Keep the daily view focused and personal.</string>
-    <string name="settings_summary_hebrew">התאם את התצוגה היומית לצרכים שלך.</string>
-    <string name="settings_hebrew_status_icon">Hebrew date notification</string>
-    <string name="settings_hebrew_status_icon_hebrew">התראת תאריך עברי</string>
-    <string name="settings_hebrew_status_icon_description">Show the Hebrew day as a persistent notification icon.</string>
-    <string name="settings_hebrew_status_icon_description_hebrew">הצג את היום העברי כסמל התראה קבוע.</string>
-    <string name="settings_add_widget">Add widget to home screen</string>
-    <string name="settings_add_widget_hebrew">הוספת ווידג׳ט למסך הבית</string>
-    <string name="settings_add_widget_description">Choose a widget and place it on your home screen.</string>
-    <string name="settings_add_widget_description_hebrew">בחירת ווידג׳ט והצבתו במסך הבית.</string>
-    <string name="settings_language">Language</string>
-    <string name="settings_language_description">Interface language for the app’s navigation and labels.</string>
-    <string name="settings_12_hour_format">12-hour format</string>
-    <string name="settings_12_hour_format_hebrew">פורמט 12 שעות</string>
-    <string name="settings_12_hour_format_description">Show Zmanim as 6:45 AM. Off keeps 24-hour format.</string>
-    <string name="settings_12_hour_format_description_hebrew">הצג זמנים כמו 6:45 AM. כבוי משאיר פורמט 24 שעות.</string>
-    <string name="settings_prereleases">Test versions</string>
-    <string name="settings_prereleases_hebrew">גרסאות בדיקה</string>
-    <string name="settings_prereleases_description">Also offer pre-releases, before they go out to everyone. They may be unfinished.</string>
-    <string name="settings_prereleases_description_hebrew">הצע גם גרסאות טרום־שחרור, לפני שהן יוצאות לכולם. ייתכן שהן אינן גמורות.</string>
-    <string name="update_notes_new">New</string>
-    <string name="update_notes_new_hebrew">חדש</string>
-    <string name="update_notes_improved">Improved</string>
-    <string name="update_notes_improved_hebrew">שיפורים</string>
-    <string name="update_notes_fixed">Fixed</string>
-    <string name="update_notes_fixed_hebrew">תיקונים</string>
-    <string name="settings_prereleases_installed_note">Installed: %1$s. Turn off to return to stable.</string>
-    <string name="settings_prereleases_installed_note_hebrew">מותקנת: \u2066%1$s\u2069. כיבוי מחזיר לגרסה היציבה.</string>
-    <string name="settings_theme">Theme</string>
-    <string name="settings_theme_hebrew">ערכת נושא</string>
-    <string name="theme_olive_grove">Olive grove</string>
-    <string name="theme_olive_grove_hebrew">חורשת זיתים</string>
-    <string name="theme_blue_white">Blue-white</string>
-    <string name="theme_blue_white_hebrew">כחול־לבן</string>
-    <string name="theme_jerusalem_stone">Jerusalem stone</string>
-    <string name="theme_jerusalem_stone_hebrew">אבן ירושלמית</string>
-    <string name="theme_midnight">Midnight blue</string>
-    <string name="theme_midnight_hebrew">כחול חצות</string>
-    <string name="theme_sand">Desert sand</string>
-    <string name="theme_sand_hebrew">חול מדברי</string>
-    <string name="theme_slate">Slate gray</string>
-    <string name="theme_slate_hebrew">אפור צפחה</string>
-    <string name="theme_amoled_black">AMOLED black</string>
-    <string name="theme_amoled_black_hebrew">שחור AMOLED</string>
-    <string name="theme_glass">Glassy sky</string>
-    <string name="theme_glass_hebrew">שמי זכוכית</string>
-    <string name="glass_theme_notice_body">The app has moved to a new theme called Glassy sky. You can go back to your previous one, or pick another, in Settings → Theme.</string>
-    <string name="glass_theme_notice_body_hebrew">האפליקציה עברה לערכת נושא חדשה בשם שמי זכוכית. אפשר לחזור לקודמת או לבחור אחרת בהגדרות ← ערכת נושא.</string>
-    <string name="glass_theme_notice_ok">OK</string>
-    <string name="glass_theme_notice_ok_hebrew">הבנתי</string>
-    <string name="settings_language_hebrew">שפה</string>
-    <string name="settings_language_description_hebrew">שפת הממשק לניווט ולתוויות האפליקציה.</string>
-    <string name="about_tagline">A modern Jewish companion app.</string>
-    <string name="about_tagline_hebrew">אפליקציית עזר יהודית מודרנית.</string>
-    <string name="about_body">I made JewishDay for myself first — the Jewish companion I always wanted but couldn\'t find: modern and uncluttered, with the Hebrew date, zmanim, daily learning, and a compass to Jerusalem all in one place. My favorite touch is the notification that keeps today\'s Hebrew date in your status bar, always a glance away.\n\nAnd it\'s my small statement about how apps should be made: fully open source, transparent, and free for anyone to use, study, and build on (GPL-3.0). This is the app I wish every app was.</string>
-    <string name="about_body_hebrew">בניתי את האפליקציה קודם כל בשביל עצמי — האפליקציה היהודית שתמיד רציתי ולא מצאתי: מודרנית ומינימליסטית, עם תאריך עברי, זמנים, לימוד יומי, ומצפן לירושלים — הכול במקום אחד. מה שאני הכי אוהב בה הוא ההתראה שמציגה את התאריך העברי של היום בראש המסך, תמיד במרחק הצצה.\n\nוזו גם אמירה קטנה שלי על איך אפליקציות צריכות להיות: קוד פתוח לחלוטין, שקופות, וחופשיות לכל אחד לשימוש, ללמידה ולבנייה עליהן (GPL-3.0). זו האפליקציה שהלוואי שכל אפליקציה הייתה כמוה.</string>
-    <string name="about_version">Version %1$s</string>
-    <string name="about_version_hebrew">גרסה \u2066%1$s\u2069</string>
-    <string name="about_github">View source on GitHub</string>
-    <string name="about_github_hebrew">צפייה בקוד המקור ב‑GitHub</string>
-    <string name="about_email">Contact by email</string>
-    <string name="about_email_hebrew">צרו קשר באימייל</string>
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English: the source language. Every other language translates this file in its own
+  values-<code> folder (Hebrew is values-iw). Each string carries a comment saying where it
+  appears and what it means; please keep them when editing. See TRANSLATING.md.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ==== App ==== -->
+    <!-- The app's name. A brand: never translated. -->
+    <string name="app_name" translatable="false">JewishDay</string>
+    <!-- Name of the notification channel for the Hebrew-date status-bar icon, shown in the phone's notification settings for the app. -->
     <string name="notification_channel_date_status_icon">Date status icons</string>
+    <!-- Description of that notification channel, shown under its name in the phone's notification settings. -->
     <string name="notification_channel_date_status_icon_description">Persistent Hebrew date icon</string>
+
+    <!-- ==== Navigation ==== -->
+    <!-- Bottom tab and screen title: the daily zmanim (halachic times) screen. -->
+    <string name="nav_zmanim">Zmanim</string>
+    <!-- Bottom tab and screen title: the compass that points toward Jerusalem for prayer. -->
+    <string name="nav_mizrach">Prayer Compass</string>
+    <!-- Screen title and menu item: Settings. -->
+    <string name="nav_settings">Settings</string>
+    <!-- Screen title and menu item: About the app. -->
+    <string name="nav_about">About</string>
+    <!-- Screen title of the hidden developer tools. -->
+    <string name="nav_developer">Developer</string>
+    <!-- Menu item that opens an email to the developer. -->
+    <string name="report_issue">Report bug or request feature</string>
+
+    <!-- ==== Zmanim screen ==== -->
+    <!-- Warning banner at the top of the zmanim screen while the hidden developer clock is faking the time. -->
+    <string name="zmanim_developer_time_override">Developer time override is on — every time here is simulated, not the real one. Turn it off in About → Developer tools.</string>
+    <!-- First-launch question on the zmanim screen: how many minutes before sunset the user lights candles / accepts Shabbat. -->
+    <string name="zmanim_candle_prompt_question">How many minutes before sunset do you welcome Shabbat?</string>
+    <!-- Button under that question that opens the choices. -->
+    <string name="zmanim_candle_prompt_choose">Choose</string>
+    <!-- Title of the dialog with the candle-lighting choices. -->
+    <string name="zmanim_candle_prompt_title">Welcome Shabbat</string>
+    <!-- Text in that dialog, above the 20 / 30 / 40 / custom choices. -->
+    <string name="zmanim_candle_prompt_body">Choose how many minutes before sunset:</string>
+    <!-- Choice in that dialog for typing in another number of minutes. -->
+    <string name="zmanim_candle_prompt_custom">Custom</string>
+    <!-- Button that saves the typed-in number of minutes. -->
+    <string name="zmanim_candle_prompt_save">Save</string>
+    <!-- Label of the day switcher on the zmanim screen when today is shown. -->
+    <string name="zmanim_day_today">Today</string>
+    <!-- Button in the day switcher that jumps back to today from another day. -->
+    <string name="zmanim_day_back_to_today">Back to today</string>
+    <!-- Accessibility label of the day switcher's "previous day" arrow. -->
+    <string name="zmanim_day_previous">Previous day</string>
+    <!-- Accessibility label of the day switcher's "next day" arrow. -->
+    <string name="zmanim_day_next">Next day</string>
+    <!-- Shown while the zmanim are being calculated. -->
+    <string name="zmanim_loading">Calculating zmanim</string>
+    <!-- Small red note under the date when the times are calculated for Jerusalem because the location is unknown. -->
+    <string name="zmanim_location_jerusalem">Times based on Jerusalem</string>
+    <!-- Small note under the date naming the place the times were calculated for. %1$s: the place name. -->
+    <string name="zmanim_location_named">Times based on %1$s</string>
+    <!-- The civil date under the Hebrew date in the zmanim header and on widgets. %1$s: the weekday ("Sunday"); %2$s: the day and month (see date_pattern_day_month). -->
+    <string name="header_date">%1$s, %2$s</string>
+    <!-- A java.time date pattern, not text: how a day and month are written, e.g. "October 11". MMMM is the month name, d the day; letters to show as they are go in single quotes (Hebrew writes "11 באוקטובר" as d 'ב'MMMM). -->
+    <string name="date_pattern_day_month">MMMM d</string>
+    <!-- One line of the fast / Shabbat / Yom Tov card in the zmanim header: %1$s what the time is ("Shabbat ends"), %2$s the time ("19:20"). -->
+    <string name="observance_line">%1$s %2$s</string>
+    <!-- Label for the time a fast begins, in the zmanim header and on widgets. -->
+    <string name="fast_starts">Fast starts</string>
+    <!-- Label for the time a fast ends, in the zmanim header and on widgets. -->
+    <string name="fast_ends">Fast ends</string>
+
+    <!-- ==== Holy days and fasts ==== -->
+    <!-- Name of the fast day, in the zmanim header chip and on widgets. -->
+    <string name="fast_gedalyah">Fast of Gedalyah</string>
+    <!-- Name of the fast day (9 Av). -->
+    <string name="fast_tisha_bav">Tisha B\'Av</string>
+    <!-- Name of the fast day (17 Tammuz). -->
+    <string name="fast_17_tammuz">17th of Tammuz</string>
+    <!-- Name of the fast day (10 Tevet). -->
+    <string name="fast_10_tevet">10th of Tevet</string>
+    <!-- Name of the fast day before Purim. -->
+    <string name="fast_esther">Fast of Esther</string>
+    <!-- Shabbat, as the name of the day in the zmanim header chip and the Shabbat widget. -->
+    <string name="holy_day_shabbat">Shabbat</string>
+    <!-- A Shabbat that is also a named day, in the header chip. %1$s: that day's name, e.g. "Chol Hamoed Pesach". -->
+    <string name="holy_day_shabbat_named">Shabbat %1$s</string>
+    <!-- A Yom Tov falling on Shabbat — one day that is both — in the header chip. %1$s: the Yom Tov's name, e.g. "Yom Kippur". -->
+    <string name="holy_day_with_shabbat">%1$s &amp; Shabbat</string>
+    <!-- The coming Shabbat named by its weekly Torah portion, in the header chip and on widgets. %1$s: the portion's name. -->
+    <string name="parsha_named">Parashat %1$s</string>
+    <!-- Label for the time Shabbat comes in, in the header card and on widgets. -->
+    <string name="holy_day_starts_shabbat">Shabbat starts</string>
+    <!-- Label for the time Shabbat goes out, in the header card and on widgets. -->
+    <string name="holy_day_ends_shabbat">Shabbat ends</string>
+    <!-- Label for the time a one-day Yom Tov (or its only Yom Tov day) comes in. -->
+    <string name="holy_day_starts_yom_tov">Yom Tov starts</string>
+    <!-- Label for the time a one-day Yom Tov goes out. -->
+    <string name="holy_day_ends_yom_tov">Yom Tov ends</string>
+    <!-- Label for the time the first of two or three Yom Tov days in a row comes in. Starts lower-case in English, as shown. -->
+    <string name="holy_day_starts_first_day">the first day of Yom Tov starts</string>
+    <!-- Label for the time the first of several Yom Tov days in a row goes out (when the stretch ends on it). -->
+    <string name="holy_day_ends_first_day">the first day of Yom Tov ends</string>
+    <!-- Label for the time the second Yom Tov day of a stretch comes in (when the stretch starts on it). -->
+    <string name="holy_day_starts_second_day">the second day of Yom Tov starts</string>
+    <!-- Label for the time the second day of a two-day Yom Tov goes out. -->
+    <string name="holy_day_ends_second_day">the second day of Yom Tov ends</string>
+    <!-- Label for the time the third Yom Tov day of a stretch comes in. -->
+    <string name="holy_day_starts_third_day">the third day of Yom Tov starts</string>
+    <!-- Label for the time the third Yom Tov day of a stretch goes out. -->
+    <string name="holy_day_ends_third_day">the third day of Yom Tov ends</string>
+    <!-- Part of the line under the header card listing what is still ahead in a stretch of holy days, e.g. "Two-day Yom Tov + Shabbat": one Yom Tov day. -->
+    <string name="sequel_yom_tov">Yom Tov</string>
+    <!-- Same line: two Yom Tov days in a row. -->
+    <string name="sequel_two_day_yom_tov">Two-day Yom Tov</string>
+    <!-- Same line: three Yom Tov days in a row. -->
+    <string name="sequel_three_day_yom_tov">Three-day Yom Tov</string>
+    <!-- Same line: Yom Tov days one of which is also Shabbat. %1$s: "Yom Tov" / "Two-day Yom Tov" / "Three-day Yom Tov". -->
+    <string name="sequel_with_shabbat">%1$s and Shabbat</string>
+    <!-- Same line: a Shabbat. -->
+    <string name="sequel_shabbat">Shabbat</string>
+    <!-- Same line: a fast that begins when the holy days end (lower-case in English, as it follows "+"). -->
+    <string name="sequel_fast">fast</string>
+    <!-- Same line: joins one part to the next. The "+" means "and then, back to back". -->
+    <string name="sequel_join">%1$s + %2$s</string>
+
+    <!-- ==== Zmanim (row titles and the "Zmanim to show" list) ==== -->
+    <!-- Section title on the zmanim screen: the day's halachic times. -->
+    <string name="group_zmanim">Zmanim</string>
+    <!-- Section title on the zmanim screen: the coming Shabbat's times. -->
+    <string name="group_shabbat">Shabbat</string>
+    <!-- Section title on the zmanim screen: the daily study schedules. -->
+    <string name="group_daily_learning">Daily Learning</string>
+    <!-- Zman: dawn. Row title on the zmanim screen and widgets, and its settings. -->
+    <string name="zman_alot" tools:ignore="Typos">Alot Hashachar</string>
+    <!-- Zman: the earliest time for tallit and tefillin (misheyakir). -->
+    <string name="zman_tallit_tefillin">Tallit &amp; Tefillin</string>
+    <!-- Zman: sunrise. -->
+    <string name="zman_sunrise">Sunrise</string>
+    <!-- Zman: the latest time for the morning Shema, by the Magen Avraham. -->
+    <string name="zman_shema_mga">Sof Zman Shema (Magen Avraham)</string>
+    <!-- Zman: the latest time for the morning Shema, by the Vilna Gaon (GRA). -->
+    <string name="zman_shema_gra">Sof Zman Shema (GRA)</string>
+    <!-- Shorter zman_shema_mga for the narrow rows of home-screen widgets. Same as zman_shema_mga where nothing shorter is usual. -->
+    <string name="zman_shema_mga_short">Sof Zman Shema (Magen Avraham)</string>
+    <!-- Shorter zman_shema_gra for the narrow rows of home-screen widgets. -->
+    <string name="zman_shema_gra_short">Sof Zman Shema (GRA)</string>
+    <!-- Zman: the latest time for the morning prayer, by the Magen Avraham. -->
+    <string name="zman_tefillah_mga">Sof Zman Tefillah (Magen Avraham)</string>
+    <!-- Zman: the latest time for the morning prayer, by the GRA. -->
+    <string name="zman_tefillah_gra">Sof Zman Tefillah (GRA)</string>
+    <!-- Zman: midday. -->
+    <string name="zman_chatzot_hayom">Chatzot HaYom</string>
+    <!-- Zman: the earliest time for Mincha. -->
+    <string name="zman_mincha_gedola">Mincha Gedola</string>
+    <!-- Zman: mincha ketana. -->
+    <string name="zman_mincha_ketana">Mincha Ketana</string>
+    <!-- Zman: plag hamincha. -->
+    <string name="zman_plag">Plag Hamincha</string>
+    <!-- Zman: sunset. -->
+    <string name="zman_sunset">Sunset</string>
+    <!-- Zman: nightfall (tzeit hakochavim). Row title; the settings row uses settings_method_tzeit. -->
+    <string name="zman_tzeit">Tzeit</string>
+    <!-- Zman: midnight. -->
+    <string name="zman_chatzot_halaila">Chatzot HaLaila</string>
+    <!-- Item in Settings → "Zmanim to show": the Shabbat section's candle-lighting row. -->
+    <string name="zman_option_shabbat_candles">Candle Lighting (Shabbat)</string>
+    <!-- Item in Settings → "Zmanim to show": the Shabbat section's sunset row. -->
+    <string name="zman_option_shabbat_sunset">Sunset (Shabbat)</string>
+    <!-- Zman: when Shabbat goes out. Row title, "Zmanim to show" item and its settings. -->
+    <string name="zman_motzei_shabbat">Motzei Shabbat</string>
+    <!-- Zman: when Shabbat goes out by Rabbeinu Tam. -->
+    <string name="zman_rabbeinu_tam">Rabbeinu Tam</string>
+    <!-- Row in the Shabbat section of the zmanim screen: Friday's candle lighting. -->
+    <string name="shabbat_row_candles">Candle Lighting &amp; Shabbat Entry</string>
+    <!-- Caption under a Shabbat-section time that falls on Friday. %1$s: how the time is calculated, e.g. "20 minutes". -->
+    <string name="shabbat_caption_friday">Friday; %1$s</string>
+    <!-- Caption under a Shabbat-section time on Saturday night. %1$s: how it is calculated. (Hebrew says "motzei Shabbat" rather than the weekday.) -->
+    <string name="shabbat_caption_saturday">Saturday; %1$s</string>
+    <!-- Caption under the "Motzei Shabbat" time. %1$s: how nightfall is calculated; %2$d: the minutes added after it (tosefet), abbreviated. -->
+    <string name="shabbat_caption_motzei">Saturday; %1$s + %2$dm</string>
+
+    <!-- ==== Day events and readings (zmanim screen) ==== -->
+    <!-- Row at the top of the Shabbat section: this week's Torah portion. -->
+    <string name="row_weekly_parsha">Weekly Parsha</string>
+    <!-- The same row when the coming Shabbat is a holiday with its own reading instead of a weekly portion. -->
+    <string name="row_torah_reading">Torah Reading</string>
+    <!-- Caption under that row. -->
+    <string name="row_upcoming_reading">Upcoming Torah reading</string>
+    <!-- Row title on Rosh Chodesh (the new month). -->
+    <string name="row_rosh_chodesh">Rosh Chodesh</string>
+    <!-- Caption under the Rosh Chodesh row. -->
+    <string name="row_rosh_chodesh_description">New Jewish month</string>
+    <!-- Row title during the counting of the Omer. -->
+    <string name="row_omer">Omer</string>
+    <!-- Caption under the Omer row. -->
+    <string name="row_omer_description">Sefirat HaOmer</string>
+    <!-- Row title during Chanukah; its value is the day's number. -->
+    <string name="row_chanukah">Chanukah</string>
+    <!-- Caption under the Chanukah row. -->
+    <string name="row_chanukah_description">Day of Chanukah</string>
+    <!-- Row on Erev Pesach: the latest time to eat chametz. -->
+    <string name="row_eat_chametz">Eat Chametz Until</string>
+    <!-- Row on Erev Pesach: the latest time to burn chametz. -->
+    <string name="row_burn_chametz">Burn Chametz Until</string>
+
+    <!-- ==== Daily learning ==== -->
+    <!-- Daily-learning track: a page of the Babylonian Talmud a day. Row title and Settings item. -->
+    <string name="learning_daf_yomi_bavli">Daf Yomi Bavli</string>
+    <!-- Daily-learning track: a page of the Jerusalem Talmud a day. -->
+    <string name="learning_daf_yomi_yerushalmi">Daf Yomi Yerushalmi</string>
+    <!-- Daily-learning track: two mishnayot a day. -->
+    <string name="learning_mishnah_yomi">Mishnah Yomi</string>
+    <!-- Daily-learning track: Rambam's Mishneh Torah, one chapter a day. Also the row title of both Rambam tracks. -->
+    <string name="learning_rambam_yomi">Rambam Yomi</string>
+    <!-- Settings item: the three-chapters-a-day Rambam track. -->
+    <string name="learning_rambam_yomi_three">Rambam Yomi (3 chapters)</string>
+    <!-- Daily-learning track: Psalms, divided over the month. -->
+    <string name="learning_tehillim_yomi">Tehillim Yomi</string>
+    <!-- Daily-learning track: the Bible. -->
+    <string name="learning_tanakh_yomi">Tanakh Yomi</string>
+    <!-- Daily-learning track: the book Shemirat HaLashon. -->
+    <string name="learning_shemirat_halashon">Shemirat HaLashon</string>
+    <!-- Daily-learning track: Kitzur Shulchan Aruch. -->
+    <string name="learning_kitzur">Kitzur Shulchan Aruch</string>
+    <!-- Caption under the Daf Yomi row when it was calculated offline (KosherJava is the calendar library). -->
+    <string name="learning_daf_yomi_kosherjava_description">KosherJava Daf Yomi cycle</string>
+    <!-- Caption under the Yerushalmi row when calculated offline. -->
+    <string name="learning_yerushalmi_kosherjava_description">KosherJava Yerushalmi cycle</string>
+    <!-- Caption under the Tehillim row when calculated offline. -->
+    <string name="learning_tehillim_kosherjava_description">Monthly Tehillim division by Hebrew date</string>
+    <!-- Caption under the Daf Yomi row when it comes from Hebcal (an online Jewish-calendar service). -->
+    <string name="learning_daf_yomi_hebcal_description">Hebcal Daf Yomi cycle</string>
+    <!-- Caption under the Yerushalmi row, from Hebcal. -->
+    <string name="learning_yerushalmi_hebcal_description">Hebcal Yerushalmi cycle</string>
+    <!-- Caption under the Mishnah Yomi row, from Hebcal. -->
+    <string name="learning_mishnah_yomi_hebcal_description">Hebcal Mishnah Yomi cycle</string>
+    <!-- Caption under the Tehillim row, from Hebcal. -->
+    <string name="learning_tehillim_hebcal_description">Daily Tehillim division</string>
+    <!-- Caption under the Tanakh Yomi row, from Hebcal. -->
+    <string name="learning_tanakh_yomi_hebcal_description">Hebcal Tanakh Yomi cycle</string>
+    <!-- Caption under the Shemirat HaLashon row, from Hebcal. -->
+    <string name="learning_shemirat_halashon_hebcal_description">Daily Shemirat HaLashon</string>
+    <!-- Caption under the Kitzur Shulchan Aruch row, from Hebcal. -->
+    <string name="learning_kitzur_hebcal_description">Daily halacha from Hebcal</string>
+    <!-- Caption under the Rambam row when both Rambam tracks are shown together in it. -->
+    <string name="learning_rambam_merged_description">Daily Rambam cycle</string>
+    <!-- Which Rambam track a row is: "1 chapter" or "3 chapters" a day. Caption under the row, and the label of each line when both tracks share one row. -->
+    <plurals name="learning_rambam_chapters">
+        <item quantity="one">%d chapter</item>
+        <item quantity="other">%d chapters</item>
+    </plurals>
+    <!-- Both Rambam tracks in one row: %1$s and %3$s are learning_rambam_chapters, %2$s and %4$s the readings. Not translated: the row reads its two parts apart at the ": ". -->
+    <string name="learning_rambam_merged" translatable="false">%1$s: %2$s\n%3$s: %4$s</string>
+
+    <!-- ==== Calculation methods (captions under each time, and the method pickers) ==== -->
+    <!-- Custom method unit: the sun's depression below the horizon, in degrees. -->
+    <string name="method_degrees">Degrees</string>
+    <!-- Custom method unit: fixed clock minutes. -->
+    <string name="method_minutes">Minutes</string>
+    <!-- Custom method unit: "seasonal" minutes, a sixtieth of that day's halachic hour. -->
+    <string name="method_zmaniyot_minutes">Zmaniyot minutes</string>
+    <!-- Custom method unit for Tallit & Tefillin: clock minutes before sunrise. -->
+    <string name="method_minutes_before_sunrise">Minutes before sunrise</string>
+    <!-- Custom method unit for Tallit & Tefillin: seasonal minutes before sunrise. -->
+    <string name="method_zmaniyot_minutes_before_sunrise">Zmaniyot minutes before sunrise</string>
+    <!-- Custom method unit for Sof Zman Shema: a dawn in degrees, with the day measured to fixed local midday. -->
+    <string name="method_degrees_to_fixed_local_chatzot">Degrees to fixed local Chatzot</string>
+    <!-- Custom method unit for Sof Zman Shema: a dawn in minutes, with the day measured to fixed local midday. -->
+    <string name="method_minutes_to_fixed_local_chatzot">Minutes to fixed local Chatzot</string>
+    <!-- A method given in degrees, e.g. "16.1 degrees". %1$s: the number, which may have decimals. -->
+    <string name="method_degrees_value">%1$s degrees</string>
+    <!-- A method or setting given in clock minutes, e.g. "72 minutes", "20 minutes". -->
+    <plurals name="method_minutes_value">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <!-- A method given in seasonal (zmaniyot) minutes, e.g. "96 zmaniyot". -->
+    <plurals name="method_zmaniyot_minutes_value">
+        <item quantity="one">%d zmaniyot</item>
+        <item quantity="other">%d zmaniyot</item>
+    </plurals>
+    <!-- Caption for a custom Tallit & Tefillin time. %1$s: the amount, e.g. "45 minutes". -->
+    <string name="method_before_sunrise">%1$s before sunrise</string>
+    <!-- Caption for a custom Sof Zman Shema measured to fixed local midday. %1$s: the dawn, e.g. "16.1 degrees". -->
+    <string name="method_to_fixed_local_chatzot">%1$s to fixed local Chatzot</string>
+    <!-- Method: the Vilna Gaon's opinion. -->
+    <string name="method_gra">GRA</string>
+    <!-- Method: the opinion of the Baal HaTanya (the Alter Rebbe). -->
+    <string name="method_baal_hatanya">Baal Hatanya</string>
+    <!-- Method: the opinion of the Ateret Torah (Chacham Yosef Harari-Raful). -->
+    <string name="method_ateret_torah">Ateret Torah</string>
+    <!-- Method: the opinion of the Ahavat Shalom yeshiva. -->
+    <string name="method_ahavat_shalom">Ahavat Shalom</string>
+    <!-- Method: Rav Moshe Feinstein's, measured from fixed local midday. -->
+    <string name="method_rav_moshe_fixed_local">Rav Moshe Feinstein (fixed local Chatzot)</string>
+    <!-- Tallit & Tefillin method: six minutes after dawn. -->
+    <string name="method_6_minutes_after_alot" tools:ignore="Typos">6 min after alot hashachar</string>
+    <!-- Sunrise method: at sea level, ignoring elevation. -->
+    <string name="method_sunrise_sea_level">Sea-level sunrise</string>
+    <!-- Sunrise method: as seen from the location's elevation. -->
+    <string name="method_sunrise_observed">Observed sunrise</string>
+    <!-- Sunset method: at sea level. -->
+    <string name="method_sunset_sea_level">Sea-level sunset</string>
+    <!-- Sunset method: as seen from the location's elevation. -->
+    <string name="method_sunset_observed">Observed sunset</string>
+    <!-- Sof Zman Shema method: the day measured from a 16.1° dawn to sunset. (The Hebrew spells out "degrees" here; method_alot_to_sunset uses °.) -->
+    <string name="method_shema_alot_to_sunset" tools:ignore="Typos">Alot 16.1° to sunset</string>
+    <!-- Sof Zman Shema method: the day measured from a 16.1° dawn to a 7.083° nightfall. -->
+    <string name="method_shema_alot_to_tzeit" tools:ignore="Typos">Alot 16.1° to Tzeit 7.083°</string>
+    <!-- Sof Zman Tefillah method: the day measured from a 16.1° dawn to sunset. -->
+    <string name="method_alot_to_sunset" tools:ignore="Typos">Alot 16.1° to sunset</string>
+    <!-- Sof Zman Tefillah / Plag method: the day measured from a 16.1° dawn to a 7.083° nightfall. -->
+    <string name="method_alot_to_tzeit" tools:ignore="Typos">Alot 16.1° to Tzeit 7.083°</string>
+    <!-- Chatzot method: the sun's actual midpoint. -->
+    <string name="method_chatzot_solar">Solar Chatzot</string>
+    <!-- Chatzot method: fixed local mean midday. -->
+    <string name="method_chatzot_fixed_local">Fixed-local Chatzot</string>
+    <!-- Mincha Gedola method. -->
+    <string name="method_30_minutes_after_chatzot">30 minutes after Chatzot</string>
+    <!-- Mincha Gedola method: whichever is later. -->
+    <string name="method_later_of_gra_and_30">Later of GRA and 30 min after Chatzot</string>
+    <!-- Mincha Gedola method. -->
+    <string name="method_rav_moshe_30_after_fixed_local">Rav Moshe Feinstein (30 min after fixed local Chatzot)</string>
+    <!-- Mincha Gedola method: whichever is later. -->
+    <string name="method_later_of_baal_hatanya_and_30">Later of Baal Hatanya and 30 min after Chatzot</string>
+    <!-- Nightfall method: the sun 6.2° below the horizon. -->
+    <string name="method_tzeit_6_2">6.2°</string>
+    <!-- Rabbeinu Tam method. -->
+    <string name="method_bein_hashmashot_58_5">Bein Hashmashot 58.5 min</string>
+    <!-- Rabbeinu Tam method. -->
+    <string name="method_bein_hashmashot_13_5">Bein Hashmashot 13.5 min before 7.083°</string>
+    <!-- Rabbeinu Tam method: when two stars appear. -->
+    <string name="method_bein_hashmashot_2_stars">Bein Hashmashot 2 stars</string>
+    <!-- Caption under candle lighting when the chosen time would fall before plag hamincha, so plag is shown instead. -->
+    <string name="method_candles_at_plag">Plag hamincha — the earliest time</string>
+
+    <!-- ==== Settings ==== -->
+    <!-- Line at the top of the Settings screen. -->
+    <string name="settings_summary">Keep the daily view focused and personal.</string>
+    <!-- Settings switch: the persistent notification showing the Hebrew date in the status bar. -->
+    <string name="settings_hebrew_status_icon">Hebrew date notification</string>
+    <!-- Description under that switch. -->
+    <string name="settings_hebrew_status_icon_description">Show the Hebrew day as a persistent notification icon.</string>
+    <!-- Settings row (and dialog title) for placing a home-screen widget. -->
+    <string name="settings_add_widget">Add widget to home screen</string>
+    <!-- Description under that row. -->
+    <string name="settings_add_widget_description">Choose a widget and place it on your home screen.</string>
+    <!-- Settings row (and dialog title) for the app's language. -->
+    <string name="settings_language">Language</string>
+    <!-- Description under that row. -->
+    <string name="settings_language_description">Interface language for the app’s navigation and labels.</string>
+    <!-- Settings row (and dialog title) for the colour theme. -->
+    <string name="settings_theme">Theme</string>
+    <!-- Settings switch: show times as 6:45 AM instead of 06:45. -->
+    <string name="settings_12_hour_format">12-hour format</string>
+    <!-- Description under that switch. -->
+    <string name="settings_12_hour_format_description">Show Zmanim as 6:45 AM. Off keeps 24-hour format.</string>
+    <!-- Settings switch: also offer test versions (pre-releases) as updates. -->
+    <string name="settings_prereleases">Test versions</string>
+    <!-- Description under that switch. -->
+    <string name="settings_prereleases_description">Also offer pre-releases, before they go out to everyone. They may be unfinished.</string>
+    <!-- Note under that switch when a test version is installed. %1$s: its version, e.g. "pre-1.4.0". -->
+    <string name="settings_prereleases_installed_note">Installed: %1$s. Turn off to return to stable.</string>
+    <!-- Section title in Settings for everything about the zmanim. -->
+    <string name="settings_zmanim_options">Zmanim calculation methods and zmanim to show</string>
+    <!-- Expandable Settings section: the calculation method of each zman. -->
+    <string name="settings_advanced_zmanim">Detailed Calculation Methods</string>
+    <!-- Description under that section's title. -->
+    <string name="settings_advanced_zmanim_description">Choose the exact halachic method for each displayed zman.</string>
+    <!-- Expandable Settings section: which zmanim the zmanim screen shows. -->
+    <string name="settings_zmanim_times_section">Zmanim to show</string>
+    <!-- Description under that section's title. -->
+    <string name="settings_zmanim_times_section_description">Choose which times appear in the Zmanim list.</string>
+    <!-- Expandable Settings section: which daily-learning tracks are shown. -->
+    <string name="settings_daily_learning_section">Daily learning to show</string>
+    <!-- Description under that section's title. -->
+    <string name="settings_daily_learning_section_description">Choose which daily-study tracks appear on the Zmanim tab.</string>
+    <!-- Accessibility label of the button that resets a Settings section to its defaults. -->
+    <string name="settings_reset">Reset</string>
+    <!-- Button that closes a dialog without changing anything. -->
+    <string name="settings_cancel">Cancel</string>
+    <!-- Button that saves the number typed into a Settings dialog. -->
+    <string name="settings_save">Save</string>
+    <!-- A method in a picker marked as the app's default. %1$s: the method's name. -->
+    <string name="settings_method_option_default">%1$s (default)</string>
+    <!-- In a method picker: the choice that opens a dialog for entering the method as a number. -->
+    <string name="settings_method_custom">Custom</string>
+    <!-- Settings row: the nightfall (tzeit hakochavim) method. -->
+    <string name="settings_method_tzeit">Tzeit Hakochavim</string>
+    <!-- Settings row and dialog title: candle lighting, minutes before sunset. -->
+    <string name="settings_method_candle_lighting">Candle Lighting</string>
+    <!-- Settings row and dialog title: minutes added after nightfall before Shabbat or Yom Tov goes out. -->
+    <string name="settings_method_tosefet">Tosefet Shabbat / Yom Tov</string>
+    <!-- Settings row, shown when an Ateret Torah method is in use: where his day ends. -->
+    <string name="settings_method_ateret_torah_offset">Ateret Torah — minutes after sunset</string>
+    <!-- Settings row: the method for the Erev Pesach chametz deadlines. -->
+    <string name="settings_method_chametz">Erev Pesach Chametz</string>
+    <!-- Description under the Alot Hashachar method row. -->
+    <string name="settings_method_alot_description">Dawn start used for Magen Avraham and fast days.</string>
+    <!-- Description under the Tallit & Tefillin method row. -->
+    <string name="settings_method_tallit_description">Earliest tallit and tefillin time (misheyakir).</string>
+    <!-- Description under the Sunrise method row. -->
+    <string name="settings_method_sunrise_description">Sea level is the common zmanim base; observed uses elevation.</string>
+    <!-- Description under the Sof Zman Shema (GRA) method row. -->
+    <string name="settings_method_shema_gra_description">Method for the GRA Shema row.</string>
+    <!-- Description under the Sof Zman Shema (Magen Avraham) method row. -->
+    <string name="settings_method_shema_mga_description">Method for the Magen Avraham Shema row.</string>
+    <!-- Description under the Sof Zman Tefillah (GRA) method row. -->
+    <string name="settings_method_tefillah_gra_description">Method for the GRA Tefillah row.</string>
+    <!-- Description under the Sof Zman Tefillah (Magen Avraham) method row. -->
+    <string name="settings_method_tefillah_mga_description">Method for the Magen Avraham Tefillah row.</string>
+    <!-- Description under the Chatzot HaYom method row. -->
+    <string name="settings_method_chatzot_description">Solar or fixed-local midday.</string>
+    <!-- Description under the Mincha Gedola method row. -->
+    <string name="settings_method_mincha_gedola_description">Earliest regular Mincha.</string>
+    <!-- Description under the Mincha Ketana method row. -->
+    <string name="settings_method_mincha_ketana_description">Preferred later Mincha window.</string>
+    <!-- Description under the Plag Hamincha method row. -->
+    <string name="settings_method_plag_description">Earliest Shabbat or Maariv boundary.</string>
+    <!-- Description under the Sunset method row. -->
+    <string name="settings_method_sunset_description">Sea level or elevation-adjusted sunset.</string>
+    <!-- Description under the Tzeit Hakochavim method row. -->
+    <string name="settings_method_tzeit_description">Nightfall used for the app\'s Hebrew-date rollover.</string>
+    <!-- Description under the Chatzot HaLaila method row. -->
+    <string name="settings_method_chatzot_halaila_description">Solar or fixed-local midnight.</string>
+    <!-- Description under the Candle Lighting method row. -->
+    <string name="settings_method_candle_lighting_description">Minutes before sunset for candle lighting.</string>
+    <!-- Description under the Motzei Shabbat method row. -->
+    <string name="settings_method_motzei_description">Main end-of-Shabbat time.</string>
+    <!-- Description under the Tosefet method row. -->
+    <string name="settings_method_tosefet_description">Minutes added after nightfall before Shabbat or Yom Tov goes out.</string>
+    <!-- Description under the Rabbeinu Tam method row. -->
+    <string name="settings_method_rabbeinu_tam_description">Separate Rabbeinu Tam Shabbat opinion.</string>
+    <!-- Description under the Ateret Torah minutes row. -->
+    <string name="settings_method_ateret_torah_offset_description">The end of the day every Ateret Torah opinion is measured to. 25 minutes in Israel, 40 elsewhere.</string>
+    <!-- Description under the Erev Pesach Chametz method row. -->
+    <string name="settings_method_chametz_description">Sof zman eating and burning chametz.</string>
+    <!-- Text in the dialog for the tosefet minutes. -->
+    <string name="settings_tosefet_dialog">Minutes added after nightfall. The default is 5.</string>
+    <!-- Text in the dialog for the Ateret Torah minutes. -->
+    <string name="settings_ateret_torah_dialog">Minutes after sunset. Chacham Harari-Raful gave 25 for Israel; 40 is used elsewhere.</string>
+    <!-- Text in the dialog for a custom candle-lighting time. -->
+    <string name="settings_candle_lighting_dialog">Minutes before sunset.</string>
+    <!-- Text in the dialog for a custom method, above its units and number field. -->
+    <string name="settings_custom_method_dialog">How this zman is measured, and the value:</string>
+
+    <!-- ==== Themes ==== -->
+    <!-- Colour theme name. -->
+    <string name="theme_olive_grove">Olive grove</string>
+    <!-- Colour theme name. -->
+    <string name="theme_blue_white">Blue-white</string>
+    <!-- Colour theme name. -->
+    <string name="theme_jerusalem_stone">Jerusalem stone</string>
+    <!-- Colour theme name. -->
+    <string name="theme_midnight">Midnight blue</string>
+    <!-- Colour theme name. -->
+    <string name="theme_sand">Desert sand</string>
+    <!-- Colour theme name. -->
+    <string name="theme_slate">Slate gray</string>
+    <!-- Colour theme name: pure black, for AMOLED screens. -->
+    <string name="theme_amoled_black">AMOLED black</string>
+    <!-- Colour theme name: the default theme, glass panes over a sky that follows the day. -->
+    <string name="theme_glass">Glassy sky</string>
+    <!-- One-time note after an update moved the user onto the Glassy sky theme. -->
+    <string name="glass_theme_notice_body">The app has moved to a new theme called Glassy sky. You can go back to your previous one, or pick another, in Settings → Theme.</string>
+    <!-- Button that dismisses that note. -->
+    <string name="glass_theme_notice_ok">OK</string>
+
+    <!-- ==== Widgets (in the app's own "Add widget" list, and on the widgets) ==== -->
+    <!-- Heading in the "Add widget" list: the widgets drawn over the live sky (same look as theme_glass). -->
+    <string name="widget_style_glass">Glassy sky</string>
+    <!-- Heading in the "Add widget" list: the plain widgets. -->
+    <string name="widget_style_minimal">Minimal</string>
+    <!-- Widget in the "Add widget" list: today's Hebrew date. -->
+    <string name="widget_kind_hebrew_date">Hebrew date</string>
+    <!-- Widget in the "Add widget" list: the next zman. -->
+    <string name="widget_kind_next_zman">Next zman</string>
+    <!-- Widget in the "Add widget" list: today's zmanim. -->
+    <string name="widget_kind_zmanim">Today\'s zmanim</string>
+    <!-- Widget in the "Add widget" list: the coming Shabbat or Yom Tov. -->
+    <string name="widget_kind_shabbat">Shabbat &amp; chag</string>
+    <!-- Heading on the "next zman" widgets, above the next time. -->
+    <string name="widget_next_label">Next zman</string>
+    <!-- Heading on the "next zman" widgets, before the time after the next one. -->
+    <string name="widget_following_label">Then</string>
+    <!-- Label on the Shabbat widget: candle-lighting time. -->
+    <string name="widget_candle_lighting">Candle lighting</string>
+    <!-- Label on the Shabbat widget: the time Shabbat goes out. -->
+    <string name="widget_shabbat_ends">Shabbat ends</string>
+
+    <!-- ==== Status-bar date icon ==== -->
+    <!-- Headline of the Hebrew-date notification: the weekday. -->
+    <string name="weekday_sunday">Sunday</string>
+    <!-- Headline of the Hebrew-date notification: the weekday. -->
+    <string name="weekday_monday">Monday</string>
+    <!-- Headline of the Hebrew-date notification: the weekday. -->
+    <string name="weekday_tuesday">Tuesday</string>
+    <!-- Headline of the Hebrew-date notification: the weekday. -->
+    <string name="weekday_wednesday">Wednesday</string>
+    <!-- Headline of the Hebrew-date notification: the weekday. -->
+    <string name="weekday_thursday">Thursday</string>
+    <!-- Headline of the Hebrew-date notification: the weekday. -->
+    <string name="weekday_friday">Friday</string>
+    <!-- Headline of the Hebrew-date notification: the weekday. (Hebrew says just "שבת".) -->
+    <string name="weekday_saturday">Saturday</string>
+
+    <!-- ==== Prayer compass ==== -->
+    <!-- Where the compass bearing is measured from. %1$s: a place name. -->
+    <string name="mizrach_from">From %1$s</string>
+    <!-- Where the compass bearing is measured from: the current location. -->
+    <string name="mizrach_from_current">From your current location</string>
+    <!-- Where the compass bearing is measured from: Jerusalem (location unknown). -->
+    <string name="mizrach_from_jerusalem">From Jerusalem</string>
+    <!-- The bearing in degrees. Not translated. -->
+    <string name="mizrach_degrees" translatable="false">%1$d°</string>
+    <!-- Prayer compass: asks for the location permission. -->
+    <string name="mizrach_need_location">Allow location so Prayer Compass can calculate from where you are now.</string>
+    <!-- Button: grant the location permission. -->
+    <string name="mizrach_allow_location">Allow location</string>
+    <!-- Prayer compass: waiting for a location fix. -->
+    <string name="mizrach_waiting_location">Waiting for current location…</string>
+    <!-- Prayer compass: the location fix is too coarse. -->
+    <string name="mizrach_location_accuracy_low">Location accuracy is too low for confident alignment. Try again for a better fix.</string>
+    <!-- Prayer compass: only approximate location was granted. -->
+    <string name="mizrach_precise_location_required">Precise location is required for confident alignment.</string>
+    <!-- Button: grant precise location. -->
+    <string name="mizrach_allow_precise_location">Allow precise location</string>
+    <!-- Prayer compass: live direction is off while a developer location is in use. -->
+    <string name="mizrach_developer_location_compass">Live alignment is disabled while using a developer location override.</string>
+    <!-- Button: try getting a location fix again. -->
+    <string name="mizrach_retry_location">Try location again</string>
+    <!-- Prayer compass: the phone's location is switched off. -->
+    <string name="mizrach_location_off">Location is turned off. Turn it on so Prayer Compass can find where you are now.</string>
+    <!-- Button: open the location settings. -->
+    <string name="mizrach_turn_on_location">Turn on location</string>
+    <!-- Prayer compass: waiting for the compass sensor. -->
+    <string name="mizrach_heading_unavailable">Waiting for the compass sensor…</string>
+    <!-- Prayer compass: the phone has no compass sensor. -->
+    <string name="mizrach_no_compass_sensor">This device has no compass sensor, so the needle shows the bearing as if the phone were facing north.</string>
+    <!-- Under the bearing: what it points to (Kodesh HaKodashim, the Holy of Holies). -->
+    <string name="mizrach_toward_jerusalem">toward Kodesh HaKodashim</string>
+    <!-- Distance to Jerusalem. %1$d: kilometres. -->
+    <string name="mizrach_distance_km">%1$d km away</string>
+    <!-- Accessibility description of the compass dial. %1$d: the bearing in degrees. -->
+    <string name="mizrach_compass_dial_description">Compass dial. Kodesh HaKodashim is at %1$d degrees from true north.</string>
+    <!-- How to hold the phone, under the compass. -->
+    <string name="mizrach_compass_caption">Hold the phone flat or upright. The needle shows the direction to Kodesh HaKodashim.</string>
+    <!-- Tip for calibrating the compass. -->
+    <string name="mizrach_figure_eight_tip">For better accuracy, wave the phone in a figure-eight a few times.</string>
+    <!-- Warning: the compass is poorly calibrated. -->
+    <string name="mizrach_compass_accuracy_low">Compass accuracy is low. Move the phone in a figure-eight and keep it away from magnets.</string>
+    <!-- Warning: the compass readings are disturbed, probably by a magnet. -->
+    <string name="mizrach_compass_unreliable">Compass is unreliable right now — a magnet is likely interfering. Move the phone in a figure-eight and keep it away from magnets.</string>
+    <!-- Shown when the phone faces Jerusalem. -->
+    <string name="mizrach_aligned">Facing Kodesh HaKodashim</string>
+    <!-- Shown when the user should turn left to face Jerusalem. -->
+    <string name="mizrach_turn_left">Turn left</string>
+    <!-- Shown when the user should turn right to face Jerusalem. -->
+    <string name="mizrach_turn_right">Turn right</string>
+
+    <!-- ==== Location prompt ==== -->
+    <!-- Title of the first-launch dialog asking for location. -->
+    <string name="location_prompt_permission_title">Allow location</string>
+    <!-- Text of that dialog. -->
+    <string name="location_prompt_permission_body">JewishDay uses your location for accurate zmanim and the prayer compass. Without it, times are calculated for Jerusalem.</string>
+    <!-- Title of the dialog shown when the phone's location is switched off. -->
+    <string name="location_prompt_services_title">Turn on location</string>
+    <!-- Text of that dialog. -->
+    <string name="location_prompt_services_body">Location is turned off. Turn it on for accurate zmanim and the prayer compass. Until then, times are calculated for Jerusalem.</string>
+    <!-- Button: grant the location permission. -->
+    <string name="location_prompt_grant">Grant permission</string>
+    <!-- Button: open the location settings. -->
+    <string name="location_prompt_turn_on">Turn on location</string>
+    <!-- Button: calculate for Jerusalem this time, and ask again next time. -->
+    <string name="location_prompt_jerusalem_once">Use Jerusalem this time</string>
+    <!-- Button: always calculate for Jerusalem and stop asking. -->
+    <string name="location_prompt_jerusalem_always">Always use Jerusalem</string>
+
+    <!-- ==== Updates ==== -->
+    <!-- Dialog title: a new version can be installed. -->
+    <string name="update_available_title">Update available</string>
+    <!-- Dialog title while the update downloads. -->
+    <string name="update_downloading_title">Downloading</string>
+    <!-- Dialog title while the update installs. -->
+    <string name="update_installing_title">Installing</string>
+    <!-- Text while the update installs. -->
+    <string name="update_installing_body">Confirm the installation when Android asks.</string>
+    <!-- Shown when the offered stable version is older than the installed test version. -->
+    <string name="update_downgrade_body">This is the latest stable release, and it is an earlier build than the test version you are running. Installing it takes you back to it.</string>
+    <!-- Dialog title: the update failed. -->
+    <string name="update_failed_title">Update failed</string>
+    <!-- Text when the update failed. -->
+    <string name="update_failed_body">The update could not be installed. You can try again.</string>
+    <!-- Dialog title: the app needs permission to install updates. -->
+    <string name="update_permission_title">Allow installing updates</string>
+    <!-- Text of that dialog. -->
+    <string name="update_permission_body">Android needs your permission for JewishDay to install its own updates.</string>
+    <!-- Button: download and install the update. -->
+    <string name="update_action_download">Update</string>
+    <!-- Button: try the update again. -->
+    <string name="update_action_retry">Try again</string>
+    <!-- Button: open the system setting for installing apps. -->
+    <string name="update_action_open_settings">Open settings</string>
+    <!-- Button: not now. -->
+    <string name="update_action_later">Later</string>
+    <!-- Button: close the dialog. -->
+    <string name="update_action_close">Close</string>
+    <!-- Size of the update. %1$s: megabytes, e.g. "8.4". -->
+    <string name="update_size">%1$s MB</string>
+    <!-- Download progress. %1$s: MB downloaded; %2$s: MB in all; %3$d: percent. -->
+    <string name="update_progress_detail">%1$s MB of %2$s MB · %3$d%%</string>
+    <!-- Download progress when the full size is unknown. %1$s: MB downloaded. -->
+    <string name="update_progress_downloaded">%1$s MB downloaded</string>
+    <!-- Banner on the main screen: an update is ready. -->
+    <string name="update_banner_title">Update available</string>
+    <!-- Second line of that banner. -->
+    <string name="update_banner_subtitle">A new version is ready to install</string>
+    <!-- Heading above the release notes in the update dialog. -->
+    <string name="update_notes_title">What\'s new</string>
+    <!-- Release-notes section: new features. -->
+    <string name="update_notes_new">New</string>
+    <!-- Release-notes section: improvements. -->
+    <string name="update_notes_improved">Improved</string>
+    <!-- Release-notes section: bug fixes. -->
+    <string name="update_notes_fixed">Fixed</string>
+
+    <!-- ==== About ==== -->
+    <!-- One-line description of the app at the top of About. -->
+    <string name="about_tagline">A modern Jewish companion app.</string>
+    <!-- The developer's note about the app, in About. Two paragraphs. -->
+    <string name="about_body">I made JewishDay for myself first — the Jewish companion I always wanted but couldn\'t find: modern and uncluttered, with the Hebrew date, zmanim, daily learning, and a compass to Jerusalem all in one place. My favorite touch is the notification that keeps today\'s Hebrew date in your status bar, always a glance away.\n\nAnd it\'s my small statement about how apps should be made: fully open source, transparent, and free for anyone to use, study, and build on (GPL-3.0). This is the app I wish every app was.</string>
+    <!-- The installed version. %1$s: e.g. "1.3.0". -->
+    <string name="about_version">Version %1$s</string>
+    <!-- About row: open the source code on GitHub. -->
+    <string name="about_github">View source on GitHub</string>
+    <!-- About row: email the developer. -->
+    <string name="about_email">Contact by email</string>
 </resources>

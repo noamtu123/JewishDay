@@ -2,6 +2,10 @@
 
 package com.noamtu.jewishday.model
 
+import com.noamtu.jewishday.i18n.TestText
+import com.noamtu.jewishday.i18n.en
+import com.noamtu.jewishday.i18n.he
+import com.noamtu.jewishday.model.ZmanimGroupKind
 import java.time.Duration
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -74,11 +78,11 @@ class ShabbatHeaderTest {
         )
 
         assertEquals(false, announced.isUnderWay)
-        assertEquals("שבת", announced.nameHebrew)
+        assertEquals("שבת", announced.name.he())
         // The entry/exit card is on screen from here, so the chip needs something to say that is
         // not "שבת" — Shabbat has not come in yet.
-        assertEquals("פרשת נצבים וילך", announced.parshaHebrew)
-        assertEquals("Parashat Nitzavim-Vayeilech", announced.parsha)
+        assertEquals("פרשת נצבים וילך", announced.parsha?.he())
+        assertEquals("Parashat Nitzavim-Vayeilech", announced.parsha?.en())
     }
 
     @Test
@@ -91,8 +95,8 @@ class ShabbatHeaderTest {
         )
 
         assertEquals(true, inShabbat.isUnderWay)
-        assertEquals("שבת", inShabbat.nameHebrew)
-        assertEquals("פרשת נצבים וילך", inShabbat.parshaHebrew)
+        assertEquals("שבת", inShabbat.name.he())
+        assertEquals("פרשת נצבים וילך", inShabbat.parsha?.he())
     }
 
     @Test
@@ -100,7 +104,7 @@ class ShabbatHeaderTest {
         // Erev Pesach has the chametz deadlines and Erev Yom Kippur the seudah mafseket, so they
         // are worth a chip. Every other erev only leads into a Yom Tov whose entry and exit are
         // already on screen, and naming it there says nothing new.
-        fun dayNameOn(date: LocalDate): String? = zmanimForDate(date = date).dayNameHebrew
+        fun dayNameOn(date: LocalDate): String? = zmanimForDate(date = date).dayName?.he()
 
         assertEquals("ערב פסח", dayNameOn(LocalDate.of(2026, 4, 1)))
         assertEquals("ערב יום כיפור", dayNameOn(LocalDate.of(2026, 9, 20)))
@@ -123,10 +127,10 @@ class ShabbatHeaderTest {
         val roshHashana = LocalDate.of(2026, 9, 12)
         val reading = zmanimForDate(date = roshHashana.minusDays(2))
             .groups
-            .first { it.title == "Shabbat" }
+            .first { it.kind == ZmanimGroupKind.Shabbat }
             .items
-            .first { it.title == "Torah Reading" }
+            .first { it.title.en() == "Torah Reading" }
 
-        assertEquals("ראש השנה", reading.valueHebrew)
+        assertEquals("ראש השנה", reading.value?.he())
     }
 }

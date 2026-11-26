@@ -2,6 +2,9 @@
 
 package com.noamtu.jewishday.model
 
+import androidx.annotation.StringRes
+import com.noamtu.jewishday.R
+
 /**
  * The rows of the main "Zmanim" group that the user can individually show or hide on the
  * Zmanim tab. [storageValue] is the stable id persisted in settings and stamped onto the
@@ -9,28 +12,30 @@ package com.noamtu.jewishday.model
  */
 enum class ZmanimTimeOption(
     val storageValue: String,
-    val labelEnglish: String,
-    val labelHebrew: String,
+    // What the row is called, on the zmanim screen and in the "Zmanim to show" list.
+    @StringRes val label: Int,
+    // The same, for the narrow rows of a home-screen widget.
+    @StringRes val shortLabel: Int = label,
 ) {
-    AlotHashachar("alot", "Alot Hashachar", "עלות השחר"),
-    TallitTefillin("tallit_tefillin", "Tallit & Tefillin", "זמן טלית ותפילין"),
-    Sunrise("sunrise", "Sunrise", "הנץ החמה"),
-    SofZmanShemaMagenAvraham("shema_mga", "Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)"),
-    SofZmanShemaGra("shema_gra", "Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)"),
-    SofZmanTefillahMagenAvraham("tefillah_mga", "Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מג״א)"),
-    SofZmanTefillahGra("tefillah_gra", "Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)"),
-    ChatzotHaYom("chatzot_hayom", "Chatzot HaYom", "חצות היום"),
-    MinchaGedola("mincha_gedola", "Mincha Gedola", "מנחה גדולה"),
-    MinchaKetana("mincha_ketana", "Mincha Ketana", "מנחה קטנה"),
-    PlagHamincha("plag_hamincha", "Plag Hamincha", "פלג המנחה"),
-    Sunset("sunset", "Sunset", "שקיעה"),
-    Tzeit("tzeit", "Tzeit", "צאת הכוכבים"),
-    ChatzotHaLaila("chatzot_halaila", "Chatzot HaLaila", "חצות הלילה"),
+    AlotHashachar("alot", R.string.zman_alot),
+    TallitTefillin("tallit_tefillin", R.string.zman_tallit_tefillin),
+    Sunrise("sunrise", R.string.zman_sunrise),
+    SofZmanShemaMagenAvraham("shema_mga", R.string.zman_shema_mga, R.string.zman_shema_mga_short),
+    SofZmanShemaGra("shema_gra", R.string.zman_shema_gra, R.string.zman_shema_gra_short),
+    SofZmanTefillahMagenAvraham("tefillah_mga", R.string.zman_tefillah_mga),
+    SofZmanTefillahGra("tefillah_gra", R.string.zman_tefillah_gra),
+    ChatzotHaYom("chatzot_hayom", R.string.zman_chatzot_hayom),
+    MinchaGedola("mincha_gedola", R.string.zman_mincha_gedola),
+    MinchaKetana("mincha_ketana", R.string.zman_mincha_ketana),
+    PlagHamincha("plag_hamincha", R.string.zman_plag),
+    Sunset("sunset", R.string.zman_sunset),
+    Tzeit("tzeit", R.string.zman_tzeit),
+    ChatzotHaLaila("chatzot_halaila", R.string.zman_chatzot_halaila),
     // Shabbat-section rows, shown/hidden by the same "Zmanim to show" list.
-    ShabbatCandleLighting("shabbat_candles", "Candle Lighting (Shabbat)", "הדלקת נרות (שבת)"),
-    ShabbatSunset("shabbat_sunset", "Sunset (Shabbat)", "שקיעה (שבת)"),
-    MotzeiShabbat("motzei_shabbat", "Motzei Shabbat", "צאת שבת"),
-    RabbeinuTam("rabbeinu_tam", "Rabbeinu Tam", "רבינו תם"),
+    ShabbatCandleLighting("shabbat_candles", R.string.zman_option_shabbat_candles),
+    ShabbatSunset("shabbat_sunset", R.string.zman_option_shabbat_sunset),
+    MotzeiShabbat("motzei_shabbat", R.string.zman_motzei_shabbat),
+    RabbeinuTam("rabbeinu_tam", R.string.zman_rabbeinu_tam),
     ;
 
     companion object {
@@ -48,18 +53,17 @@ enum class ZmanimTimeOption(
  */
 enum class DailyLearningType(
     val storageValue: String,
-    val labelEnglish: String,
-    val labelHebrew: String,
+    @StringRes val label: Int,
 ) {
-    DafYomiBavli("dafyomi", "Daf Yomi Bavli", "דף יומי בבלי"),
-    DafYomiYerushalmi("yerushalmi", "Daf Yomi Yerushalmi", "דף יומי ירושלמי"),
-    MishnahYomi("mishnayomi", "Mishnah Yomi", "משנה יומית"),
-    RambamYomi("dailyRambam1", "Rambam Yomi", "רמב״ם יומי"),
-    RambamYomiThreeChapters("dailyRambam3", "Rambam Yomi (3 chapters)", "רמב״ם יומי (ג׳ פרקים)"),
-    TehillimYomi("dailyPsalms", "Tehillim Yomi", "תהילים יומי"),
-    TanakhYomi("tanakhYomi", "Tanakh Yomi", "תנ״ך יומי"),
-    ShemiratHaLashon("shemiratHaLashon", "Shemirat HaLashon", "שמירת הלשון"),
-    KitzurShulchanAruch("kitzurShulchanAruch", "Kitzur Shulchan Aruch", "קיצור שולחן ערוך"),
+    DafYomiBavli("dafyomi", R.string.learning_daf_yomi_bavli),
+    DafYomiYerushalmi("yerushalmi", R.string.learning_daf_yomi_yerushalmi),
+    MishnahYomi("mishnayomi", R.string.learning_mishnah_yomi),
+    RambamYomi("dailyRambam1", R.string.learning_rambam_yomi),
+    RambamYomiThreeChapters("dailyRambam3", R.string.learning_rambam_yomi_three),
+    TehillimYomi("dailyPsalms", R.string.learning_tehillim_yomi),
+    TanakhYomi("tanakhYomi", R.string.learning_tanakh_yomi),
+    ShemiratHaLashon("shemiratHaLashon", R.string.learning_shemirat_halashon),
+    KitzurShulchanAruch("kitzurShulchanAruch", R.string.learning_kitzur),
     ;
 
     companion object {

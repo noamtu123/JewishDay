@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.createBitmap
 import com.noamtu.jewishday.MainActivity
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.i18n.TextResolver
 import com.noamtu.jewishday.model.JewishDayInfo
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -34,6 +35,18 @@ data class DateIconSpec(
     val content: String,
 )
 
+/**
+ * The icon for [dayInfo], worded by [text]. The headline is the day itself ("יום רביעי"), with the
+ * Hebrew date as the second line. They roll on different boundaries: the weekday at midnight, the
+ * Hebrew date at sunset. The glyph is the Hebrew day of the month in every language.
+ */
+fun dateIconSpec(dayInfo: JewishDayInfo, text: TextResolver): DateIconSpec = DateIconSpec(
+    id = DateStatusIconNotifier.ForegroundId,
+    iconText = dayInfo.dayOfMonthGlyph,
+    title = text.resolve(dayInfo.weekday),
+    content = text.resolve(dayInfo.hebrewDate),
+)
+
 @Singleton
 class DateStatusIconNotifier @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -43,13 +56,20 @@ class DateStatusIconNotifier @Inject constructor(
 
     private val cache by lazy { context.getSharedPreferences(CachePrefs, Context.MODE_PRIVATE) }
 
+    /**
+     * Creates the channel, or renames it: Android keeps a channel's name as it was created, and
+     * creating it again with the same id updates the name and description. Run at every start of
+     * the icon service, which every language change triggers (the locale broadcast on Android 13+,
+     * AndroidPerAppLanguage.set before that), so the system settings show it in the app's language.
+     */
     fun ensureChannel() {
+        val text = TextResolver.of(context)
         val channel = NotificationChannel(
             ChannelId,
-            context.getString(R.string.notification_channel_date_status_icon),
+            text.string(R.string.notification_channel_date_status_icon),
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = context.getString(R.string.notification_channel_date_status_icon_description)
+            description = text.string(R.string.notification_channel_date_status_icon_description)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             setShowBadge(false)
         }
@@ -60,15 +80,10 @@ class DateStatusIconNotifier @Inject constructor(
      * Builds the icon spec for the current day and caches it so the foreground service can
      * re-post the right glyph instantly after a cold start, before recomputation finishes.
      */
-    fun render(dayInfo: JewishDayInfo, useHebrew: Boolean): DateIconSpec {
-        // The headline is the day itself ("יום רביעי"), with the Hebrew date as the second line.
-        // They roll on different boundaries: the weekday at midnight, the Hebrew date at sunset.
-        val rendered = DateIconSpec(
-            id = ForegroundId,
-            iconText = dayInfo.hebrewDayOfMonthHebrew,
-            title = if (useHebrew) dayInfo.dayOfWeekHebrew else dayInfo.dayOfWeekEnglish,
-            content = if (useHebrew) dayInfo.hebrewDateHebrew else dayInfo.hebrewDateEnglish,
-        )
+    fun render(dayInfo: JewishDayInfo): DateIconSpec {
+        // In the app's language, not the phone's: the application context only carries it by itself
+        // on Android 13+.
+        val rendered = dateIconSpec(dayInfo, TextResolver.of(context))
         persist(rendered)
         return rendered
     }
@@ -123,7 +138,7 @@ class DateStatusIconNotifier @Inject constructor(
     fun buildSyncingNotification(): Notification =
         Notification.Builder(context, ChannelId)
             .setSmallIcon(R.drawable.ic_stat_jewishday)
-            .setContentTitle(context.getString(R.string.notification_channel_date_status_icon))
+            .setContentTitle(TextResolver.of(context).string(R.string.notification_channel_date_status_icon))
             .setCategory(Notification.CATEGORY_STATUS)
             .setLocalOnly(true)
             .setOngoing(true)

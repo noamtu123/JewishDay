@@ -23,23 +23,15 @@ class SharedPreferencesStartupSettingsCache @Inject constructor(
         return RootUiSettings(
             themeOption = AppThemeOption.fromStorageValue(themeOption)
                 ?: AppThemeOption.Default,
-            language = decodeLanguage(),
         )
     }
-
-    private fun decodeLanguage(): AppLanguage =
-        AppLanguage.fromStorageValue(preferences.getString(LanguageKey, null))
-        // Migrate caches written before the language picker existed.
-            ?: if (preferences.contains(LegacyHebrewKey)) {
-                if (preferences.getBoolean(LegacyHebrewKey, false)) AppLanguage.Hebrew else AppLanguage.English
-            } else {
-                AppLanguage.systemDefault()
-            }
 
     override fun write(settings: RootUiSettings) {
         preferences.edit()
             .putString(ThemeOptionKey, settings.themeOption.storageValue)
-            .putString(LanguageKey, settings.language.storageValue)
+            // The language left this cache for Android's per-app language; drop what earlier
+            // versions kept here.
+            .remove(LanguageKey)
             .remove(LegacyHebrewKey)
             .apply()
     }

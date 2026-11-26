@@ -2,6 +2,10 @@
 
 package com.noamtu.jewishday.model
 
+import com.noamtu.jewishday.i18n.TestText
+import com.noamtu.jewishday.i18n.en
+import com.noamtu.jewishday.i18n.he
+import com.noamtu.jewishday.model.ZmanimGroupKind
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
@@ -30,7 +34,7 @@ class CandleLightingAtPlagTest {
     private fun day(location: JewishLocation, friday: LocalDate, settings: ZmanimCalculationSettings) =
         zmanimForDate(location, friday, settings, now = friday.atTime(9, 0).atZone(location.zoneId).toInstant())
 
-    private fun ZmanimDay.candleRow() = groups.first { it.title == ShabbatGroupTitle }
+    private fun ZmanimDay.candleRow() = groups.first { it.kind == ZmanimGroupKind.Shabbat }
         .items.first { it.id == ZmanimTimeOption.ShabbatCandleLighting.storageValue }
 
     @Test
@@ -48,8 +52,8 @@ class CandleLightingAtPlagTest {
             val day = day(stockholm, decemberFriday, settings)
             val row = day.candleRow()
             assertEquals(plag, row.time)
-            assertEquals("Friday; Plag hamincha — the earliest time", row.description)
-            assertEquals("יום שישי; פלג המנחה — הזמן המוקדם ביותר", row.descriptionHebrew)
+            assertEquals("Friday; Plag hamincha — the earliest time", row.description.en())
+            assertEquals("יום שישי; פלג המנחה — הזמן המוקדם ביותר", row.description.he())
             assertEquals(plag, requireNotNull(day.holyDayInfo).startTime)
         }
     }
@@ -78,7 +82,7 @@ class CandleLightingAtPlagTest {
 
         val row = day(location, friday, settings).candleRow()
         assertEquals(expected, row.time)
-        assertEquals("Friday; $minutes minutes", row.description)
-        assertEquals("יום שישי; $minutes דקות", row.descriptionHebrew)
+        assertEquals("Friday; $minutes minutes", row.description.en())
+        assertEquals("יום שישי; $minutes דקות", row.description.he())
     }
 }

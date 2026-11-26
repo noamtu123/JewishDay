@@ -75,7 +75,9 @@ enum class AppThemeOption(val storageValue: String) {
 
 data class AppSettings(
     val hebrewDateStatusIconEnabled: Boolean = true,
-    val language: AppLanguage = AppLanguage.English,
+    // The settings' record of the app's language (a BCP 47 tag), or null before the first launch has
+    // set one. The language itself is Android's per-app language — see `AppLanguageController`.
+    val language: String? = null,
     val use24HourTime: Boolean = true,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
@@ -100,28 +102,15 @@ data class AppSettings(
      * has not been dismissed yet; null otherwise. See [AppSettingsRepository.introduceGlassTheme].
      */
     val themeBeforeGlass: AppThemeOption? = null,
-) {
-    val useHebrewInterface: Boolean get() = language.useHebrewInterface
-}
+)
 
 data class RootUiSettings(
     val themeOption: AppThemeOption = AppThemeOption.Default,
-    val language: AppLanguage = AppLanguage.English,
-) {
-    val useHebrewInterface: Boolean get() = language.useHebrewInterface
-}
+)
 
 interface AppSettingsRepository {
     val settings: Flow<AppSettings>
     val rootUiSettings: Flow<RootUiSettings>
-
-    /**
-     * Called once at startup to lock in the system-language default before any settings are read.
-     * If the language has already been stored (first launch happened previously, or the user
-     * changed it manually), this is a no-op. This prevents subsequent system-language changes
-     * from overriding the stored choice.
-     */
-    suspend fun seedLanguageDefault()
 
     /**
      * Once per install, before anything else is written: an existing install on any theme but Glass
@@ -134,7 +123,8 @@ interface AppSettingsRepository {
     suspend fun dismissGlassThemeNotice()
 
     suspend fun setHebrewDateStatusIconEnabled(enabled: Boolean)
-    suspend fun setAppLanguage(language: AppLanguage)
+    /** Records the app's language ([tag]), or that there is none to record (null). */
+    suspend fun setAppLanguage(tag: String?)
     suspend fun setUse24HourTime(enabled: Boolean)
     suspend fun setEnabledDailyLearning(types: Set<DailyLearningType>)
     suspend fun setEnabledZmanimTimes(options: Set<ZmanimTimeOption>)
@@ -161,7 +151,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
         .map(::decodeRootUiSettings)
         .distinctUntilChanged()
         // Mirrors root UI settings into a synchronous cache for fast startup reads.
-        // Note: setAppLanguage/setThemeOption also write the cache explicitly — that is
+        // Note: setThemeOption also writes the cache explicitly — that is
         // intentional, not redundant: this onEach only runs while something is collecting
         // rootUiSettings, which is not guaranteed at write time.
         .onEach(startupSettingsCache::write)
@@ -178,7 +168,7 @@ class DataStoreAppSettingsRepository @Inject constructor(
             val rootUiSettings = decodeRootUiSettings(preferences)
             AppSettings(
                 hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: true,
-                language = rootUiSettings.language,
+                language = decodeLanguage(preferences),
                 use24HourTime = preferences[Use24HourTime] ?: true,
                 enabledDailyLearning = preferences[EnabledDailyLearningKey]
                     ?.mapNotNull(DailyLearningType::fromStorageValue)?.toSet()
@@ -196,23 +186,13 @@ class DataStoreAppSettingsRepository @Inject constructor(
             )
         }
 
-    override suspend fun seedLanguageDefault() {
-        dataStore.edit { preferences ->
-            // Only write if neither the current key nor the legacy migration key is present.
-            // This means the user has never explicitly chosen a language and no prior migration
-            // value exists — i.e., genuine first launch.
-            if (AppLanguageKey !in preferences && UseHebrewInterface !in preferences) {
-                preferences[AppLanguageKey] = AppLanguage.systemDefault().storageValue
-            }
-        }
-    }
-
     override suspend fun introduceGlassTheme() {
         var moved = false
         val updatedPreferences = dataStore.edit { preferences ->
             if (preferences[GlassThemeIntroduced] == true) return@edit
             // Every install that has launched before stored its language at that first launch (see
-            // seedLanguageDefault, which runs after this); a new one has not, whatever else is there.
+            // AppLanguageController.syncOnLaunch, which runs after this); a new one has not, whatever
+            // else is there.
             val launchedBefore = AppLanguageKey in preferences || UseHebrewInterface in preferences || ThemeOption in preferences
             val previous = if (launchedBefore) {
                 storedThemeOption(preferences) ?: AppThemeOption.DefaultBeforeGlass
@@ -241,11 +221,12 @@ class DataStoreAppSettingsRepository @Inject constructor(
         }
     }
 
-    override suspend fun setAppLanguage(language: AppLanguage) {
-        val updatedPreferences = dataStore.edit { preferences ->
-            preferences[AppLanguageKey] = language.storageValue
+    override suspend fun setAppLanguage(tag: String?) {
+        dataStore.edit { preferences ->
+            if (tag == null) preferences.remove(AppLanguageKey) else preferences[AppLanguageKey] = LanguageRecord.encode(tag)
+            // Superseded by the record above; the oldest versions' Hebrew on/off switch.
+            preferences.remove(UseHebrewInterface)
         }
-        startupSettingsCache.write(decodeRootUiSettings(updatedPreferences))
     }
 
     override suspend fun setUse24HourTime(enabled: Boolean) {
@@ -464,15 +445,12 @@ class DataStoreAppSettingsRepository @Inject constructor(
 
     private fun decodeRootUiSettings(preferences: Preferences): RootUiSettings = RootUiSettings(
         themeOption = decodeThemeOption(preferences),
-        language = decodeLanguage(preferences),
     )
 
-    private fun decodeLanguage(preferences: Preferences): AppLanguage =
-        AppLanguage.fromStorageValue(preferences[AppLanguageKey])
-        // Migrate older installs that stored only the Hebrew on/off boolean.
-            ?: preferences[UseHebrewInterface]?.let { if (it) AppLanguage.Hebrew else AppLanguage.English }
-            // First launch: follow the device language.
-            ?: AppLanguage.systemDefault()
+    private fun decodeLanguage(preferences: Preferences): String? =
+        LanguageRecord.decode(preferences[AppLanguageKey])
+        // Older installs that stored only the Hebrew on/off boolean.
+            ?: preferences[UseHebrewInterface]?.let { if (it) "he" else "en" }
 
     private fun decodeThemeOption(preferences: Preferences): AppThemeOption =
         storedThemeOption(preferences) ?: AppThemeOption.Default

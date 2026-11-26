@@ -4,9 +4,9 @@ package com.noamtu.jewishday.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.noamtu.jewishday.data.AppLanguage
 import com.noamtu.jewishday.data.AppThemeOption
 import com.noamtu.jewishday.data.AppSettingsRepository
+import com.noamtu.jewishday.i18n.AppLanguageController
 import com.noamtu.jewishday.model.AlotHashacharMethod
 import com.noamtu.jewishday.model.CandleLightingMethod
 import com.noamtu.jewishday.model.ChametzMethod
@@ -43,7 +43,6 @@ import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val hebrewDateStatusIconEnabled: Boolean = false,
-    val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
@@ -58,6 +57,7 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val appSettingsRepository: AppSettingsRepository,
+    private val appLanguageController: AppLanguageController,
     private val dateStatusIconScheduler: DateStatusIconScheduler,
     private val appUpdateRepository: AppUpdateRepository,
     private val pendingUpdates: PendingUpdateStore,
@@ -66,7 +66,6 @@ class SettingsViewModel @Inject constructor(
         .map { settings ->
             SettingsUiState(
                 hebrewDateStatusIconEnabled = settings.hebrewDateStatusIconEnabled,
-                language = settings.language,
                 use24HourTime = settings.use24HourTime,
                 enabledDailyLearning = settings.enabledDailyLearning,
                 enabledZmanimTimes = settings.enabledZmanimTimes,
@@ -91,10 +90,11 @@ class SettingsViewModel @Inject constructor(
     }
 
 
-    fun setAppLanguage(language: AppLanguage) {
-        viewModelScope.launch {
-            appSettingsRepository.setAppLanguage(language)
-        }
+    /** Makes [tag] the app's language; see [AppLanguageController.select]. */
+    fun setAppLanguage(tag: String) {
+        appLanguageController.select(tag)
+        // The view model outlives the activity being recreated for the new language.
+        viewModelScope.launch { appLanguageController.record(tag) }
     }
 
     fun setUse24HourTime(enabled: Boolean) {

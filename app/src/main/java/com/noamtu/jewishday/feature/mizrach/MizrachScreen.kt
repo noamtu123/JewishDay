@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.feature.mizrach
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.luminance
 import com.noamtu.jewishday.ui.theme.LocalCelestialLight
 import android.Manifest
@@ -96,7 +97,6 @@ import com.noamtu.jewishday.ui.components.ScreenPaddingValues
 import com.noamtu.jewishday.ui.components.ScreenSurface
 import com.noamtu.jewishday.ui.components.ValuePill
 import com.noamtu.jewishday.ui.components.readableWidth
-import com.noamtu.jewishday.ui.localizedString
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -321,7 +321,7 @@ private fun MizrachContent(
                         EnableLocationServicesCard(onOpenLocationSettings = onOpenLocationSettings)
                     } else {
                         Text(
-                            text = localizedString(R.string.mizrach_waiting_location, R.string.mizrach_waiting_location_hebrew),
+                            text = stringResource(R.string.mizrach_waiting_location),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -362,13 +362,13 @@ private fun LocationPermissionCard(
 ) {
     InfoCard(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = localizedString(R.string.mizrach_need_location, R.string.mizrach_need_location_hebrew),
+            text = stringResource(R.string.mizrach_need_location),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(14.dp))
         Button(onClick = onRequestLocation) {
-            Text(localizedString(R.string.mizrach_allow_location, R.string.mizrach_allow_location_hebrew))
+            Text(stringResource(R.string.mizrach_allow_location))
         }
     }
 }
@@ -380,13 +380,13 @@ private fun EnableLocationServicesCard(
 ) {
     InfoCard(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = localizedString(R.string.mizrach_location_off, R.string.mizrach_location_off_hebrew),
+            text = stringResource(R.string.mizrach_location_off),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(14.dp))
         Button(onClick = onOpenLocationSettings) {
-            Text(localizedString(R.string.mizrach_turn_on_location, R.string.mizrach_turn_on_location_hebrew))
+            Text(stringResource(R.string.mizrach_turn_on_location))
         }
     }
 }
@@ -397,9 +397,9 @@ private fun MizrachHeader(mizrach: MizrachInfo, modifier: Modifier = Modifier) {
     // (dev preset). The Jerusalem fallback is coloured red so it's obvious it isn't where you are.
     val source = locationSourceForName(mizrach.fromLocationName)
     val fromText = when (source) {
-        LocationSource.CurrentFix -> localizedString(R.string.mizrach_from_current, R.string.mizrach_from_current_hebrew)
-        LocationSource.Jerusalem -> localizedString(R.string.mizrach_from_jerusalem, R.string.mizrach_from_jerusalem_hebrew)
-        LocationSource.Named -> localizedString(R.string.mizrach_from, R.string.mizrach_from_hebrew, mizrach.fromLocationName)
+        LocationSource.CurrentFix -> stringResource(R.string.mizrach_from_current)
+        LocationSource.Jerusalem -> stringResource(R.string.mizrach_from_jerusalem)
+        LocationSource.Named -> stringResource(R.string.mizrach_from, mizrach.fromLocationName)
     }
     Column(modifier = modifier.fillMaxWidth().padding(top = 4.dp)) {
         Text(
@@ -451,7 +451,7 @@ private fun CompassCard(
         )
         Spacer(Modifier.height(18.dp))
         Text(
-            text = localizedString(R.string.mizrach_compass_caption, R.string.mizrach_compass_caption_hebrew),
+            text = stringResource(R.string.mizrach_compass_caption),
             modifier = Modifier.fillMaxWidth(),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -459,22 +459,22 @@ private fun CompassCard(
         )
         // Calibrating helps any phone's compass, so the tip is always there — except while a warning
         // below already asks for the figure-eight, which would say it twice.
-        if (hint?.first != R.string.mizrach_compass_accuracy_low && hint?.first != R.string.mizrach_compass_unreliable) {
+        if (hint != R.string.mizrach_compass_accuracy_low && hint != R.string.mizrach_compass_unreliable) {
             Spacer(Modifier.height(6.dp))
             Text(
-                text = localizedString(R.string.mizrach_figure_eight_tip, R.string.mizrach_figure_eight_tip_hebrew),
+                text = stringResource(R.string.mizrach_figure_eight_tip),
                 modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,
             )
         }
-        hint?.let { (english, hebrew) ->
+        hint?.let { hintRes ->
             Spacer(Modifier.height(8.dp))
-            val message = localizedString(english, hebrew)
+            val message = stringResource(hintRes)
             // The unreliable warning leads with "Compass is unreliable right now"; emphasize that
             // clause (bold + error colour) so it reads as a stronger caution than low accuracy.
-            val text = if (english == R.string.mizrach_compass_unreliable) {
+            val text = if (hintRes == R.string.mizrach_compass_unreliable) {
                 emphasizeLeadClause(message, MaterialTheme.colorScheme.error)
             } else {
                 AnnotatedString(message)
@@ -498,9 +498,9 @@ private fun CompassCard(
             Spacer(Modifier.height(10.dp))
             Button(onClick = action, modifier = Modifier.align(Alignment.CenterHorizontally)) {
                 val label = if (locationTrust == CompassLocationTrust.NeedsPrecisePermission) {
-                    localizedString(R.string.mizrach_allow_precise_location, R.string.mizrach_allow_precise_location_hebrew)
+                    stringResource(R.string.mizrach_allow_precise_location)
                 } else {
-                    localizedString(R.string.mizrach_retry_location, R.string.mizrach_retry_location_hebrew)
+                    stringResource(R.string.mizrach_retry_location)
                 }
                 Text(label)
             }
@@ -510,7 +510,7 @@ private fun CompassCard(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
-            ValuePill(text = localizedString(R.string.mizrach_distance_km, R.string.mizrach_distance_km_hebrew, mizrach.distanceKm))
+            ValuePill(text = stringResource(R.string.mizrach_distance_km, mizrach.distanceKm))
         }
     }
 }
@@ -624,10 +624,7 @@ private fun CompassFace(
         modifier = modifier,
         contentAlignment = Alignment.Center,
     ) {
-        val dialDescription = localizedString(
-            R.string.mizrach_compass_dial_description,
-            R.string.mizrach_compass_dial_description_hebrew,
-            bearingDegrees,
+        val dialDescription = stringResource(R.string.mizrach_compass_dial_description, bearingDegrees,
         )
         // A Canvas carries no text, so without this the needle is invisible to TalkBack. The
         // description is keyed on the bearing only — the live heading is read in the draw phase on
@@ -693,7 +690,7 @@ private fun CompassFace(
                 color = textColor,
             )
             Text(
-                text = localizedString(R.string.mizrach_toward_jerusalem, R.string.mizrach_toward_jerusalem_hebrew),
+                text = stringResource(R.string.mizrach_toward_jerusalem),
                 style = MaterialTheme.typography.bodyMedium,
                 color = textColor,
             )
@@ -820,23 +817,24 @@ private fun emphasizeLeadClause(message: String, highlightColor: Color): Annotat
     }
 }
 
-private fun CompassSensorState.accuracyHint(locationTrust: CompassLocationTrust): Pair<Int, Int>? = when {
+@StringRes
+private fun CompassSensorState.accuracyHint(locationTrust: CompassLocationTrust): Int? = when {
     !sensorsAvailable ->
-        R.string.mizrach_no_compass_sensor to R.string.mizrach_no_compass_sensor_hebrew
+        R.string.mizrach_no_compass_sensor
     // Checked before needsCalibration: an unreliable status also trips needsCalibration
     // (UNRELIABLE ≤ LOW), but it warrants the stronger "can't be trusted" wording.
     unreliableStatus ->
-        R.string.mizrach_compass_unreliable to R.string.mizrach_compass_unreliable_hebrew
+        R.string.mizrach_compass_unreliable
     needsCalibration || lowConfidence ->
-        R.string.mizrach_compass_accuracy_low to R.string.mizrach_compass_accuracy_low_hebrew
+        R.string.mizrach_compass_accuracy_low
     headingDegrees == null ->
-        R.string.mizrach_heading_unavailable to R.string.mizrach_heading_unavailable_hebrew
+        R.string.mizrach_heading_unavailable
     locationTrust == CompassLocationTrust.NeedsPrecisePermission ->
-        R.string.mizrach_precise_location_required to R.string.mizrach_precise_location_required_hebrew
+        R.string.mizrach_precise_location_required
     locationTrust == CompassLocationTrust.DeveloperOverride ->
-        R.string.mizrach_developer_location_compass to R.string.mizrach_developer_location_compass_hebrew
+        R.string.mizrach_developer_location_compass
     locationTrust == CompassLocationTrust.NeedsBetterFix ->
-        R.string.mizrach_location_accuracy_low to R.string.mizrach_location_accuracy_low_hebrew
+        R.string.mizrach_location_accuracy_low
     else -> null
 }
 
@@ -872,9 +870,9 @@ private fun rememberAlignmentState(
         }
     }
     val label = when (direction) {
-        AlignmentDirection.Aligned -> localizedString(R.string.mizrach_aligned, R.string.mizrach_aligned_hebrew)
-        AlignmentDirection.TurnRight -> localizedString(R.string.mizrach_turn_right, R.string.mizrach_turn_right_hebrew)
-        AlignmentDirection.TurnLeft -> localizedString(R.string.mizrach_turn_left, R.string.mizrach_turn_left_hebrew)
+        AlignmentDirection.Aligned -> stringResource(R.string.mizrach_aligned)
+        AlignmentDirection.TurnRight -> stringResource(R.string.mizrach_turn_right)
+        AlignmentDirection.TurnLeft -> stringResource(R.string.mizrach_turn_left)
         null -> return null
     }
     val isAligned = direction == AlignmentDirection.Aligned

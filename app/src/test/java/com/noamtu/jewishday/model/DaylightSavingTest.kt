@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.model
 
+import com.noamtu.jewishday.i18n.en
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
@@ -120,7 +121,7 @@ class DaylightSavingTest {
                 val date = transition.plusDays(offset)
                 // Midday, so the sunset rollover is not in play and the date is unambiguous.
                 val noon = date.atTime(12, 0).atZone(jerusalem.zoneId).toInstant()
-                zmanimForDate(jerusalem, date, settings, noon).hebrewDateEnglish
+                zmanimForDate(jerusalem, date, settings, noon).hebrewDate.en()
             }
             assertEquals("$transition produced duplicate Hebrew dates: $days", days.size, days.toSet().size)
         }

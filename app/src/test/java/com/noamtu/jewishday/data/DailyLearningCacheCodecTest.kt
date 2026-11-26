@@ -2,6 +2,10 @@
 
 package com.noamtu.jewishday.data
 
+import com.noamtu.jewishday.i18n.TestText
+import com.noamtu.jewishday.i18n.en
+import com.noamtu.jewishday.i18n.he
+import com.noamtu.jewishday.model.ZmanimGroupKind
 import com.noamtu.jewishday.model.DailyLearningType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -45,18 +49,18 @@ class DailyLearningCacheCodecTest {
 
         // Both tracks are mapped as separate "Rambam Yomi" rows; visibility is decided later by
         // each row's own daily-learning id, so the two toggle independently.
-        val rows = entries.toZmanItems().filter { it.title == "Rambam Yomi" }
+        val rows = entries.toZmanItems().filter { it.title.en() == "Rambam Yomi" }
         assertEquals(2, rows.size)
 
         val oneChapter = rows.single { it.id == DailyLearningType.RambamYomi.storageValue }
-        assertEquals("Sabbath 17", oneChapter.value)
-        assertEquals("1 chapter", oneChapter.description)
+        assertEquals("Sabbath 17", oneChapter.value?.en())
+        assertEquals("1 chapter", oneChapter.description.en())
 
         val threeChapters = rows.single { it.id == DailyLearningType.RambamYomiThreeChapters.storageValue }
-        assertEquals("Gifts to the Poor 8-10", threeChapters.value)
-        assertEquals("3 chapters", threeChapters.description)
-        assertEquals("3 פרקים", threeChapters.descriptionHebrew)
+        assertEquals("Gifts to the Poor 8-10", threeChapters.value?.en())
+        assertEquals("3 chapters", threeChapters.description.en())
+        assertEquals("3 פרקים", threeChapters.description.he())
         // Arabic chapter range -> punctuated gematria + plural פרקים, matching the 1-chapter style.
-        assertEquals("הלכות מתנות עניים פרקים ח׳-י׳", threeChapters.valueHebrew)
+        assertEquals("הלכות מתנות עניים פרקים ח׳-י׳", threeChapters.value?.he())
     }
 }

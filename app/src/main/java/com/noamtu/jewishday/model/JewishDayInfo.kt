@@ -2,60 +2,60 @@
 
 package com.noamtu.jewishday.model
 
-import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
+import androidx.annotation.StringRes
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
+import com.noamtu.jewishday.R
+import com.noamtu.jewishday.i18n.CalendarText
+import com.noamtu.jewishday.i18n.UiText
+import com.noamtu.jewishday.i18n.asUiText
+import com.noamtu.jewishday.i18n.uiText
 import java.time.DayOfWeek
 import java.time.LocalDate
 
+/** What the status-bar date icon shows: the day, and the Hebrew date it is. */
 data class JewishDayInfo(
     val gregorianDate: LocalDate,
+    // The civil date the Hebrew date belongs to — [gregorianDate], or the next day from tzeit on.
+    val jewishDate: LocalDate,
     val hebrewDayOfMonth: Int,
-    val hebrewDayOfMonthHebrew: String,
-    val hebrewDateEnglish: String,
-    val hebrewDateHebrew: String,
+    // The icon's glyph: the day of the month in Hebrew numerals ("ט״ו") in every language, since the
+    // icon is the Hebrew date itself.
+    val dayOfMonthGlyph: String,
+) {
     // Weekday of [gregorianDate] — the civil day, so it rolls at midnight. Deliberately not the
     // Jewish weekday: in the status bar the day name is read on its own, and "Friday" appearing on
     // Thursday evening reads as a mistake there even though the Hebrew date beside it has rolled.
     // The app's own header does use the Jewish weekday, where the Hebrew date gives it context.
-    val dayOfWeekEnglish: String,
-    val dayOfWeekHebrew: String,
-)
+    val weekday: UiText get() = uiText(weekdayName(gregorianDate.dayOfWeek))
 
-fun jewishDayInfo(date: LocalDate): JewishDayInfo {
-    val jewishCalendar = JewishCalendar(date)
-    return jewishDayInfo(
-        gregorianDate = date,
-        jewishCalendar = jewishCalendar,
-    )
+    val hebrewDate: UiText get() = CalendarText.HebrewDate(jewishDate).asUiText()
 }
+
+fun jewishDayInfo(date: LocalDate): JewishDayInfo = jewishDayInfo(gregorianDate = date, jewishDate = date)
 
 fun jewishDayInfo(
     gregorianDate: LocalDate,
     jewishDate: LocalDate,
-): JewishDayInfo = jewishDayInfo(
-    gregorianDate = gregorianDate,
-    jewishCalendar = JewishCalendar(jewishDate),
-)
-
-private fun jewishDayInfo(
-    gregorianDate: LocalDate,
-    jewishCalendar: JewishCalendar,
 ): JewishDayInfo {
-    val dayOfWeek = gregorianDate.dayOfWeek
-    val englishFormatter = englishHebrewDateFormatter()
-    val hebrewFormatter = HebrewDateFormatter().apply {
-        isHebrewFormat = true
-    }
-
+    val jewishCalendar = JewishCalendar(jewishDate)
     return JewishDayInfo(
         gregorianDate = gregorianDate,
+        jewishDate = jewishDate,
         hebrewDayOfMonth = jewishCalendar.jewishDayOfMonth,
-        hebrewDayOfMonthHebrew = hebrewDayOfMonthText(jewishCalendar.jewishDayOfMonth),
-        hebrewDateEnglish = englishFormatter.format(jewishCalendar),
-        hebrewDateHebrew = hebrewFormatter.format(jewishCalendar),
-        dayOfWeekEnglish = englishDayNames.getValue(dayOfWeek),
-        dayOfWeekHebrew = hebrewDayNames.getValue(dayOfWeek),
+        dayOfMonthGlyph = hebrewDayOfMonthText(jewishCalendar.jewishDayOfMonth),
     )
+}
+
+/** The icon's own weekday names: Hebrew's Saturday is plain "שבת" there, not java.time's "יום שבת". */
+@StringRes
+private fun weekdayName(day: DayOfWeek): Int = when (day) {
+    DayOfWeek.SUNDAY -> R.string.weekday_sunday
+    DayOfWeek.MONDAY -> R.string.weekday_monday
+    DayOfWeek.TUESDAY -> R.string.weekday_tuesday
+    DayOfWeek.WEDNESDAY -> R.string.weekday_wednesday
+    DayOfWeek.THURSDAY -> R.string.weekday_thursday
+    DayOfWeek.FRIDAY -> R.string.weekday_friday
+    DayOfWeek.SATURDAY -> R.string.weekday_saturday
 }
 
 fun hebrewDayOfMonthText(dayOfMonth: Int): String {
@@ -72,26 +72,6 @@ fun hebrewDayOfMonthText(dayOfMonth: Int): String {
         }
     }
 }
-
-private val englishDayNames = mapOf(
-    DayOfWeek.SUNDAY to "Sunday",
-    DayOfWeek.MONDAY to "Monday",
-    DayOfWeek.TUESDAY to "Tuesday",
-    DayOfWeek.WEDNESDAY to "Wednesday",
-    DayOfWeek.THURSDAY to "Thursday",
-    DayOfWeek.FRIDAY to "Friday",
-    DayOfWeek.SATURDAY to "Saturday",
-)
-
-private val hebrewDayNames = mapOf(
-    DayOfWeek.SUNDAY to "יום ראשון",
-    DayOfWeek.MONDAY to "יום שני",
-    DayOfWeek.TUESDAY to "יום שלישי",
-    DayOfWeek.WEDNESDAY to "יום רביעי",
-    DayOfWeek.THURSDAY to "יום חמישי",
-    DayOfWeek.FRIDAY to "יום שישי",
-    DayOfWeek.SATURDAY to "שבת",
-)
 
 private val hebrewUnits = mapOf(
     1 to "א",

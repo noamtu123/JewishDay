@@ -2,6 +2,10 @@
 
 package com.noamtu.jewishday.model
 
+import com.noamtu.jewishday.i18n.TestText
+import com.noamtu.jewishday.i18n.en
+import com.noamtu.jewishday.i18n.he
+import com.noamtu.jewishday.model.ZmanimGroupKind
 import java.time.Duration
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -17,7 +21,7 @@ class HolyDayExitTest {
     private val zone = defaultJerusalemLocation.zoneId
 
     private fun rowTime(date: LocalDate, title: String) =
-        zmanimForDate(date = date).groups.flatMap { it.items }.firstOrNull { it.title == title }?.time
+        zmanimForDate(date = date).groups.flatMap { it.items }.firstOrNull { it.title.en() == title }?.time
 
     @Test
     fun holyDayExitIsTzeitPlusTheTosefetMinutes() {
@@ -44,8 +48,8 @@ class HolyDayExitTest {
         val holyDay = requireNotNull(day.holyDayInfo)
         // A single day that is both Shabbat and Yom Kippur: named for the Yom Tov, and since
         // nothing follows it there is no back-to-back warning.
-        assertTrue(holyDay.nameHebrew, holyDay.nameHebrew.contains("כיפור"))
-        assertNull(holyDay.sequelHebrew)
+        assertTrue(holyDay.name.he(), holyDay.name.he().contains("כיפור"))
+        assertNull(holyDay.sequel?.he())
 
         assertEquals(holyDayExitForDate(date = yomKippur), holyDay.endTime)
         // Entry carries the tosefet: before sunset, not at it.

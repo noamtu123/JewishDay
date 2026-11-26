@@ -2,6 +2,8 @@
 
 package com.noamtu.jewishday.model
 
+import com.noamtu.jewishday.i18n.he
+import com.noamtu.jewishday.i18n.en
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -14,9 +16,9 @@ class JewishDayInfoTest {
 
         assertEquals(LocalDate.of(2024, 4, 23), info.gregorianDate)
         assertEquals(15, info.hebrewDayOfMonth)
-        assertEquals("ט״ו", info.hebrewDayOfMonthHebrew)
-        assertTrue(info.hebrewDateEnglish.contains("Nissan"))
-        assertTrue(info.hebrewDateHebrew.isNotBlank())
+        assertEquals("ט״ו", info.dayOfMonthGlyph)
+        assertTrue(info.hebrewDate.en().contains("Nissan"))
+        assertTrue(info.hebrewDate.he().isNotBlank())
     }
 
     @Test

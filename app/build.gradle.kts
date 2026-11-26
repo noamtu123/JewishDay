@@ -29,6 +29,15 @@ android {
         targetSdk = 36
         versionCode = 20
         versionName = "1.3.0"
+
+        val locales = translationLocales(file("src/main/res"))
+        buildConfigField("String[]", "APP_LOCALES", locales.joinToString(prefix = "{", postfix = "}") { "\"$it\"" })
+    }
+
+    androidResources {
+        // res/xml/locales_config is generated from the translation folders (and resources.properties),
+        // so Android 13+'s per-app language setting always lists exactly the languages the app has.
+        generateLocaleConfig = true
     }
 
     // Release is the only variant shipped, so it is the one tested. Since AGP 9, unit tests exist
@@ -108,4 +117,29 @@ dependencies {
     testImplementation(libs.json)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
+}
+
+/**
+ * The app's languages, as BCP 47 tags: English (res/values) first, then one per translation folder
+ * (res/values-<language>[-r<REGION>] or values-b+…) holding a strings.xml. The in-app language
+ * picker lists these, so adding a translation folder is all it takes for a language to appear there;
+ * the system's own per-app language list comes from the generated locale config below.
+ */
+fun translationLocales(res: File): List<String> {
+    val qualifier = Regex("""values-(?:b\+([A-Za-z0-9+]+)|([a-z]{2,3})(?:-r([A-Z]{2}))?)""")
+    // Hebrew's folder keeps the old "iw" code every Android version reads; the tag is "he".
+    val modern = mapOf("iw" to "he", "in" to "id", "ji" to "yi")
+    val found = res.listFiles().orEmpty()
+        .filter { it.isDirectory && File(it, "strings.xml").isFile }
+        .mapNotNull { qualifier.matchEntire(it.name) }
+        .map { match ->
+            val (bcp, language, region) = match.destructured
+            if (bcp.isNotEmpty()) {
+                bcp.split('+').joinToString("-")
+            } else {
+                listOf(modern[language] ?: language, region).filter(String::isNotEmpty).joinToString("-")
+            }
+        }
+        .sorted()
+    return listOf("en") + found
 }

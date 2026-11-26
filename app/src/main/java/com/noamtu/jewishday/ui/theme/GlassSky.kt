@@ -52,9 +52,10 @@ private val Sunset = Look(0xFF2A1F4E, listOf(0xFF6E47B0, 0xFFD0578A, 0xFFFF7E6B)
 private val Twilight = Look(0xFF151A40, listOf(0xFF5B4BC8, 0xFF8A4C82, 0xFF6A4A8E), 0.55f, 0.55f, 0f, dark = true)
 
 /** One of the sky's pinned moments, for the developer tools' "jump to" buttons. */
-data class SkyPhase(val name: String, val nameHebrew: String, val at: Instant)
+data class SkyPhase(val name: String, val at: Instant)
 
-private data class SkyKey(val at: Instant, val look: Look, val name: String?, val nameHebrew: String?)
+// The names are for the developer tools, which are English only.
+private data class SkyKey(val at: Instant, val look: Look, val name: String?)
 
 /**
  * The day's pinned moments: each look sits at one of the day's real times — dawn halfway from alot
@@ -69,16 +70,16 @@ private fun skyKeys(day: SkyDay, midnight: Instant): List<SkyKey> {
     val tzeit = day.tzeit ?: sunset.plus(Duration.ofMinutes(20))
     val midday = sunrise.plus(Duration.between(sunrise, sunset).dividedBy(2))
     return listOf(
-        SkyKey(midnight, Night, null, null),
-        SkyKey(alot.minus(Duration.ofMinutes(40)), Night, "Night", "לילה"),
-        SkyKey(alot.plus(Duration.between(alot, sunrise).dividedBy(2)), Dawn, "Dawn", "שחר"),
-        SkyKey(sunrise.plus(Duration.ofMinutes(30)), Sunrise, "Sunrise", "זריחה"),
-        SkyKey(midday, Day, "Midday", "צהריים"),
-        SkyKey(sunset.minus(Duration.ofMinutes(60)), Afternoon, "Afternoon", "אחר הצהריים"),
-        SkyKey(sunset, Sunset, "Sunset", "שקיעה"),
-        SkyKey(tzeit, Twilight, "Bein hashmashot", "בין השמשות"),
-        SkyKey(tzeit.plus(Duration.ofMinutes(60)), Night, "Night", "לילה"),
-        SkyKey(midnight.plus(Duration.ofDays(1)), Night, null, null),
+        SkyKey(midnight, Night, null),
+        SkyKey(alot.minus(Duration.ofMinutes(40)), Night, "Night"),
+        SkyKey(alot.plus(Duration.between(alot, sunrise).dividedBy(2)), Dawn, "Dawn"),
+        SkyKey(sunrise.plus(Duration.ofMinutes(30)), Sunrise, "Sunrise"),
+        SkyKey(midday, Day, "Midday"),
+        SkyKey(sunset.minus(Duration.ofMinutes(60)), Afternoon, "Afternoon"),
+        SkyKey(sunset, Sunset, "Sunset"),
+        SkyKey(tzeit, Twilight, "Bein hashmashot"),
+        SkyKey(tzeit.plus(Duration.ofMinutes(60)), Night, "Night"),
+        SkyKey(midnight.plus(Duration.ofDays(1)), Night, null),
     ).sortedBy { it.at }
 }
 
@@ -86,7 +87,7 @@ private fun skyKeys(day: SkyDay, midnight: Instant): List<SkyKey> {
 fun skyPhases(day: SkyDay, date: java.time.LocalDate, zone: ZoneId): List<SkyPhase> =
     skyKeys(day, date.atStartOfDay(zone).toInstant())
         .filter { it.name != null }
-        .map { SkyPhase(it.name!!, it.nameHebrew!!, it.at) }
+        .map { SkyPhase(it.name!!, it.at) }
 
 /**
  * When the sky next changes, if it is standing still at [now]; null while it moves. Through the night

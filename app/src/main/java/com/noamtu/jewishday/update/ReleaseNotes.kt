@@ -2,6 +2,8 @@
 
 package com.noamtu.jewishday.update
 
+import com.noamtu.jewishday.i18n.normalizeTag
+
 /**
  * A release body, parsed into the changelog the update dialog shows.
  *
@@ -34,7 +36,10 @@ package com.noamtu.jewishday.update
  * Headings name the category; bullets are the entries. Anything the app cannot classify still shows,
  * under [ReleaseNoteCategory.Other] — an unrecognised heading must never swallow its own bullets.
  *
- * A body with no Hebrew block falls back to the English one, and a body with no headings at all —
+ * Any other language can ride along the same way, in a block of its own named by its language code
+ * (`<!-- lang:fr … -->`); the notes are shown in the app's language when they have it.
+ *
+ * A body with no block for the app's language falls back to the English one, and a body with no headings at all —
  * every release published before this convention, including `--generate-notes` output — comes back
  * as a single unlabelled section, so nothing historical renders blank.
  */
@@ -47,27 +52,34 @@ data class ReleaseNoteSection(
 
 enum class ReleaseNoteCategory { New, Improved, Fixed, Other }
 
-/** The Hebrew translation block. Non-greedy so a body may hold other comments without confusion. */
-private val HebrewBlock = Regex("""<!--\s*lang:he\s*(.*?)-->""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
+/** A translation block, by language code. Non-greedy so a body may hold other comments without confusion. */
+private val TranslationBlock = Regex("""<!--\s*lang:([A-Za-z-]+)\s*(.*?)-->""", setOf(RegexOption.DOT_MATCHES_ALL, RegexOption.IGNORE_CASE))
 
 private val HeadingLine = Regex("""^#{1,6}\s*(.+?)\s*#*$""")
 private val BulletLine = Regex("""^[-*+]\s+(.*)$""")
 
-/** The plain text of the notes in one language, for anything that wants it unstructured. */
-fun releaseNotesFor(body: String, useHebrew: Boolean): String {
-    val hebrew = HebrewBlock.find(body)?.groupValues?.get(1)?.trim().orEmpty()
-    val english = HebrewBlock.replace(body, "").trim()
+/**
+ * The plain text of the notes in [language] (a language code: "en", "he"), for anything that wants
+ * it unstructured — English, the open body, when there is no block for it.
+ */
+fun releaseNotesFor(body: String, language: String): String {
+    val blocks = TranslationBlock.findAll(body)
+        .map { normalizeTag(it.groupValues[1].lowercase()) to it.groupValues[2].trim() }
+        .filter { (_, text) -> text.isNotEmpty() }
+        .toList()
+    val translated = blocks.firstOrNull { (code, _) -> code == normalizeTag(language) }?.second
+    val english = TranslationBlock.replace(body, "").trim()
     return when {
-        useHebrew && hebrew.isNotEmpty() -> hebrew
+        translated != null -> translated
         english.isNotEmpty() -> english
-        // A body that is *only* a Hebrew block should still show something rather than nothing.
-        else -> hebrew
+        // A body that is *only* a translation block should still show something rather than nothing.
+        else -> blocks.firstOrNull()?.second.orEmpty()
     }
 }
 
 /** The same notes, split into the categories the dialog renders. */
-fun parseReleaseNotes(body: String, useHebrew: Boolean): List<ReleaseNoteSection> =
-    parseSections(releaseNotesFor(body, useHebrew))
+fun parseReleaseNotes(body: String, language: String): List<ReleaseNoteSection> =
+    parseSections(releaseNotesFor(body, language))
 
 private fun parseSections(notes: String): List<ReleaseNoteSection> {
     val sections = mutableListOf<ReleaseNoteSection>()

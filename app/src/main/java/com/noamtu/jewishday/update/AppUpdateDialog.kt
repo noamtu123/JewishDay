@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.update
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
@@ -70,10 +71,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.noamtu.jewishday.R
-import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.unit.LayoutDirection
-import com.noamtu.jewishday.ui.LocalUseHebrewInterface
-import com.noamtu.jewishday.ui.localizedString
+import com.noamtu.jewishday.i18n.LocalTextResolver
+import com.noamtu.jewishday.i18n.ProvideLanguage
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -260,7 +259,7 @@ private fun UpdateDialogBody(state: UpdateState, notesInEnglish: Boolean) {
             if (state.isDowngrade) {
                 Notice(
                     icon = ImageVector.vectorResource(R.drawable.ic_error_outline),
-                    text = localizedString(R.string.update_downgrade_body, R.string.update_downgrade_body_hebrew),
+                    text = stringResource(R.string.update_downgrade_body),
                     tone = MaterialTheme.colorScheme.error,
                 )
             }
@@ -278,7 +277,7 @@ private fun UpdateDialogBody(state: UpdateState, notesInEnglish: Boolean) {
             CircularProgressIndicator()
             Text(
                 modifier = Modifier.fillMaxWidth(),
-                text = localizedString(R.string.update_installing_body, R.string.update_installing_body_hebrew),
+                text = stringResource(R.string.update_installing_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -288,7 +287,7 @@ private fun UpdateDialogBody(state: UpdateState, notesInEnglish: Boolean) {
         is UpdateState.Failed -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Notice(
                 icon = ImageVector.vectorResource(R.drawable.ic_error_outline),
-                text = localizedString(R.string.update_failed_body, R.string.update_failed_body_hebrew),
+                text = stringResource(R.string.update_failed_body),
                 tone = MaterialTheme.colorScheme.error,
             )
             // The installer's own words, when it gave any — usually more use than ours.
@@ -305,7 +304,7 @@ private fun UpdateDialogBody(state: UpdateState, notesInEnglish: Boolean) {
 
         is UpdateState.NeedsInstallPermission -> Notice(
             icon = ImageVector.vectorResource(R.drawable.ic_install_mobile),
-            text = localizedString(R.string.update_permission_body, R.string.update_permission_body_hebrew),
+            text = stringResource(R.string.update_permission_body),
             tone = MaterialTheme.colorScheme.primary,
         )
     }
@@ -397,7 +396,7 @@ private fun AppRelease.metaLine(): String? {
     val date = publishedOn?.format(DateTimeFormatter.ISO_LOCAL_DATE)
     val size = sizeBytes
         .takeIf { it > 0 }
-        ?.let { localizedString(R.string.update_size, R.string.update_size_hebrew, it.asMegabytes()) }
+        ?.let { stringResource(R.string.update_size, it.asMegabytes()) }
     return listOfNotNull(date, size).takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
 
@@ -423,32 +422,36 @@ private fun Notice(icon: ImageVector, text: String, tone: Color) {
 /**
  * What's new: the release's own changelog, grouped into New / Improved / Fixed.
  *
- * The body carries English in the open and Hebrew inside an HTML comment (see [parseReleaseNotes]);
- * this picks the language matching the interface and takes the heading and text direction with it —
- * an English changelog laid out right-to-left puts the bullets on the wrong side and mangles the
- * punctuation. Its own scrolling area, so long notes never push the buttons off screen.
+ * The body carries English in the open and each translation inside an HTML comment (see
+ * [parseReleaseNotes]); this picks the app's language, and the hidden "show in English" switch takes
+ * the headings and text direction to English with it — an English changelog laid out right-to-left
+ * puts the bullets on the wrong side and mangles the punctuation. Its own scrolling area, so long notes never push the buttons off screen.
  */
 @Composable
 private fun ReleaseNotes(notes: String, showInEnglish: Boolean) {
-    val useHebrew = LocalUseHebrewInterface.current && !showInEnglish
-    val sections = remember(notes, useHebrew) { parseReleaseNotes(notes, useHebrew) }
-    CompositionLocalProvider(
-        LocalUseHebrewInterface provides useHebrew,
-        LocalLayoutDirection provides if (useHebrew) LayoutDirection.Rtl else LayoutDirection.Ltr,
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(
-                text = localizedString(R.string.update_notes_title, R.string.update_notes_title_hebrew),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                sections.forEach { section -> ReleaseNoteGroup(section) }
-            }
+    if (showInEnglish) {
+        ProvideLanguage("en") { ReleaseNotesContent(notes) }
+    } else {
+        ReleaseNotesContent(notes)
+    }
+}
+
+@Composable
+private fun ReleaseNotesContent(notes: String) {
+    val language = LocalTextResolver.current.locale.language
+    val sections = remember(notes, language) { parseReleaseNotes(notes, language) }
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = stringResource(R.string.update_notes_title),
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Column(
+            modifier = Modifier.verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            sections.forEach { section -> ReleaseNoteGroup(section) }
         }
     }
 }
@@ -503,9 +506,9 @@ private fun ReleaseNoteGroup(section: ReleaseNoteSection) {
  */
 @Composable
 private fun ReleaseNoteSection.label(): String? = when (category) {
-    ReleaseNoteCategory.New -> localizedString(R.string.update_notes_new, R.string.update_notes_new_hebrew)
-    ReleaseNoteCategory.Improved -> localizedString(R.string.update_notes_improved, R.string.update_notes_improved_hebrew)
-    ReleaseNoteCategory.Fixed -> localizedString(R.string.update_notes_fixed, R.string.update_notes_fixed_hebrew)
+    ReleaseNoteCategory.New -> stringResource(R.string.update_notes_new)
+    ReleaseNoteCategory.Improved -> stringResource(R.string.update_notes_improved)
+    ReleaseNoteCategory.Fixed -> stringResource(R.string.update_notes_fixed)
     ReleaseNoteCategory.Other -> heading.takeIf(String::isNotBlank)
 }
 
@@ -570,18 +573,12 @@ private fun DownloadProgress(state: UpdateState.Downloading) {
         icon = ImageVector.vectorResource(R.drawable.ic_download),
         title = state.release.title.isolateLtr(),
         meta = if (state.totalBytes > 0) {
-            localizedString(
-                R.string.update_progress_detail,
-                R.string.update_progress_detail_hebrew,
-                state.downloadedBytes.asMegabytes(),
+            stringResource(R.string.update_progress_detail, state.downloadedBytes.asMegabytes(),
                 state.totalBytes.asMegabytes(),
                 (animated * 100).toInt(),
             )
         } else {
-            localizedString(
-                R.string.update_progress_downloaded,
-                R.string.update_progress_downloaded_hebrew,
-                state.downloadedBytes.asMegabytes(),
+            stringResource(R.string.update_progress_downloaded, state.downloadedBytes.asMegabytes(),
             )
         },
         footer = {
@@ -608,14 +605,14 @@ private fun UpdateDialogFooter(
     ) {
         when (state) {
             is UpdateState.Available -> DialogButton(
-                text = localizedString(R.string.update_action_download, R.string.update_action_download_hebrew),
+                text = stringResource(R.string.update_action_download),
                 icon = ImageVector.vectorResource(R.drawable.ic_download),
                 filled = true,
                 onClick = { onDownload(state.release) },
             )
 
             is UpdateState.Failed -> DialogButton(
-                text = localizedString(R.string.update_action_retry, R.string.update_action_retry_hebrew),
+                text = stringResource(R.string.update_action_retry),
                 icon = ImageVector.vectorResource(R.drawable.ic_download),
                 filled = true,
                 onClick = { state.release?.let(onDownload) ?: onDismiss() },
@@ -625,7 +622,7 @@ private fun UpdateDialogFooter(
             // which is both the first moment the answer exists and the first moment Android will
             // let the confirmation dialog appear.
             is UpdateState.NeedsInstallPermission -> DialogButton(
-                text = localizedString(R.string.update_action_open_settings, R.string.update_action_open_settings_hebrew),
+                text = stringResource(R.string.update_action_open_settings),
                 icon = ImageVector.vectorResource(R.drawable.ic_install_mobile),
                 filled = true,
                 onClick = onOpenInstallSettings,
@@ -638,10 +635,7 @@ private fun UpdateDialogFooter(
         if (state.isDismissable) {
             val later = state is UpdateState.Available
             DialogButton(
-                text = localizedString(
-                    if (later) R.string.update_action_later else R.string.update_action_close,
-                    if (later) R.string.update_action_later_hebrew else R.string.update_action_close_hebrew,
-                ),
+                text = stringResource(if (later) R.string.update_action_later else R.string.update_action_close),
                 icon = null,
                 filled = false,
                 onClick = onDismiss,
@@ -714,12 +708,12 @@ private fun <S> crossfade(): AnimatedContentTransitionScope<S>.() -> ContentTran
 
 @Composable
 private fun UpdateState.title(): String = when (this) {
-    is UpdateState.Downloading -> localizedString(R.string.update_downloading_title, R.string.update_downloading_title_hebrew)
-    is UpdateState.Installing -> localizedString(R.string.update_installing_title, R.string.update_installing_title_hebrew)
-    is UpdateState.Failed -> localizedString(R.string.update_failed_title, R.string.update_failed_title_hebrew)
+    is UpdateState.Downloading -> stringResource(R.string.update_downloading_title)
+    is UpdateState.Installing -> stringResource(R.string.update_installing_title)
+    is UpdateState.Failed -> stringResource(R.string.update_failed_title)
     is UpdateState.NeedsInstallPermission ->
-        localizedString(R.string.update_permission_title, R.string.update_permission_title_hebrew)
-    else -> localizedString(R.string.update_available_title, R.string.update_available_title_hebrew)
+        stringResource(R.string.update_permission_title)
+    else -> stringResource(R.string.update_available_title)
 }
 
 /**

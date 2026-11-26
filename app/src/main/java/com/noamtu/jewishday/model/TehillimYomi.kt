@@ -2,35 +2,18 @@
 
 package com.noamtu.jewishday.model
 
-import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
-import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
-
-internal fun JewishCalendar.tehillimYomiEnglish(): String {
-    val range = tehillimRangeForDay(jewishDayOfMonth, daysInJewishMonth)
-    return if (range.verseStart == null) {
-        "Psalms ${range.chapterStart}-${range.chapterEnd}"
-    } else {
-        "Psalm ${range.chapterStart}:${range.verseStart}-${range.verseEnd}"
-    }
-}
-
-internal fun JewishCalendar.tehillimYomiHebrew(formatter: HebrewDateFormatter): String {
-    val range = tehillimRangeForDay(jewishDayOfMonth, daysInJewishMonth)
-    return if (range.verseStart == null) {
-        "תהילים ${formatter.formatHebrewNumber(range.chapterStart)}-${formatter.formatHebrewNumber(range.chapterEnd)}"
-    } else {
-        "תהילים ${formatter.formatHebrewNumber(range.chapterStart)}:${formatter.formatHebrewNumber(range.verseStart)}-${formatter.formatHebrewNumber(range.verseEnd ?: range.verseStart)}"
-    }
-}
-
-private data class TehillimRange(
+/**
+ * The day's portion of the monthly Tehillim division: whole chapters, or (on the 25th and 26th) half
+ * of chapter 119 by verse. Worded by each language's formatter — see `CalendarText.TehillimYomi`.
+ */
+internal data class TehillimRange(
     val chapterStart: Int,
     val chapterEnd: Int,
     val verseStart: Int? = null,
     val verseEnd: Int? = null,
 )
 
-private fun tehillimRangeForDay(dayOfMonth: Int, daysInMonth: Int): TehillimRange = when (dayOfMonth) {
+internal fun tehillimRangeForDay(dayOfMonth: Int, daysInMonth: Int): TehillimRange = when (dayOfMonth) {
     1 -> TehillimRange(1, 9)
     2 -> TehillimRange(10, 17)
     3 -> TehillimRange(18, 22)

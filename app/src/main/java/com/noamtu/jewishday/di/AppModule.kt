@@ -22,6 +22,8 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import com.noamtu.jewishday.i18n.AndroidPerAppLanguage
+import com.noamtu.jewishday.i18n.PerAppLanguage
 import javax.inject.Singleton
 
 @Module
@@ -48,6 +50,10 @@ abstract class AppModule {
     @Binds
     @Singleton
     abstract fun bindInstallMarker(marker: SharedPreferencesInstallMarker): InstallMarker
+
+    @Binds
+    @Singleton
+    abstract fun bindPerAppLanguage(language: AndroidPerAppLanguage): PerAppLanguage
 
     @Binds
     @Singleton

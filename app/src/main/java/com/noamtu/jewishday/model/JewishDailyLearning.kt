@@ -2,51 +2,48 @@
 
 package com.noamtu.jewishday.model
 
-import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
 import com.kosherjava.zmanim.hebrewcalendar.YerushalmiYomiCalculator
+import com.noamtu.jewishday.R
+import com.noamtu.jewishday.i18n.CalendarText
+import com.noamtu.jewishday.i18n.asUiText
+import com.noamtu.jewishday.i18n.uiText
+import java.time.LocalDate
 
+/** The daily learning KosherJava can work out offline, shown until (or unless) Hebcal answers. */
 internal fun dailyLearningItems(
     jewishCalendar: JewishCalendar,
-    englishFormatter: HebrewDateFormatter,
-    hebrewFormatter: HebrewDateFormatter,
+    date: LocalDate,
+    inIsrael: Boolean,
 ): List<ZmanItem> = buildList {
     add(
         ZmanItem(
-            title = "Daf Yomi Bavli",
-            titleHebrew = "דף יומי בבלי",
+            title = uiText(DailyLearningType.DafYomiBavli.label),
             time = null,
-            description = "KosherJava Daf Yomi cycle",
-            descriptionHebrew = "מחזור דף יומי של KosherJava",
-            value = englishFormatter.formatDafYomiBavli(jewishCalendar.dafYomiBavli),
-            valueHebrew = hebrewFormatter.formatDafYomiBavli(jewishCalendar.dafYomiBavli),
+            description = uiText(R.string.learning_daf_yomi_kosherjava_description),
+            value = CalendarText.DafYomiBavli(date, inIsrael).asUiText(),
             id = DailyLearningType.DafYomiBavli.storageValue,
         ),
     )
-    val yerushalmiDaf = runCatching { YerushalmiYomiCalculator.getDafYomiYerushalmi(jewishCalendar) }.getOrNull()
-    if (yerushalmiDaf != null) {
+    // The Yerushalmi cycle skips a few days a year (Yom Kippur, Tisha B'Av); the row goes with them.
+    val hasYerushalmiDaf = runCatching { YerushalmiYomiCalculator.getDafYomiYerushalmi(jewishCalendar) }.getOrNull() != null
+    if (hasYerushalmiDaf) {
         add(
             ZmanItem(
-                title = "Daf Yomi Yerushalmi",
-                titleHebrew = "דף יומי ירושלמי",
+                title = uiText(DailyLearningType.DafYomiYerushalmi.label),
                 time = null,
-                description = "KosherJava Yerushalmi cycle",
-                descriptionHebrew = "מחזור ירושלמי של KosherJava",
-                value = englishFormatter.formatDafYomiYerushalmi(yerushalmiDaf),
-                valueHebrew = hebrewFormatter.formatDafYomiYerushalmi(yerushalmiDaf),
+                description = uiText(R.string.learning_yerushalmi_kosherjava_description),
+                value = CalendarText.DafYomiYerushalmi(date, inIsrael).asUiText(),
                 id = DailyLearningType.DafYomiYerushalmi.storageValue,
             ),
         )
     }
     add(
         ZmanItem(
-            title = "Tehillim Yomi",
-            titleHebrew = "תהילים יומי",
+            title = uiText(DailyLearningType.TehillimYomi.label),
             time = null,
-            description = "Monthly Tehillim division by Hebrew date",
-            descriptionHebrew = "חלוקה חודשית לפי היום בחודש העברי",
-            value = jewishCalendar.tehillimYomiEnglish(),
-            valueHebrew = jewishCalendar.tehillimYomiHebrew(hebrewFormatter),
+            description = uiText(R.string.learning_tehillim_kosherjava_description),
+            value = CalendarText.TehillimYomi(date, inIsrael).asUiText(),
             id = DailyLearningType.TehillimYomi.storageValue,
         ),
     )

@@ -12,6 +12,9 @@ class DateStatusIconBootReceiver : BroadcastReceiver() {
         when (intent.action) {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
+            // The phone's language, or the app's own one (Android 13+ sends this broadcast when it
+            // changes, from the app or from the system settings): the icon's words follow it.
+            Intent.ACTION_LOCALE_CHANGED,
             -> DateStatusIconScheduler.refresh(context.applicationContext)
         }
     }

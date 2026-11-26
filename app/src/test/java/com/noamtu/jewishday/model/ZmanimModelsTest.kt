@@ -2,6 +2,10 @@
 
 package com.noamtu.jewishday.model
 
+import com.noamtu.jewishday.i18n.TestText
+import com.noamtu.jewishday.i18n.en
+import com.noamtu.jewishday.i18n.he
+import com.noamtu.jewishday.model.ZmanimGroupKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -40,7 +44,7 @@ class ZmanimModelsTest {
         assertEquals(defaultJerusalemLocation.zoneId, zmanimDay.zoneId)
         // No standalone "Daily" section: the parsha sits in Shabbat and day-events only appear
         // (header-less) when present, so a quiet weekday has just these three groups.
-        assertEquals(listOf("Zmanim", "Shabbat", "Daily Learning"), zmanimDay.groups.map { it.title })
+        assertEquals(listOf("Zmanim", "Shabbat", "Daily Learning"), zmanimDay.groups.map { it.kind.title?.let { title -> TestText.english.string(title) } })
         assertTrue(zmanimDay.groups.all { it.items.isNotEmpty() })
         assertFalse(zmanimDay.groups.flatMap { it.items }.any { it.time == null && it.value == null })
     }
@@ -50,9 +54,9 @@ class ZmanimModelsTest {
         val date = LocalDate.of(2026, 5, 29)
         val zmanimItems = zmanimForDate(date = date)
             .groups
-            .first { it.title == "Zmanim" }
+            .first { it.kind == ZmanimGroupKind.Zmanim }
             .items
-            .map { it.title }
+            .map { it.title.en() }
 
         assertTrue(zmanimItems.contains("Sof Zman Shema (GRA)"))
         assertTrue(zmanimItems.contains("Sof Zman Shema (Magen Avraham)"))
@@ -75,18 +79,18 @@ class ZmanimModelsTest {
         val date = LocalDate.of(2026, 6, 7)
         val shabbatItems = zmanimForDate(date = date)
             .groups
-            .first { it.title == "Shabbat" }
+            .first { it.kind == ZmanimGroupKind.Shabbat }
             .items
         val zone = defaultJerusalemLocation.zoneId
         fun itemDate(title: String): LocalDate =
-            shabbatItems.first { it.title == title }.time!!.atZone(zone).toLocalDate()
+            shabbatItems.first { it.title.en() == title }.time!!.atZone(zone).toLocalDate()
 
         // Asserted on the computed times themselves: the descriptions carry only the day name
         // and method, never a raw date.
         assertEquals(LocalDate.of(2026, 6, 12), itemDate("Candle Lighting & Shabbat Entry"))
         assertEquals(LocalDate.of(2026, 6, 13), itemDate("Motzei Shabbat"))
         assertFalse(
-            shabbatItems.any { it.description.contains(Regex("\\d{4}-\\d{2}-\\d{2}")) },
+            shabbatItems.any { it.description.en().contains(Regex("\\d{4}-\\d{2}-\\d{2}")) },
         )
     }
 
@@ -123,12 +127,12 @@ class ZmanimModelsTest {
         // — the header chip says them — and here the chip has to carry both names at once, or
         // "Shabbat" would swallow the one the day is actually known by.
         val israelHolyDay = zmanimForDate(location = defaultJerusalemLocation, date = secondDayShavuot).holyDayInfo
-        assertEquals("Shabbat Isru Chag", requireNotNull(israelHolyDay).name)
+        assertEquals("Shabbat Isru Chag", requireNotNull(israelHolyDay).name.en())
         // In the diaspora it is the second day of Yom Tov, which the header names instead, so it
         // is deliberately absent from the event rows.
         assertFalse(diasporaEvents.contains("Shavuot"))
         val diasporaHolyDay = zmanimForDate(location = diasporaLocation, date = secondDayShavuot).holyDayInfo
-        assertTrue(requireNotNull(diasporaHolyDay).name, requireNotNull(diasporaHolyDay).name.contains("Shavuot"))
+        assertTrue(requireNotNull(diasporaHolyDay).name.en(), requireNotNull(diasporaHolyDay).name.en().contains("Shavuot"))
         assertFalse(israelEvents == diasporaEvents)
     }
 
@@ -171,7 +175,7 @@ class ZmanimModelsTest {
         val displayedTzeit = zmanimForDate(date = date, settings = settings)
             .groups
             .flatMap { it.items }
-            .first { it.title == "Tzeit" }
+            .first { it.title.en() == "Tzeit" }
             .time
 
         assertEquals(displayedTzeit, tzeitForDate(date = date, settings = settings))
@@ -181,12 +185,12 @@ class ZmanimModelsTest {
     // the event rows, so look for it wherever it is rather than in one group.
     private fun ZmanimDay.weeklyParsha(): String = groups
         .flatMap { it.items }
-        .first { it.title == "Weekly Parsha" }
-        .value.orEmpty()
+        .first { it.title.en() == "Weekly Parsha" }
+        .value?.en().orEmpty()
 
     private fun ZmanimDay.eventValues(): List<String> = groups
-        .firstOrNull { it.title.isBlank() }
+        .firstOrNull { it.kind == ZmanimGroupKind.Events }
         ?.items
-        ?.mapNotNull { it.value }
+        ?.mapNotNull { it.value?.en() }
         .orEmpty()
 }

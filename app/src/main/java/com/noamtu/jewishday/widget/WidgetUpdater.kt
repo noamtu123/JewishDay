@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.core.content.edit
+import com.noamtu.jewishday.i18n.TextResolver
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
@@ -77,8 +78,9 @@ class WidgetUpdater @Inject constructor(
     fun requestUpdate(): Job = scope.launch { update() }
 
     /**
-     * Re-renders the widgets whenever something they show is changed in the app: the language,
-     * the time format, which zmanim to show, how they are calculated, the location, or the developer
+     * Re-renders the widgets whenever something they show is changed in the app: the language (as
+     * the settings record it; a change made in the system settings arrives as a locale broadcast —
+     * see [WidgetRefreshReceiver]), the time format, which zmanim to show, how they are calculated, the location, or the developer
      * clock. The first value renders them too, so opening the app always leaves them fresh.
      */
     fun observeAppChanges() {
@@ -115,7 +117,10 @@ class WidgetUpdater @Inject constructor(
             val today = now.atZone(location.zoneId).toLocalDate()
             // Each install (an update, or a test build over the same version) publishes them anew.
             val installed = context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
-            val previewsFor = "$installed|$today|${settings.language.storageValue}"
+            // Worded in the app's language, which on Android 12 and older the application's own
+            // context does not carry by itself.
+            val text = TextResolver.of(context)
+            val previewsFor = "$installed|$today|${text.locale.toLanguageTag()}"
             val previewsDue = Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM &&
                 previewPreferences.getString(PreviewsForKey, null) != previewsFor
             if (!placed && !previewsDue) return@withLock
@@ -123,7 +128,7 @@ class WidgetUpdater @Inject constructor(
             fun contentAt(at: Instant) = widgetContent(
                 day = day,
                 tomorrow = { zmanimForDate(location, day.date.plusDays(1), zmanimSettings, null, false) },
-                hebrew = settings.useHebrewInterface,
+                text = text,
                 use24HourTime = settings.use24HourTime,
                 enabledZmanim = settings.enabledZmanimTimes,
                 now = at,

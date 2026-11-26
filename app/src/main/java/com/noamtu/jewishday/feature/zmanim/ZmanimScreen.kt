@@ -2,6 +2,8 @@
 
 package com.noamtu.jewishday.feature.zmanim
 
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import com.noamtu.jewishday.ui.theme.LocalGlassTheme
@@ -57,7 +59,8 @@ import com.noamtu.jewishday.R
 import com.noamtu.jewishday.data.LocationSource
 import com.noamtu.jewishday.data.locationSourceForName
 import com.noamtu.jewishday.model.CandleLightingMethod
-import com.noamtu.jewishday.ui.LocalUseHebrewInterface
+import com.noamtu.jewishday.i18n.LocalTextResolver
+import com.noamtu.jewishday.i18n.resolve
 import com.noamtu.jewishday.ui.components.InfoCard
 import com.noamtu.jewishday.ui.components.ScreenHorizontalPadding
 import com.noamtu.jewishday.ui.components.ScreenPaddingValues
@@ -65,7 +68,6 @@ import com.noamtu.jewishday.ui.components.ScreenVerticalPadding
 import com.noamtu.jewishday.ui.components.ScreenSurface
 import com.noamtu.jewishday.ui.components.ValuePill
 import com.noamtu.jewishday.ui.components.readableWidth
-import com.noamtu.jewishday.ui.localizedString
 
 @Composable
 fun ZmanimScreen(
@@ -102,8 +104,6 @@ private fun ZmanimContent(
     onShowToday: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val useHebrew = LocalUseHebrewInterface.current
-
     if (header == null) {
         ZmanimLoadingContent(modifier = modifier)
         return
@@ -123,7 +123,6 @@ private fun ZmanimContent(
             }
             DateBar(
                 header = header,
-                useHebrew = useHebrew,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 4.dp),
@@ -142,8 +141,8 @@ private fun ZmanimContent(
             val locationSource = locationSourceForName(header.locationName)
             val locationNote = when (locationSource) {
                 LocationSource.CurrentFix -> null
-                LocationSource.Jerusalem -> localizedString(R.string.zmanim_location_jerusalem, R.string.zmanim_location_jerusalem_hebrew)
-                LocationSource.Named -> localizedString(R.string.zmanim_location_named, R.string.zmanim_location_named_hebrew, header.locationName)
+                LocationSource.Jerusalem -> stringResource(R.string.zmanim_location_jerusalem)
+                LocationSource.Named -> stringResource(R.string.zmanim_location_named, header.locationName)
             }
             if (locationNote != null) {
                 Text(
@@ -159,8 +158,8 @@ private fun ZmanimContent(
                         .padding(start = 24.dp, end = 24.dp),
                 )
             }
-            val fastStart = if (useHebrew) header.fastStartHebrew else header.fastStart
-            val fastEnd = if (useHebrew) header.fastEndHebrew else header.fastEnd
+            val fastStart = header.fastStart?.resolve()
+            val fastEnd = header.fastEnd?.resolve()
             if (fastStart != null && fastEnd != null) {
                 ObservanceTimesCard(
                     startText = fastStart,
@@ -170,8 +169,8 @@ private fun ZmanimContent(
                         .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 4.dp),
                 )
             }
-            val holyDayStart = if (useHebrew) header.holyDayStartHebrew else header.holyDayStart
-            val holyDayEnd = if (useHebrew) header.holyDayEndHebrew else header.holyDayEnd
+            val holyDayStart = header.holyDayStart?.resolve()
+            val holyDayEnd = header.holyDayEnd?.resolve()
             // A fast on a Friday overlaps Shabbat but is a genuinely different window, so both
             // cards show. Identical windows would just repeat, so they collapse to one.
             val holyDayRepeatsFast = holyDayStart == fastStart && holyDayEnd == fastEnd
@@ -186,7 +185,7 @@ private fun ZmanimContent(
             }
             // Warns that another observance begins the instant this one ends. Kept as its own
             // line rather than inside a card, so the cards stay one row tall.
-            val sequel = if (useHebrew) header.holyDaySequelHebrew else header.holyDaySequel
+            val sequel = header.holyDaySequel?.resolve()
             if (sequel != null) {
                 Text(
                     text = sequel,
@@ -222,18 +221,18 @@ private fun ZmanimContent(
             ) {
                 val glass = glassTheme
                 groups.forEach { group ->
-                    val title = if (useHebrew) group.titleHebrew else group.title
-                    if (title.isNotBlank()) {
+                    // The day's events have no title of their own.
+                    if (group.title != null) {
                         // Pinned while its section scrolls, which needs a solid backing so the rows
                         // do not show through it. Glass has nothing solid to give it, so there the
                         // title scrolls away with its rows instead.
                         if (glass) {
                             item(key = group.key, contentType = "group-header") {
-                                ZmanimGroupHeader(group = group, useHebrew = useHebrew)
+                                ZmanimGroupHeader(group = group)
                             }
                         } else {
                             stickyHeader(key = group.key, contentType = "group-header") {
-                                ZmanimGroupHeader(group = group, useHebrew = useHebrew)
+                                ZmanimGroupHeader(group = group)
                             }
                         }
                     }
@@ -242,7 +241,7 @@ private fun ZmanimContent(
                         key = ZmanimRowUi::key,
                         contentType = { "zman-row" },
                     ) { row ->
-                        ZmanimRow(row = row, useHebrew = useHebrew)
+                        ZmanimRow(row = row)
                         if (row !== group.rows.last()) {
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outlineVariant,
@@ -278,13 +277,13 @@ private fun CandleLightingPrompt(
         ) {
             Text(
                 modifier = Modifier.weight(1f),
-                text = localizedString(R.string.zmanim_candle_prompt_question, R.string.zmanim_candle_prompt_question_hebrew),
+                text = stringResource(R.string.zmanim_candle_prompt_question),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
             )
             Spacer(Modifier.width(8.dp))
             Text(
-                text = localizedString(R.string.zmanim_candle_prompt_choose, R.string.zmanim_candle_prompt_choose_hebrew),
+                text = stringResource(R.string.zmanim_candle_prompt_choose),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -294,11 +293,11 @@ private fun CandleLightingPrompt(
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = {
-                Text(localizedString(R.string.zmanim_candle_prompt_title, R.string.zmanim_candle_prompt_title_hebrew))
+                Text(stringResource(R.string.zmanim_candle_prompt_title))
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(localizedString(R.string.zmanim_candle_prompt_body, R.string.zmanim_candle_prompt_body_hebrew))
+                    Text(stringResource(R.string.zmanim_candle_prompt_body))
                     Spacer(Modifier.height(4.dp))
                     // The common minhagim only — the typed-in option belongs in Settings, not in a
                     // first-launch question.
@@ -310,14 +309,9 @@ private fun CandleLightingPrompt(
                                 onSelected(method)
                             },
                         ) {
-                            Text(
-                                localizedString(
-                                    R.string.zmanim_candle_prompt_minutes,
-                                    R.string.zmanim_candle_prompt_minutes_hebrew,
-                                    // Non-null for every prompt option, by construction.
-                                    method.offsetMinutes ?: 18,
-                                ),
-                            )
+                            // Non-null for every prompt option, by construction.
+                            val minutes = method.offsetMinutes ?: 18
+                            Text(pluralStringResource(R.plurals.method_minutes_value, minutes, minutes))
                         }
                     }
                     // The three numbers cover most practices but not all — 18 minutes among them —
@@ -329,14 +323,14 @@ private fun CandleLightingPrompt(
                             showCustomEntry = true
                         },
                     ) {
-                        Text(localizedString(R.string.zmanim_candle_prompt_custom, R.string.zmanim_candle_prompt_custom_hebrew))
+                        Text(stringResource(R.string.zmanim_candle_prompt_custom))
                     }
                 }
             },
             confirmButton = {},
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text(localizedString(R.string.settings_cancel, R.string.settings_cancel_hebrew))
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
         )
@@ -346,11 +340,11 @@ private fun CandleLightingPrompt(
         AlertDialog(
             onDismissRequest = { showCustomEntry = false },
             title = {
-                Text(localizedString(R.string.zmanim_candle_prompt_title, R.string.zmanim_candle_prompt_title_hebrew))
+                Text(stringResource(R.string.zmanim_candle_prompt_title))
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(localizedString(R.string.zmanim_candle_prompt_body, R.string.zmanim_candle_prompt_body_hebrew))
+                    Text(stringResource(R.string.zmanim_candle_prompt_body))
                     OutlinedTextField(
                         value = customMinutes,
                         onValueChange = { typed ->
@@ -369,12 +363,12 @@ private fun CandleLightingPrompt(
                         showCustomEntry = false
                     },
                 ) {
-                    Text(localizedString(R.string.zmanim_candle_prompt_save, R.string.zmanim_candle_prompt_save_hebrew))
+                    Text(stringResource(R.string.zmanim_candle_prompt_save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCustomEntry = false }) {
-                    Text(localizedString(R.string.settings_cancel, R.string.settings_cancel_hebrew))
+                    Text(stringResource(R.string.settings_cancel))
                 }
             },
         )
@@ -391,10 +385,7 @@ private fun DeveloperTimeOverrideBanner(modifier: Modifier = Modifier) {
     ) {
         Text(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            text = localizedString(
-                R.string.zmanim_developer_time_override,
-                R.string.zmanim_developer_time_override_hebrew,
-            ),
+            text = stringResource(R.string.zmanim_developer_time_override, ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onErrorContainer,
         )
@@ -414,7 +405,7 @@ private fun ZmanimLoadingContent(modifier: Modifier = Modifier) {
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = localizedString(R.string.zmanim_loading, R.string.zmanim_loading_hebrew),
+                        text = stringResource(R.string.zmanim_loading),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
@@ -442,9 +433,9 @@ private fun DayStepper(
 ) {
     val isToday = dayOffset == 0
     val label = if (isToday) {
-        localizedString(R.string.zmanim_day_today, R.string.zmanim_day_today_hebrew)
+        stringResource(R.string.zmanim_day_today)
     } else {
-        localizedString(R.string.zmanim_day_back_to_today, R.string.zmanim_day_back_to_today_hebrew)
+        stringResource(R.string.zmanim_day_back_to_today)
     }
     Row(
         modifier = modifier,
@@ -454,7 +445,7 @@ private fun DayStepper(
         IconButton(onClick = { onStepDay(-1) }) {
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_back),
-                contentDescription = localizedString(R.string.zmanim_day_previous, R.string.zmanim_day_previous_hebrew),
+                contentDescription = stringResource(R.string.zmanim_day_previous),
             )
         }
         TextButton(onClick = onShowToday, enabled = !isToday) {
@@ -467,7 +458,7 @@ private fun DayStepper(
         IconButton(onClick = { onStepDay(1) }) {
             Icon(
                 imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_forward),
-                contentDescription = localizedString(R.string.zmanim_day_next, R.string.zmanim_day_next_hebrew),
+                contentDescription = stringResource(R.string.zmanim_day_next),
             )
         }
     }
@@ -476,7 +467,6 @@ private fun DayStepper(
 @Composable
 private fun DateBar(
     header: ZmanimHeaderUi,
-    useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
     // The chip names whichever observance is actually current: a fast and a holy day can be on
@@ -486,13 +476,13 @@ private fun DateBar(
     // With nothing under way it falls back to the day's own name ("ערב פסח", "פורים"), which is
     // where those days are said now that they have no row of their own; and failing that, ahead of
     // Shabbat, to the coming week's parasha.
-    val holyDayName = if (useHebrew) header.holyDayNameHebrew else header.holyDayName
-    val currentFastName = if (useHebrew) header.fastNameHebrew else header.fastName
+    val holyDayName = header.holyDayName?.resolve()
+    val currentFastName = header.fastName?.resolve()
     val underWayName = if (header.fastLeadsHeader) currentFastName ?: holyDayName else holyDayName ?: currentFastName
-    val dayName = if (useHebrew) header.dayNameHebrew else header.dayName
-    val parshaName = if (useHebrew) header.parshaNameHebrew else header.parshaName
+    val dayName = header.dayName?.resolve()
+    val parshaName = header.parshaName?.resolve()
     val chipLabel = underWayName ?: dayName ?: parshaName
-    val jewishDate = if (useHebrew) header.jewishDateHebrew else header.jewishDate
+    val jewishDate = header.jewishDate.resolve()
     val headlineStyle = MaterialTheme.typography.headlineSmall
     val chipLabelStyle = MaterialTheme.typography.labelLarge
     val density = LocalDensity.current
@@ -504,7 +494,7 @@ private fun DateBar(
         border = glassBorder(),
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp)) {
-            val gregorianDate = if (useHebrew) header.gregorianDateHebrew else header.gregorianDate
+            val gregorianDate = header.gregorianDate.resolve()
             // Would the prominent Hebrew-date line run past the fast chip's left edge if the chip sat
             // beside it? If so, switch to the "title" layout instead of overlapping.
             val dateOverlapsChip = chipLabel != null && run {
@@ -630,7 +620,6 @@ private fun ObservanceTimesCard(
 @Composable
 private fun ZmanimGroupHeader(
     group: ZmanimGroupUi,
-    useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
     // Opaque background so rows don't bleed through while the header is pinned. In Glass the
@@ -641,7 +630,7 @@ private fun ZmanimGroupHeader(
             .fillMaxWidth()
             .then(if (glass) Modifier else Modifier.background(MaterialTheme.colorScheme.background))
             .padding(top = 16.dp, bottom = 6.dp, start = 4.dp, end = 4.dp),
-        text = if (useHebrew) group.titleHebrew else group.title,
+        text = group.title?.resolve().orEmpty(),
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.primary,
     )
@@ -650,11 +639,13 @@ private fun ZmanimGroupHeader(
 @Composable
 private fun ZmanimRow(
     row: ZmanimRowUi,
-    useHebrew: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val rawValue = if (useHebrew) row.valueHebrew else row.value
-    val description = if (useHebrew) row.descriptionHebrew else row.description
+    val resolver = LocalTextResolver.current
+    val rawValue = row.value.resolve()
+    val description = row.description.resolve()
+    // A Rambam Yomi value is trimmed to fit and comes in a narrower form too; any other is as it is.
+    val rambam = remember(rawValue, resolver) { if (row.isRambam) rambamRowText(rawValue, resolver.language) else null }
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
 
@@ -663,7 +654,7 @@ private fun ZmanimRow(
         val titleStyle = MaterialTheme.typography.bodyLarge
         val rowWidth = with(density) { (maxWidth - 8.dp).roundToPx().coerceAtLeast(0) }
         val pillExtraWidth = with(density) { (12.dp + 24.dp).roundToPx() }
-        val titleText = if (useHebrew) row.titleHebrew else row.title
+        val titleText = row.title.resolve()
         val titleWidth = textMeasurer.measure(
             text = AnnotatedString(titleText),
             style = titleStyle,
@@ -676,8 +667,7 @@ private fun ZmanimRow(
         ).size.width
         fun widestLineWidth(candidate: String): Int = candidate.lines().maxOf(::textWidth)
 
-        val candidates = (if (useHebrew) row.valueHebrewCandidates else row.valueCandidates)
-            .ifEmpty { listOf(rawValue) }
+        val candidates = rambam?.candidates ?: listOf(rawValue)
         // Place the value beside the title (like every other daily-learning row) when its widest
         // line fits there — this includes the two-line merged Rambam bubble. Only stack it in a
         // full-width bubble below the title when even the narrowest candidate is too wide.

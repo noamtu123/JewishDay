@@ -2,6 +2,10 @@
 
 package com.noamtu.jewishday.model
 
+import com.noamtu.jewishday.i18n.TestText
+import com.noamtu.jewishday.i18n.en
+import com.noamtu.jewishday.i18n.he
+import com.noamtu.jewishday.model.ZmanimGroupKind
 import java.time.Duration
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -31,7 +35,7 @@ class FastDayAndRolloverTest {
         val day = zmanimForDate(date = seventeenTammuz)
         val fast = requireNotNull(day.fastDayInfo)
 
-        assertEquals("י״ז בתמוז", fast.nameHebrew)
+        assertEquals("י״ז בתמוז", fast.name.he())
         val start = requireNotNull(fast.startTime)
         val end = requireNotNull(fast.endTime)
         assertTrue(start.isBefore(end))
@@ -48,7 +52,7 @@ class FastDayAndRolloverTest {
         val day = zmanimForDate(date = tishaBeAv)
         val fast = requireNotNull(day.fastDayInfo)
 
-        assertEquals("תשעה באב", fast.nameHebrew)
+        assertEquals("תשעה באב", fast.name.he())
         val start = requireNotNull(fast.startTime)
         assertEquals(erevTishaBeAv, start.atZone(zone).toLocalDate())
         assertEquals(sunsetForDate(date = erevTishaBeAv), fast.startTime)
@@ -60,11 +64,11 @@ class FastDayAndRolloverTest {
 
         // Announced a Jewish day ahead, so it is up throughout the eve, before the fast starts.
         val beforeSunset = zmanimForDate(date = erevTishaBeAv, now = erevSunset.minus(Duration.ofHours(2)))
-        assertEquals("תשעה באב", requireNotNull(beforeSunset.fastDayInfo).nameHebrew)
+        assertEquals("תשעה באב", requireNotNull(beforeSunset.fastDayInfo).name.he())
 
         val afterSunset = zmanimForDate(date = erevTishaBeAv, now = erevSunset.plus(Duration.ofMinutes(30)))
         val fast = requireNotNull(afterSunset.fastDayInfo)
-        assertEquals("תשעה באב", fast.nameHebrew)
+        assertEquals("תשעה באב", fast.name.he())
         assertEquals(erevSunset, fast.startTime)
     }
 
@@ -77,7 +81,7 @@ class FastDayAndRolloverTest {
         assertNull(tooEarly.fastDayInfo)
 
         val announced = zmanimForDate(date = dayBeforeErev, now = announceSunset.plus(Duration.ofMinutes(30)))
-        assertEquals("תשעה באב", requireNotNull(announced.fastDayInfo).nameHebrew)
+        assertEquals("תשעה באב", requireNotNull(announced.fastDayInfo).name.he())
     }
 
     @Test
@@ -86,7 +90,7 @@ class FastDayAndRolloverTest {
         val previousAlot = requireNotNull(
             zmanimForDate(date = dayBefore).groups
                 .flatMap { it.items }
-                .first { it.title == "Alot Hashachar" }
+                .first { it.title.en() == "Alot Hashachar" }
                 .time,
         )
 
@@ -94,7 +98,7 @@ class FastDayAndRolloverTest {
         assertNull(beforeDawn.fastDayInfo)
 
         val afterDawn = zmanimForDate(date = dayBefore, now = previousAlot.plus(Duration.ofMinutes(30)))
-        assertEquals("י״ז בתמוז", requireNotNull(afterDawn.fastDayInfo).nameHebrew)
+        assertEquals("י״ז בתמוז", requireNotNull(afterDawn.fastDayInfo).name.he())
     }
 
     @Test
@@ -115,14 +119,14 @@ class FastDayAndRolloverTest {
         val tzeit = requireNotNull(tzeitForDate(date = seventeenTammuz))
 
         val beforeSunset = zmanimForDate(date = seventeenTammuz, now = sunset.minus(Duration.ofHours(1)))
-        assertTrue(beforeSunset.hebrewDateEnglish, beforeSunset.hebrewDateEnglish.contains("17 Tammuz"))
+        assertTrue(beforeSunset.hebrewDate.en(), beforeSunset.hebrewDate.en().contains("17 Tammuz"))
 
         // Bein hashmashot — past sunset, before the stars are out — is still the old date.
         val beinHashmashot = zmanimForDate(date = seventeenTammuz, now = sunset.plus(Duration.ofMinutes(1)))
-        assertTrue(beinHashmashot.hebrewDateEnglish, beinHashmashot.hebrewDateEnglish.contains("17 Tammuz"))
+        assertTrue(beinHashmashot.hebrewDate.en(), beinHashmashot.hebrewDate.en().contains("17 Tammuz"))
 
         val afterTzeit = zmanimForDate(date = seventeenTammuz, now = tzeit.plus(Duration.ofMinutes(1)))
-        assertTrue(afterTzeit.hebrewDateEnglish, afterTzeit.hebrewDateEnglish.contains("18 Tammuz"))
+        assertTrue(afterTzeit.hebrewDate.en(), afterTzeit.hebrewDate.en().contains("18 Tammuz"))
     }
 
     @Test
@@ -210,7 +214,7 @@ class FastDayAndRolloverTest {
         // Only the Hebrew date has rolled.
         assertEquals(seventeenTammuz.plusDays(1), day.displayedDate)
 
-        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title == "Chatzot HaLaila" }.time
+        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title.en() == "Chatzot HaLaila" }.time
         assertEquals(chatzotHaLailaForDate(location, seventeenTammuz, settings), chatzotHaLaila)
     }
 
@@ -224,7 +228,7 @@ class FastDayAndRolloverTest {
         // away. Reading the row off the new calendar day alone would put it a whole day out.
         val smallHours = seventeenTammuz.plusDays(1).atTime(0, 15).atZone(zone).toInstant()
         val day = zmanimForDate(location, seventeenTammuz.plusDays(1), settings, smallHours)
-        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title == "Chatzot HaLaila" }.time
+        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title.en() == "Chatzot HaLaila" }.time
 
         assertEquals(tonight, chatzotHaLaila)
         assertTrue("$chatzotHaLaila", requireNotNull(chatzotHaLaila).isAfter(smallHours))

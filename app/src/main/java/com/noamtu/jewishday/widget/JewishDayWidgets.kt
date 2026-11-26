@@ -3,6 +3,8 @@
 package com.noamtu.jewishday.widget
 
 import android.appwidget.AppWidgetManager
+import androidx.annotation.StringRes
+import com.noamtu.jewishday.R
 import android.appwidget.AppWidgetProvider
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -22,31 +24,30 @@ import dagger.hilt.components.SingletonComponent
  */
 internal enum class WidgetKind(
     val provider: Class<out AppWidgetProvider>,
-    val labelEnglish: String,
-    val labelHebrew: String,
+    @StringRes val label: Int,
     // The size its picker preview is laid out for: its default cells on a small phone (a cell is
     // about 75dp wide and 100dp high there), so the preview is never fuller than the picker.
     val previewWidthDp: Int,
     val previewHeightDp: Int,
     val glass: Boolean = false,
 ) {
-    GlassDate(GlassDateWidget::class.java, "Hebrew date", "תאריך עברי", 300, 200, glass = true),
-    GlassNextZman(GlassNextZmanWidget::class.java, "Next zman", "הזמן הבא", 225, 200, glass = true),
-    GlassZmanim(GlassZmanimWidget::class.java, "Today's zmanim", "זמני היום", 225, 330, glass = true),
-    GlassShabbat(GlassShabbatWidget::class.java, "Shabbat & chag", "שבת וחג", 300, 200, glass = true),
-    HebrewDate(HebrewDateWidget::class.java, "Hebrew date", "תאריך עברי", 150, 100),
-    NextZman(NextZmanWidget::class.java, "Next zman", "הזמן הבא", 225, 100),
-    Zmanim(ZmanimWidget::class.java, "Today's zmanim", "זמני היום", 225, 330),
-    Shabbat(ShabbatWidget::class.java, "Shabbat & chag", "שבת וחג", 225, 100),
+    GlassDate(GlassDateWidget::class.java, R.string.widget_kind_hebrew_date, 300, 200, glass = true),
+    GlassNextZman(GlassNextZmanWidget::class.java, R.string.widget_kind_next_zman, 225, 200, glass = true),
+    GlassZmanim(GlassZmanimWidget::class.java, R.string.widget_kind_zmanim, 225, 330, glass = true),
+    GlassShabbat(GlassShabbatWidget::class.java, R.string.widget_kind_shabbat, 300, 200, glass = true),
+    HebrewDate(HebrewDateWidget::class.java, R.string.widget_kind_hebrew_date, 150, 100),
+    NextZman(NextZmanWidget::class.java, R.string.widget_kind_next_zman, 225, 100),
+    Zmanim(ZmanimWidget::class.java, R.string.widget_kind_zmanim, 225, 330),
+    Shabbat(ShabbatWidget::class.java, R.string.widget_kind_shabbat, 225, 100),
     ;
 
     val style: WidgetStyle get() = if (glass) WidgetStyle.Glass else WidgetStyle.Minimal
 }
 
 /** The two looks the widgets come in, in the order the "add widget" list shows them. */
-internal enum class WidgetStyle(val labelEnglish: String, val labelHebrew: String) {
-    Glass("Glassy sky", "שמי זכוכית"),
-    Minimal("Minimal", "מינימליסטי"),
+internal enum class WidgetStyle(@StringRes val label: Int) {
+    Glass(R.string.widget_style_glass),
+    Minimal(R.string.widget_style_minimal),
 }
 
 /**
@@ -100,6 +101,9 @@ class WidgetRefreshReceiver : BroadcastReceiver() {
             Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED,
+            // The phone's language, or the app's own one set in the system settings (Android 13+
+            // tells the app with this same broadcast).
+            Intent.ACTION_LOCALE_CHANGED,
             -> refreshWidgets(context)
         }
     }
