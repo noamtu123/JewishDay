@@ -462,3 +462,9 @@ fun CandleLightingMethod.caption(settings: ZmanimCalculationSettings, hebrew: Bo
     val minutes = offsetMinutes ?: settings.candleLightingCustomMinutes
     return if (hebrew) "$minutes דקות" else "$minutes minutes"
 }
+
+/** What a candle-lighting row says under its time: the method, or that it was held at plag. */
+internal fun CandleLighting?.caption(settings: ZmanimCalculationSettings, hebrew: Boolean): String = when {
+    this?.isPlag == true -> if (hebrew) "פלג המנחה — הזמן המוקדם ביותר" else "Plag hamincha — the earliest time"
+    else -> settings.candleLightingMethod.caption(settings, hebrew)
+}

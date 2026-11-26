@@ -3,7 +3,6 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.hilt.android)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
 }
@@ -18,7 +17,11 @@ val keystoreProps = Properties().apply {
 
 android {
     namespace = "com.noamtu.jewishday"
-    compileSdk = 36
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
 
     defaultConfig {
         applicationId = "com.noamtu.jewishday"
@@ -27,6 +30,10 @@ android {
         versionCode = 20
         versionName = "1.3.0"
     }
+
+    // Release is the only variant shipped, so it is the one tested. Since AGP 9, unit tests exist
+    // only for the tested build type, so this is what keeps :app:testReleaseUnitTest.
+    testBuildType = "release"
 
     signingConfigs {
         if (keystorePropsFile.exists()) {
@@ -80,7 +87,6 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
@@ -88,7 +94,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.hilt.work)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.hilt.android)

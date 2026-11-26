@@ -24,7 +24,7 @@ class BelowSeaLevelTest {
 
     @Test
     fun aLocationBelowSeaLevelStillProducesZmanim() {
-        val calendar = complexZmanimCalendar(deadSea, LocalDate.of(2026, 8, 27), ZmanimCalculationSettings())
+        val calendar = comprehensiveZmanimCalendar(deadSea, LocalDate.of(2026, 8, 27), ZmanimCalculationSettings())
 
         assertEquals(0.0, calendar.geoLocation.elevation, 0.0)
         assertNotNull(calendar.sunrise)
@@ -35,7 +35,7 @@ class BelowSeaLevelTest {
     fun aNoisyFixJustBelowZeroIsTreatedAsSeaLevel() {
         val justBelow = deadSea.copy(name = "Coast", latitude = 32.0853, longitude = 34.7818, elevationMeters = -0.4)
 
-        val calendar = complexZmanimCalendar(justBelow, LocalDate.of(2026, 8, 27), ZmanimCalculationSettings())
+        val calendar = comprehensiveZmanimCalendar(justBelow, LocalDate.of(2026, 8, 27), ZmanimCalculationSettings())
 
         assertEquals(0.0, calendar.geoLocation.elevation, 0.0)
     }
@@ -44,7 +44,7 @@ class BelowSeaLevelTest {
     fun aRealElevationIsStillUsed() {
         val jerusalem = deadSea.copy(name = "Jerusalem", latitude = 31.778, longitude = 35.2354, elevationMeters = 754.0)
 
-        val calendar = complexZmanimCalendar(jerusalem, LocalDate.of(2026, 8, 27), ZmanimCalculationSettings())
+        val calendar = comprehensiveZmanimCalendar(jerusalem, LocalDate.of(2026, 8, 27), ZmanimCalculationSettings())
 
         assertEquals(754.0, calendar.geoLocation.elevation, 0.0)
     }

@@ -2,6 +2,8 @@
 
 package com.noamtu.jewishday.feature.settings
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import android.Manifest
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
@@ -26,9 +28,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -421,7 +420,7 @@ private fun ExpandableSettingsHeader(
         Spacer(Modifier.width(12.dp))
         IconButton(onClick = onReset) {
             Icon(
-                imageVector = Icons.Outlined.Refresh,
+                imageVector = ImageVector.vectorResource(R.drawable.ic_refresh),
                 contentDescription = resetContentDescription,
                 tint = MaterialTheme.colorScheme.primary,
             )
@@ -597,7 +596,7 @@ private fun SettingsActionRow(
         }
         Spacer(Modifier.width(18.dp))
         Icon(
-            imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            imageVector = ImageVector.vectorResource(R.drawable.ic_keyboard_arrow_right),
             // Decorative: the label already says what the row does, and the row is one button.
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,

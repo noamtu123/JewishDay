@@ -64,8 +64,9 @@ internal fun parseReleases(json: String): List<AppRelease> {
         val release = releases.optJSONObject(index) ?: return@mapNotNull null
         if (release.optBoolean("draft", false)) return@mapNotNull null
 
-        val version = AppVersion.parse(release.optString("tag_name", null))
-            ?: AppVersion.parse(release.optString("name", null))
+        // A missing field reads as "", which parses to null just as the absent value would.
+        val version = AppVersion.parse(release.optString("tag_name"))
+            ?: AppVersion.parse(release.optString("name"))
             ?: return@mapNotNull null
 
         val assets = release.optJSONArray("assets") ?: return@mapNotNull null

@@ -2,9 +2,10 @@
 
 package com.noamtu.jewishday.model
 
+import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.Date
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,20 +29,20 @@ class ZmanimMethodCoverageTest {
     private fun calendar(
         location: JewishLocation = defaultJerusalemLocation,
         settings: ZmanimCalculationSettings = defaults,
-    ) = complexZmanimCalendar(location, date, settings)
+    ) = comprehensiveZmanimCalendar(location, date, settings)
 
     private val sunrise = requireNotNull(calendar().sunrise(SunriseMethod.SeaLevel))
     private val sunset = requireNotNull(calendar().sunset(SunsetMethod.SeaLevel))
 
     /** Anything a Jerusalem summer day can legitimately produce, and nothing beyond it. */
-    private val dayStart = Date(sunrise.time - 6 * HourMillis)
-    private val dayEnd = Date(sunset.time + 6 * HourMillis)
+    private val dayStart = sunrise.minus(Duration.ofHours(6))
+    private val dayEnd = sunset.plus(Duration.ofHours(6))
 
-    private fun assertWithinTheDay(label: String, time: Date?) {
+    private fun assertWithinTheDay(label: String, time: Instant?) {
         assertNotNull("$label resolved to null in Jerusalem", time)
         assertTrue(
             "$label produced $time, outside $dayStart..$dayEnd",
-            !time!!.before(dayStart) && !time.after(dayEnd),
+            !time!!.isBefore(dayStart) && !time.isAfter(dayEnd),
         )
     }
 
@@ -51,7 +52,7 @@ class ZmanimMethodCoverageTest {
             val time = calendar(settings = defaults.copy(alotHashacharMethod = method))
                 .alotHashachar(defaults.copy(alotHashacharMethod = method))
             assertWithinTheDay("Alot $method", time)
-            assertTrue("Alot $method is not before sunrise", time!!.before(sunrise))
+            assertTrue("Alot $method is not before sunrise", time!!.isBefore(sunrise))
         }
     }
 
@@ -61,7 +62,7 @@ class ZmanimMethodCoverageTest {
             val settings = defaults.copy(misheyakirMethod = method)
             val time = calendar(settings = settings).misheyakir(settings)
             assertWithinTheDay("Misheyakir $method", time)
-            assertTrue("Misheyakir $method is not before sunrise", time!!.before(sunrise))
+            assertTrue("Misheyakir $method is not before sunrise", time!!.isBefore(sunrise))
         }
     }
 
@@ -116,30 +117,37 @@ class ZmanimMethodCoverageTest {
             val settings = defaults.copy(tzeitHakochavimMethod = method)
             val time = calendar(settings = settings).tzeit(settings)
             assertWithinTheDay("Tzeit $method", time)
-            assertTrue("Tzeit $method is not after sunset", time!!.after(sunset))
+            assertTrue("Tzeit $method is not after sunset", time!!.isAfter(sunset))
         }
         MotzeiShabbatMethod.entries.forEach { method ->
             val settings = defaults.copy(motzeiShabbatMethod = method)
             val time = calendar(settings = settings).motzeiShabbat(settings)
             assertWithinTheDay("Motzei $method", time)
-            assertTrue("Motzei $method is not after sunset", time!!.after(sunset))
+            assertTrue("Motzei $method is not after sunset", time!!.isAfter(sunset))
         }
         RabbeinuTamMethod.entries.forEach { method ->
             val settings = defaults.copy(rabbeinuTamMethod = method)
             val time = calendar(settings = settings).rabbeinuTam(settings)
             assertWithinTheDay("Rabbeinu Tam $method", time)
-            assertTrue("Rabbeinu Tam $method is not after sunset", time!!.after(sunset))
+            assertTrue("Rabbeinu Tam $method is not after sunset", time!!.isAfter(sunset))
         }
     }
 
     @Test
     fun everyChametzOptionResolvesInOrder() {
+        // On Erev Pesach itself, the only day these rows are shown and the only day KosherJava gives
+        // its own chametz deadlines at all (it returns null for them on any other date).
+        val erevPesach = LocalDate.of(2026, 4, 1)
+        val sunrise = requireNotNull(comprehensiveZmanimCalendar(defaultJerusalemLocation, erevPesach, defaults).seaLevelSunrise)
+        val sunset = requireNotNull(comprehensiveZmanimCalendar(defaultJerusalemLocation, erevPesach, defaults).seaLevelSunset)
         ChametzMethod.entries.forEach { method ->
             val settings = defaults.copy(chametzMethod = method)
-            val (eating, burning) = calendar(settings = settings).chametzTimes(settings)
-            assertWithinTheDay("Sof zman achilat chametz $method", eating)
-            assertWithinTheDay("Sof zman biur chametz $method", burning)
-            assertTrue("$method: eating deadline must precede burning", eating!!.before(burning!!))
+            val (eating, burning) = comprehensiveZmanimCalendar(defaultJerusalemLocation, erevPesach, settings).chametzTimes(settings)
+            assertNotNull("Sof zman achilat chametz $method resolved to null", eating)
+            assertNotNull("Sof zman biur chametz $method resolved to null", burning)
+            assertTrue("$method: eating deadline must fall between sunrise and sunset", eating!! in sunrise..sunset)
+            assertTrue("$method: burning deadline must fall between sunrise and sunset", burning!! in sunrise..sunset)
+            assertTrue("$method: eating deadline must precede burning", eating.isBefore(burning))
         }
     }
 
@@ -147,10 +155,10 @@ class ZmanimMethodCoverageTest {
     fun everyCandleLightingOptionIsAWholeNumberOfMinutesBeforeSunset() {
         CandleLightingMethod.entries.forEach { method ->
             val settings = defaults.copy(candleLightingMethod = method)
-            val lighting = requireNotNull(complexZmanimCalendar(defaultJerusalemLocation, date, settings).candleLighting) {
+            val lighting = requireNotNull(comprehensiveZmanimCalendar(defaultJerusalemLocation, date, settings).candleLighting(settings)?.time) {
                 "Candle lighting $method resolved to null"
             }
-            val minutesBefore = (sunset.time - lighting.time) / 60_000L
+            val minutesBefore = Duration.between(lighting, sunset).toMinutes()
             // The custom option takes its offset from the settings rather than from the enum.
             val expected = settings.candleLightingOffsetMinutes.toLong()
             assertTrue("$method reported $minutesBefore min before sunset", minutesBefore == expected)
@@ -180,7 +188,7 @@ class ZmanimMethodCoverageTest {
             )
             val time = calendar(settings = alot).alotHashachar(alot)
             assertWithinTheDay("Custom alot $unit", time)
-            assertTrue("Custom alot $unit is not before sunrise", time!!.before(sunrise))
+            assertTrue("Custom alot $unit is not before sunrise", time!!.isBefore(sunrise))
 
             val nightfall = defaults.copy(
                 tzeitHakochavimMethod = when (unit) {
@@ -192,7 +200,7 @@ class ZmanimMethodCoverageTest {
             )
             val tzeit = calendar(settings = nightfall).tzeit(nightfall)
             assertWithinTheDay("Custom tzeit $unit", tzeit)
-            assertTrue("Custom tzeit $unit is not after sunset", tzeit!!.after(sunset))
+            assertTrue("Custom tzeit $unit is not after sunset", tzeit!!.isAfter(sunset))
         }
 
         // A larger degree value is a lower sun, so dawn moves earlier and nightfall later.
@@ -206,7 +214,7 @@ class ZmanimMethodCoverageTest {
         assertTrue(
             "20° dawn should precede 14° dawn",
             requireNotNull(calendar(settings = deep).alotHashachar(deep))
-                .before(requireNotNull(calendar(settings = shallow).alotHashachar(shallow))),
+                .isBefore(requireNotNull(calendar(settings = shallow).alotHashachar(shallow))),
         )
     }
 
@@ -220,45 +228,41 @@ class ZmanimMethodCoverageTest {
 
         AlotHashacharMethod.entries.forEach { method ->
             val settings = defaults.copy(alotHashacharMethod = method)
-            complexZmanimCalendar(stockholm, midsummer, settings).alotHashachar(settings)
+            comprehensiveZmanimCalendar(stockholm, midsummer, settings).alotHashachar(settings)
         }
         MisheyakirMethod.entries.forEach { method ->
             val settings = defaults.copy(misheyakirMethod = method)
-            complexZmanimCalendar(stockholm, midsummer, settings).misheyakir(settings)
+            comprehensiveZmanimCalendar(stockholm, midsummer, settings).misheyakir(settings)
         }
         SofZmanShemaMethod.entries.forEach { method ->
-            complexZmanimCalendar(stockholm, midsummer, defaults).sofZmanShema(method, defaults)
+            comprehensiveZmanimCalendar(stockholm, midsummer, defaults).sofZmanShema(method, defaults)
         }
         SofZmanTefillahMethod.entries.forEach { method ->
-            complexZmanimCalendar(stockholm, midsummer, defaults).sofZmanTefillah(method, defaults)
+            comprehensiveZmanimCalendar(stockholm, midsummer, defaults).sofZmanTefillah(method, defaults)
         }
         TzeitHakochavimMethod.entries.forEach { method ->
             val settings = defaults.copy(tzeitHakochavimMethod = method)
-            complexZmanimCalendar(stockholm, midsummer, settings).tzeit(settings)
+            comprehensiveZmanimCalendar(stockholm, midsummer, settings).tzeit(settings)
         }
         RabbeinuTamMethod.entries.forEach { method ->
             val settings = defaults.copy(rabbeinuTamMethod = method)
-            complexZmanimCalendar(stockholm, midsummer, settings).rabbeinuTam(settings)
+            comprehensiveZmanimCalendar(stockholm, midsummer, settings).rabbeinuTam(settings)
         }
         ChametzMethod.entries.forEach { method ->
             val settings = defaults.copy(chametzMethod = method)
-            complexZmanimCalendar(stockholm, midsummer, settings).chametzTimes(settings)
+            comprehensiveZmanimCalendar(stockholm, midsummer, settings).chametzTimes(settings)
         }
         MinchaGedolaMethod.entries.forEach { method ->
             val settings = defaults.copy(minchaGedolaMethod = method)
-            complexZmanimCalendar(stockholm, midsummer, settings).minchaGedola(settings)
+            comprehensiveZmanimCalendar(stockholm, midsummer, settings).minchaGedola(settings)
         }
         MinchaKetanaMethod.entries.forEach { method ->
             val settings = defaults.copy(minchaKetanaMethod = method)
-            complexZmanimCalendar(stockholm, midsummer, settings).minchaKetana(settings)
+            comprehensiveZmanimCalendar(stockholm, midsummer, settings).minchaKetana(settings)
         }
         PlagHaminchaMethod.entries.forEach { method ->
             val settings = defaults.copy(plagHaminchaMethod = method)
-            complexZmanimCalendar(stockholm, midsummer, settings).plagHamincha(settings)
+            comprehensiveZmanimCalendar(stockholm, midsummer, settings).plagHamincha(settings)
         }
-    }
-
-    private companion object {
-        const val HourMillis = 60L * 60L * 1000L
     }
 }

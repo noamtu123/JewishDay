@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.model
 
+import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -16,7 +17,7 @@ import org.junit.Test
  */
 class ZmanMethodResolversTest {
     private val settings = ZmanimCalculationSettings()
-    private val calendar = complexZmanimCalendar(
+    private val calendar = comprehensiveZmanimCalendar(
         location = defaultJerusalemLocation,
         date = LocalDate.of(2026, 7, 2),
         settings = settings,
@@ -43,7 +44,7 @@ class ZmanMethodResolversTest {
         orderedZmanim.zipWithNext { (earlierName, earlier), (laterName, later) ->
             assertTrue(
                 "$earlierName (${earlier}) should be before $laterName (${later})",
-                earlier!!.before(later!!),
+                earlier!!.isBefore(later!!),
             )
         }
     }
@@ -67,7 +68,7 @@ class ZmanMethodResolversTest {
         ).forEach { candidate ->
             val tzeit = calendar.tzeit(candidate)
             assertNotNull("$candidate resolved to null", tzeit)
-            assertTrue("$candidate should be after sunset", tzeit!!.after(sunset))
+            assertTrue("$candidate should be after sunset", tzeit!!.isAfter(sunset))
         }
     }
 
@@ -86,8 +87,8 @@ class ZmanMethodResolversTest {
 
         assertNotNull(achilah)
         assertNotNull(biur)
-        assertTrue("eating deadline must precede burning deadline", achilah!!.before(biur!!))
-        assertTrue("both must fall after the 72-zmaniyot dawn", achilah.after(calendar.alos72Zmanis))
+        assertTrue("eating deadline must precede burning deadline", achilah!!.isBefore(biur!!))
+        assertTrue("both must fall after the 72-zmaniyot dawn", achilah.isAfter(calendar.alos72Zmanis))
     }
 
     /**
@@ -128,9 +129,9 @@ class ZmanMethodResolversTest {
     fun theGraRowsFollowTheChosenSunriseAndSunset() {
         val mountain = JewishLocation("Tzfat", 32.9646, 35.4960, 900.0, defaultJerusalemLocation.zoneId)
         val date = LocalDate.of(2026, 7, 2)
-        fun on(sunriseMethod: SunriseMethod, sunsetMethod: SunsetMethod): List<java.util.Date?> {
+        fun on(sunriseMethod: SunriseMethod, sunsetMethod: SunsetMethod): List<Instant?> {
             val chosen = settings.copy(sunriseMethod = sunriseMethod, sunsetMethod = sunsetMethod)
-            val calendar = complexZmanimCalendar(mountain, date, chosen)
+            val calendar = comprehensiveZmanimCalendar(mountain, date, chosen)
             return listOf(
                 calendar.sofZmanShema(chosen.sofZmanShemaGraMethod, chosen),
                 calendar.sofZmanTefillah(chosen.sofZmanTefillahGraMethod, chosen),
@@ -160,8 +161,8 @@ class ZmanMethodResolversTest {
             alotHashacharCustom = settings.alotHashacharCustom.withValue(CustomZmanUnit.ZmaniyotMinutes, 72.0),
         )
         // Within a second: the library rounds its own offset through a different intermediate.
-        val ours = requireNotNull(calendar.alotHashachar(custom)).time
-        val theirs = requireNotNull(calendar.alos72Zmanis).time
+        val ours = requireNotNull(calendar.alotHashachar(custom)).toEpochMilli()
+        val theirs = requireNotNull(calendar.alos72Zmanis).toEpochMilli()
         assertTrue("custom 72 zmaniyot was $ours, library said $theirs", Math.abs(ours - theirs) < 1_000)
     }
 }

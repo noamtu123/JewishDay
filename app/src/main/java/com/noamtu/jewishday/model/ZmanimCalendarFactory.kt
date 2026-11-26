@@ -2,18 +2,15 @@
 
 package com.noamtu.jewishday.model
 
-import com.kosherjava.zmanim.ComplexZmanimCalendar
+import com.kosherjava.zmanim.ComprehensiveZmanimCalendar
 import com.kosherjava.zmanim.util.GeoLocation
 import java.time.LocalDate
-import java.util.GregorianCalendar
-import java.util.TimeZone
 
-internal fun complexZmanimCalendar(
+internal fun comprehensiveZmanimCalendar(
     location: JewishLocation,
     date: LocalDate,
     settings: ZmanimCalculationSettings,
-): ComplexZmanimCalendar {
-    val timeZone = TimeZone.getTimeZone(location.zoneId)
+): ComprehensiveZmanimCalendar {
     val geoLocation = GeoLocation(
         location.name,
         location.latitude,
@@ -22,15 +19,10 @@ internal fun complexZmanimCalendar(
         // Dead Sea sits 430m below sea level, and a fix near the coast dips below zero on noise
         // alone. Treated as sea level, which is what the elevation-free zmanim use anyway.
         location.elevationMeters.coerceAtLeast(0.0),
-        timeZone,
+        location.zoneId,
     )
-    val calculationDate = GregorianCalendar(timeZone).apply {
-        clear()
-        set(date.year, date.monthValue - 1, date.dayOfMonth)
-    }
-    return ComplexZmanimCalendar(geoLocation).apply {
-        setCalendar(calculationDate)
-        candleLightingOffset = settings.candleLightingOffsetMinutes.toDouble()
+    return ComprehensiveZmanimCalendar(geoLocation).apply {
+        localDate = date
         ateretTorahSunsetOffset = settings.ateretTorahSunsetOffsetMinutes.toDouble()
     }
 }

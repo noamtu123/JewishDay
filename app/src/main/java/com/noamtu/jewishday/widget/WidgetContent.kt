@@ -263,7 +263,7 @@ private fun shabbat(
         title = when {
             readingName == null -> if (hebrew) "שבת" else "Shabbat"
             // A Shabbat that is a Yom Tov has no parsha; the row then names the day instead.
-            reading?.title != "Weekly Parsha" -> readingName
+            reading.title != "Weekly Parsha" -> readingName
             hebrew -> "פרשת $readingName"
             else -> "Parashat $readingName"
         },

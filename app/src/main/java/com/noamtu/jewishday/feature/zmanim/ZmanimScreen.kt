@@ -2,6 +2,8 @@
 
 package com.noamtu.jewishday.feature.zmanim
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import com.noamtu.jewishday.ui.theme.LocalGlassTheme
 import com.noamtu.jewishday.ui.theme.glassBorder
 import com.noamtu.jewishday.ui.theme.glassOr
@@ -23,9 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -454,7 +453,7 @@ private fun DayStepper(
     ) {
         IconButton(onClick = { onStepDay(-1) }) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_back),
                 contentDescription = localizedString(R.string.zmanim_day_previous, R.string.zmanim_day_previous_hebrew),
             )
         }
@@ -467,7 +466,7 @@ private fun DayStepper(
         }
         IconButton(onClick = { onStepDay(1) }) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_forward),
                 contentDescription = localizedString(R.string.zmanim_day_next, R.string.zmanim_day_next_hebrew),
             )
         }

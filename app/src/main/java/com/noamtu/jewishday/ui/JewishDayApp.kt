@@ -2,6 +2,8 @@
 
 package com.noamtu.jewishday.ui
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,9 +40,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -397,7 +396,7 @@ private fun LocationPromptDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Outlined.LocationOn, contentDescription = null) },
+        icon = { Icon(ImageVector.vectorResource(R.drawable.ic_location_on), contentDescription = null) },
         title = {
             Text(
                 text = if (isPermission) {
@@ -508,18 +507,18 @@ private fun JewishDayNavHost(useHebrewInterface: Boolean, updateViewModel: AppUp
                         actions = {
                             val reportLabel = localizedString(R.string.report_issue, R.string.report_issue_hebrew)
                             IconButton(onClick = { context.openFeedbackEmail() }) {
-                                Icon(Icons.Outlined.BugReport, contentDescription = reportLabel)
+                                Icon(ImageVector.vectorResource(R.drawable.ic_bug_report), contentDescription = reportLabel)
                             }
                             if (currentAppDestination != AppDestination.Settings) {
                                 val settingsLabel = stringResource(AppDestination.Settings.labelRes(useHebrewInterface))
                                 IconButton(onClick = { navController.navigateSecondaryTo(AppDestination.Settings.route) }) {
-                                    Icon(AppDestination.Settings.icon, contentDescription = settingsLabel)
+                                    Icon(ImageVector.vectorResource(AppDestination.Settings.icon), contentDescription = settingsLabel)
                                 }
                             }
                             if (currentAppDestination != AppDestination.About) {
                                 val aboutLabel = stringResource(AppDestination.About.labelRes(useHebrewInterface))
                                 IconButton(onClick = { navController.navigateSecondaryTo(AppDestination.About.route) }) {
-                                    Icon(AppDestination.About.icon, contentDescription = aboutLabel)
+                                    Icon(ImageVector.vectorResource(AppDestination.About.icon), contentDescription = aboutLabel)
                                 }
                             }
                         },
@@ -597,7 +596,7 @@ private fun AppNavigationBar(
             NavigationBarItem(
                 selected = selected,
                 onClick = { onDestinationClick(destination.route) },
-                icon = { Icon(destination.icon, contentDescription = label) },
+                icon = { Icon(ImageVector.vectorResource(destination.icon), contentDescription = label) },
                 label = { Text(label) },
             )
         }
@@ -617,7 +616,7 @@ private fun AppNavigationRail(
             NavigationRailItem(
                 selected = selected,
                 onClick = { onDestinationClick(destination.route) },
-                icon = { Icon(destination.icon, contentDescription = label) },
+                icon = { Icon(ImageVector.vectorResource(destination.icon), contentDescription = label) },
                 label = { Text(label) },
             )
         }
@@ -682,7 +681,7 @@ private fun GlassNavigationPill(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Icon(destination.icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(18.dp))
+                    Icon(ImageVector.vectorResource(destination.icon), contentDescription = null, tint = contentColor, modifier = Modifier.size(18.dp))
                     Text(label, color = contentColor, style = MaterialTheme.typography.labelLarge)
                 }
             }

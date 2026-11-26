@@ -2,6 +2,8 @@
 
 package com.noamtu.jewishday.update
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -15,8 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Autorenew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -62,7 +62,7 @@ fun UpdateBanner(
             ) {
                 Icon(
                     modifier = Modifier.size(26.dp),
-                    imageVector = Icons.Outlined.Autorenew,
+                    imageVector = ImageVector.vectorResource(R.drawable.ic_autorenew),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )

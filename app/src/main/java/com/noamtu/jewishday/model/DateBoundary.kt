@@ -46,9 +46,8 @@ fun chatzotHaLailaForDate(
     location: JewishLocation = defaultJerusalemLocation,
     date: LocalDate,
     settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
-): Instant? = complexZmanimCalendar(location, date, settings)
+): Instant? = comprehensiveZmanimCalendar(location, date, settings)
     .chatzotHaLaila(settings.chatzotHaLailaMethod)
-    ?.toInstant()
 
 /**
  * The civil date whose daytime belongs to the Jewish day now in progress — the civil date of the
@@ -157,12 +156,12 @@ fun nextObservanceBoundary(
     return (0..2)
         .map { localToday.plusDays(it.toLong()) }
         .flatMap { date ->
-            val calendar = complexZmanimCalendar(location, date, settings)
+            val calendar = comprehensiveZmanimCalendar(location, date, settings)
             listOfNotNull(
-                calendar.candleLighting?.toInstant(), // a holy day comes in
-                calendar.alotHashachar(settings)?.toInstant(), // a dawn fast begins
-                calendar.tzeit(settings)?.toInstant(), // a fast ends
-                calendar.holyDayExit(settings)?.toInstant(), // a holy day goes out
+                calendar.candleLighting(settings)?.time, // a holy day comes in
+                calendar.alotHashachar(settings), // a dawn fast begins
+                calendar.tzeit(settings), // a fast ends
+                calendar.holyDayExit(settings), // a holy day goes out
             )
         }
         .map { it.plusSeconds(1) }

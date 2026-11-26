@@ -38,15 +38,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Download
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.TrendingUp
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.InstallMobile
-import androidx.compose.material.icons.outlined.SystemUpdate
-import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -67,6 +58,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -255,10 +248,10 @@ private fun UpdateDialogBody(state: UpdateState, notesInEnglish: Boolean) {
 
         is UpdateState.Available -> Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
             HeroCard(
-                icon = Icons.Outlined.SystemUpdate,
+                icon = ImageVector.vectorResource(R.drawable.ic_system_update),
                 title = state.release.title.isolateLtr(),
                 meta = state.release.metaLine(),
-                metaIcon = Icons.Outlined.Schedule,
+                metaIcon = ImageVector.vectorResource(R.drawable.ic_schedule),
             )
             // Leaving the test channel lands on the newest *stable*, which can be an earlier build
             // than the pre-release in hand. It installs cleanly — pre-releases share the stable's
@@ -266,7 +259,7 @@ private fun UpdateDialogBody(state: UpdateState, notesInEnglish: Boolean) {
             // without saying so.
             if (state.isDowngrade) {
                 Notice(
-                    icon = Icons.Outlined.ErrorOutline,
+                    icon = ImageVector.vectorResource(R.drawable.ic_error_outline),
                     text = localizedString(R.string.update_downgrade_body, R.string.update_downgrade_body_hebrew),
                     tone = MaterialTheme.colorScheme.error,
                 )
@@ -294,7 +287,7 @@ private fun UpdateDialogBody(state: UpdateState, notesInEnglish: Boolean) {
 
         is UpdateState.Failed -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Notice(
-                icon = Icons.Outlined.ErrorOutline,
+                icon = ImageVector.vectorResource(R.drawable.ic_error_outline),
                 text = localizedString(R.string.update_failed_body, R.string.update_failed_body_hebrew),
                 tone = MaterialTheme.colorScheme.error,
             )
@@ -311,7 +304,7 @@ private fun UpdateDialogBody(state: UpdateState, notesInEnglish: Boolean) {
         }
 
         is UpdateState.NeedsInstallPermission -> Notice(
-            icon = Icons.Outlined.InstallMobile,
+            icon = ImageVector.vectorResource(R.drawable.ic_install_mobile),
             text = localizedString(R.string.update_permission_body, R.string.update_permission_body_hebrew),
             tone = MaterialTheme.colorScheme.primary,
         )
@@ -473,7 +466,7 @@ private fun ReleaseNoteGroup(section: ReleaseNoteSection) {
                 section.category.icon()?.let { icon ->
                     Icon(
                         modifier = Modifier.size(16.dp),
-                        imageVector = icon,
+                        imageVector = ImageVector.vectorResource(icon),
                         contentDescription = null,
                         tint = tone,
                     )
@@ -524,10 +517,11 @@ private fun ReleaseNoteCategory.tone(): Color = when (this) {
     ReleaseNoteCategory.Other -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-private fun ReleaseNoteCategory.icon(): ImageVector? = when (this) {
-    ReleaseNoteCategory.New -> Icons.Outlined.AutoAwesome
-    ReleaseNoteCategory.Improved -> Icons.Outlined.TrendingUp
-    ReleaseNoteCategory.Fixed -> Icons.Outlined.BugReport
+@DrawableRes
+private fun ReleaseNoteCategory.icon(): Int? = when (this) {
+    ReleaseNoteCategory.New -> R.drawable.ic_auto_awesome
+    ReleaseNoteCategory.Improved -> R.drawable.ic_trending_up
+    ReleaseNoteCategory.Fixed -> R.drawable.ic_bug_report
     ReleaseNoteCategory.Other -> null
 }
 
@@ -573,7 +567,7 @@ private fun DownloadProgress(state: UpdateState.Downloading) {
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
 
     HeroCard(
-        icon = Icons.Outlined.Download,
+        icon = ImageVector.vectorResource(R.drawable.ic_download),
         title = state.release.title.isolateLtr(),
         meta = if (state.totalBytes > 0) {
             localizedString(
@@ -615,14 +609,14 @@ private fun UpdateDialogFooter(
         when (state) {
             is UpdateState.Available -> DialogButton(
                 text = localizedString(R.string.update_action_download, R.string.update_action_download_hebrew),
-                icon = Icons.Outlined.Download,
+                icon = ImageVector.vectorResource(R.drawable.ic_download),
                 filled = true,
                 onClick = { onDownload(state.release) },
             )
 
             is UpdateState.Failed -> DialogButton(
                 text = localizedString(R.string.update_action_retry, R.string.update_action_retry_hebrew),
-                icon = Icons.Outlined.Download,
+                icon = ImageVector.vectorResource(R.drawable.ic_download),
                 filled = true,
                 onClick = { state.release?.let(onDownload) ?: onDismiss() },
             )
@@ -632,7 +626,7 @@ private fun UpdateDialogFooter(
             // let the confirmation dialog appear.
             is UpdateState.NeedsInstallPermission -> DialogButton(
                 text = localizedString(R.string.update_action_open_settings, R.string.update_action_open_settings_hebrew),
-                icon = Icons.Outlined.InstallMobile,
+                icon = ImageVector.vectorResource(R.drawable.ic_install_mobile),
                 filled = true,
                 onClick = onOpenInstallSettings,
             )

@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
@@ -205,10 +206,11 @@ fun DeveloperScreen(
                             TextButton(onClick = viewModel::followClockWithSky) { Text("Back to clock") }
                         }
                     }
+                    val skySlider = rememberSliderState(trackRange = 0f..1439f)
+                    skySlider.value = minute.toFloat()
                     Slider(
-                        value = minute.toFloat(),
+                        state = skySlider,
                         onValueChange = { viewModel.showSkyAt(LocalTime.of(it.toInt() / 60, it.toInt() % 60)) },
-                        valueRange = 0f..1439f,
                     )
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = if (skyPlaying) viewModel::stopSkyDay else viewModel::playSkyDay) {

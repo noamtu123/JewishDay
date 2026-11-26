@@ -31,7 +31,7 @@ class TransliterationTest {
         // 10 Tevet 5787.
         assertEquals("10 Tevet, 5787", formatter.format(calendar(LocalDate.of(2026, 12, 20))))
         // Shabbat Bereshit 5787.
-        assertEquals("Bereshit", formatter.formatParsha(calendar(LocalDate.of(2026, 10, 10))))
+        assertEquals("Bereshit", formatter.formatParshah(calendar(LocalDate.of(2026, 10, 10))))
     }
 
     @Test

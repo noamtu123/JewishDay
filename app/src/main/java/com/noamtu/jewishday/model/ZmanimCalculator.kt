@@ -2,13 +2,12 @@
 
 package com.noamtu.jewishday.model
 
-import com.kosherjava.zmanim.ComplexZmanimCalendar
+import com.kosherjava.zmanim.ComprehensiveZmanimCalendar
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
-import java.util.Date
 
 fun zmanimForDate(
     location: JewishLocation = defaultJerusalemLocation,
@@ -20,7 +19,7 @@ fun zmanimForDate(
     // to an evening today (rolled) would jump the Hebrew date and weekday by two.
     hebrewDateRolled: Boolean? = null,
 ): ZmanimDay {
-    val calendar = complexZmanimCalendar(location, date, settings)
+    val calendar = comprehensiveZmanimCalendar(location, date, settings)
     // Israel vs. diaspora calendar is derived from where you are, not a manual setting.
     val inIsrael = location.isInIsrael
     val jewishCalendar = JewishCalendar(date).apply {
@@ -32,7 +31,7 @@ fun zmanimForDate(
     // onward the header shows the current Jewish date. Day events and the zmanim themselves stay
     // on [date] — the plain calendar day, which turns over at midnight; the fast chip/card follows
     // the active fast (see below).
-    val tzeit = calendar.tzeit(settings)?.toInstant()
+    val tzeit = calendar.tzeit(settings)
     val afterTzeit = hebrewDateRolled ?: (now != null && tzeit != null && !now.isBefore(tzeit))
     val displayJewishCalendar = if (afterTzeit) {
         JewishCalendar(date.plusDays(1)).apply {
@@ -45,8 +44,9 @@ fun zmanimForDate(
     val englishFormatter = englishHebrewDateFormatter()
     val hebrewFormatter = HebrewDateFormatter().apply { isHebrewFormat = true }
     val shabbatDates = shabbatDatesFor(date, location, settings, now)
-    val shabbatStartCalendar = complexZmanimCalendar(location, shabbatDates.startDate, settings)
-    val shabbatEndCalendar = complexZmanimCalendar(location, shabbatDates.endDate, settings)
+    val shabbatStartCalendar = comprehensiveZmanimCalendar(location, shabbatDates.startDate, settings)
+    val shabbatCandles = shabbatStartCalendar.candleLighting(settings)
+    val shabbatEndCalendar = comprehensiveZmanimCalendar(location, shabbatDates.endDate, settings)
     // The parsha is only attached to a Shabbat date, so read it from the upcoming
     // Shabbat to always show "this week's" reading even on a weekday.
     val shabbatJewishCalendar = JewishCalendar(shabbatDates.endDate).apply {
@@ -54,8 +54,8 @@ fun zmanimForDate(
         setInIsrael(inIsrael)
     }
 
-    val weeklyParshaEnglish = englishFormatter.formatParsha(shabbatJewishCalendar)
-    val weeklyParshaHebrew = hebrewFormatter.formatParsha(shabbatJewishCalendar)
+    val weeklyParshaEnglish = englishFormatter.formatParshah(shabbatJewishCalendar)
+    val weeklyParshaHebrew = hebrewFormatter.formatParshah(shabbatJewishCalendar)
     // The upcoming parsha now lives at the top of the Shabbat section.
     val parshaItem = if (weeklyParshaEnglish.isNotBlank()) {
         ZmanItem("Weekly Parsha", "פרשת השבוע", null, "Upcoming Torah reading", "קריאת התורה הקרובה", weeklyParshaEnglish, weeklyParshaHebrew)
@@ -137,7 +137,7 @@ fun zmanimForDate(
     // week's Shabbat, which is not a duplicate, so it stays then too. And when Shabbat is part of a
     // longer stretch whose exit is a later day's, the section is what says when Shabbat itself ends,
     // so it stays as well.
-    val shabbatExit = shabbatEndCalendar.holyDayExit(settings)?.toInstant()
+    val shabbatExit = shabbatEndCalendar.holyDayExit(settings)
     val shabbatSectionRepeatsToday = shabbatExit != null &&
         shabbatIsToday &&
         holyDayInfo != null &&
@@ -178,21 +178,21 @@ fun zmanimForDate(
                 // own configurable method (the caption shows the precise method chosen).
                 // Each row carries its ZmanimTimeOption id so it can be shown/hidden.
                 items = listOfNotNull(
-                    ZmanItem("Alot Hashachar", "עלות השחר", calendar.alotHashachar(settings)?.toInstant(), settings.alotHashacharMethod.caption(settings, hebrew = false), settings.alotHashacharMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.AlotHashachar.storageValue),
-                    ZmanItem("Tallit & Tefillin", "זמן טלית ותפילין", calendar.misheyakir(settings)?.toInstant(), settings.misheyakirMethod.caption(settings, hebrew = false), settings.misheyakirMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.TallitTefillin.storageValue),
-                    ZmanItem("Sunrise", "הנץ החמה", calendar.sunrise(settings.sunriseMethod)?.toInstant(), settings.sunriseMethod.label, settings.sunriseMethod.labelHebrew, id = ZmanimTimeOption.Sunrise.storageValue),
-                    ZmanItem("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)", calendar.sofZmanShema(settings.sofZmanShemaMethod, settings)?.toInstant(), settings.sofZmanShemaMethod.caption(settings, hebrew = false), settings.sofZmanShemaMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.SofZmanShemaMagenAvraham.storageValue),
-                    ZmanItem("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)", calendar.sofZmanShema(settings.sofZmanShemaGraMethod, settings)?.toInstant(), settings.sofZmanShemaGraMethod.caption(settings, hebrew = false), settings.sofZmanShemaGraMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.SofZmanShemaGra.storageValue),
-                    ZmanItem("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מג״א)", calendar.sofZmanTefillah(settings.sofZmanTefillahMethod, settings)?.toInstant(), settings.sofZmanTefillahMethod.caption(settings, hebrew = false), settings.sofZmanTefillahMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.SofZmanTefillahMagenAvraham.storageValue),
-                    ZmanItem("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)", calendar.sofZmanTefillah(settings.sofZmanTefillahGraMethod, settings)?.toInstant(), settings.sofZmanTefillahGraMethod.caption(settings, hebrew = false), settings.sofZmanTefillahGraMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.SofZmanTefillahGra.storageValue),
-                    ZmanItem("Chatzot HaYom", "חצות היום", calendar.chatzot(settings.chatzotMethod)?.toInstant(), settings.chatzotMethod.label, settings.chatzotMethod.labelHebrew, id = ZmanimTimeOption.ChatzotHaYom.storageValue),
-                    ZmanItem("Mincha Gedola", "מנחה גדולה", calendar.minchaGedola(settings)?.toInstant(), settings.minchaGedolaMethod.caption(settings, hebrew = false), settings.minchaGedolaMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.MinchaGedola.storageValue),
-                    ZmanItem("Mincha Ketana", "מנחה קטנה", calendar.minchaKetana(settings)?.toInstant(), settings.minchaKetanaMethod.caption(settings, hebrew = false), settings.minchaKetanaMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.MinchaKetana.storageValue),
-                    ZmanItem("Plag Hamincha", "פלג המנחה", calendar.plagHamincha(settings)?.toInstant(), settings.plagHaminchaMethod.caption(settings, hebrew = false), settings.plagHaminchaMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.PlagHamincha.storageValue),
-                    ZmanItem("Sunset", "שקיעה", calendar.sunset(settings.sunsetMethod)?.toInstant(), settings.sunsetMethod.label, settings.sunsetMethod.labelHebrew, id = ZmanimTimeOption.Sunset.storageValue),
-                    ZmanItem("Tzeit", "צאת הכוכבים", calendar.tzeit(settings)?.toInstant(), settings.tzeitHakochavimMethod.caption(settings, hebrew = false), settings.tzeitHakochavimMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.Tzeit.storageValue),
+                    ZmanItem("Alot Hashachar", "עלות השחר", calendar.alotHashachar(settings), settings.alotHashacharMethod.caption(settings, hebrew = false), settings.alotHashacharMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.AlotHashachar.storageValue),
+                    ZmanItem("Tallit & Tefillin", "זמן טלית ותפילין", calendar.misheyakir(settings), settings.misheyakirMethod.caption(settings, hebrew = false), settings.misheyakirMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.TallitTefillin.storageValue),
+                    ZmanItem("Sunrise", "הנץ החמה", calendar.sunrise(settings.sunriseMethod), settings.sunriseMethod.label, settings.sunriseMethod.labelHebrew, id = ZmanimTimeOption.Sunrise.storageValue),
+                    ZmanItem("Sof Zman Shema (Magen Avraham)", "סוף זמן קריאת שמע (מג״א)", calendar.sofZmanShema(settings.sofZmanShemaMethod, settings), settings.sofZmanShemaMethod.caption(settings, hebrew = false), settings.sofZmanShemaMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.SofZmanShemaMagenAvraham.storageValue),
+                    ZmanItem("Sof Zman Shema (GRA)", "סוף זמן קריאת שמע (גר״א)", calendar.sofZmanShema(settings.sofZmanShemaGraMethod, settings), settings.sofZmanShemaGraMethod.caption(settings, hebrew = false), settings.sofZmanShemaGraMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.SofZmanShemaGra.storageValue),
+                    ZmanItem("Sof Zman Tefillah (Magen Avraham)", "סוף זמן תפילה (מג״א)", calendar.sofZmanTefillah(settings.sofZmanTefillahMethod, settings), settings.sofZmanTefillahMethod.caption(settings, hebrew = false), settings.sofZmanTefillahMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.SofZmanTefillahMagenAvraham.storageValue),
+                    ZmanItem("Sof Zman Tefillah (GRA)", "סוף זמן תפילה (גר״א)", calendar.sofZmanTefillah(settings.sofZmanTefillahGraMethod, settings), settings.sofZmanTefillahGraMethod.caption(settings, hebrew = false), settings.sofZmanTefillahGraMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.SofZmanTefillahGra.storageValue),
+                    ZmanItem("Chatzot HaYom", "חצות היום", calendar.chatzot(settings.chatzotMethod), settings.chatzotMethod.label, settings.chatzotMethod.labelHebrew, id = ZmanimTimeOption.ChatzotHaYom.storageValue),
+                    ZmanItem("Mincha Gedola", "מנחה גדולה", calendar.minchaGedola(settings), settings.minchaGedolaMethod.caption(settings, hebrew = false), settings.minchaGedolaMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.MinchaGedola.storageValue),
+                    ZmanItem("Mincha Ketana", "מנחה קטנה", calendar.minchaKetana(settings), settings.minchaKetanaMethod.caption(settings, hebrew = false), settings.minchaKetanaMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.MinchaKetana.storageValue),
+                    ZmanItem("Plag Hamincha", "פלג המנחה", calendar.plagHamincha(settings), settings.plagHaminchaMethod.caption(settings, hebrew = false), settings.plagHaminchaMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.PlagHamincha.storageValue),
+                    ZmanItem("Sunset", "שקיעה", calendar.sunset(settings.sunsetMethod), settings.sunsetMethod.label, settings.sunsetMethod.labelHebrew, id = ZmanimTimeOption.Sunset.storageValue),
+                    ZmanItem("Tzeit", "צאת הכוכבים", calendar.tzeit(settings), settings.tzeitHakochavimMethod.caption(settings, hebrew = false), settings.tzeitHakochavimMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.Tzeit.storageValue),
                     // Only on Shabbat, where the Shabbat section it normally lives in is dropped.
-                    ZmanItem("Rabbeinu Tam", "רבינו תם", calendar.rabbeinuTam(settings)?.toInstant(), settings.rabbeinuTamMethod.caption(settings, hebrew = false), settings.rabbeinuTamMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.RabbeinuTam.storageValue)
+                    ZmanItem("Rabbeinu Tam", "רבינו תם", calendar.rabbeinuTam(settings), settings.rabbeinuTamMethod.caption(settings, hebrew = false), settings.rabbeinuTamMethod.caption(settings, hebrew = true), id = ZmanimTimeOption.RabbeinuTam.storageValue)
                         .takeIf { shabbatSectionRepeatsToday },
                     ZmanItem("Chatzot HaLaila", "חצות הלילה", upcomingChatzotHaLailaFor(location, date, settings, now), settings.chatzotHaLailaMethod.label, settings.chatzotHaLailaMethod.labelHebrew, id = ZmanimTimeOption.ChatzotHaLaila.storageValue),
                 ),
@@ -204,10 +204,10 @@ fun zmanimForDate(
                 // id so the same "Zmanim to show" list can hide them.
                 items = listOfNotNull(
                     shabbatReadingItem,
-                    ZmanItem("Candle Lighting & Shabbat Entry", "הדלקת נרות וכניסת שבת", shabbatStartCalendar.candleLighting?.toInstant(), "Friday; ${settings.candleLightingMethod.caption(settings, hebrew = false)}", "יום שישי; ${settings.candleLightingMethod.caption(settings, hebrew = true)}", id = ZmanimTimeOption.ShabbatCandleLighting.storageValue),
-                    ZmanItem("Sunset", "שקיעה", shabbatStartCalendar.sunset(settings.sunsetMethod)?.toInstant(), "Friday; ${settings.sunsetMethod.label}", "יום שישי; ${settings.sunsetMethod.labelHebrew}", id = ZmanimTimeOption.ShabbatSunset.storageValue),
+                    ZmanItem("Candle Lighting & Shabbat Entry", "הדלקת נרות וכניסת שבת", shabbatCandles?.time, "Friday; ${shabbatCandles.caption(settings, hebrew = false)}", "יום שישי; ${shabbatCandles.caption(settings, hebrew = true)}", id = ZmanimTimeOption.ShabbatCandleLighting.storageValue),
+                    ZmanItem("Sunset", "שקיעה", shabbatStartCalendar.sunset(settings.sunsetMethod), "Friday; ${settings.sunsetMethod.label}", "יום שישי; ${settings.sunsetMethod.labelHebrew}", id = ZmanimTimeOption.ShabbatSunset.storageValue),
                     ZmanItem("Motzei Shabbat", "צאת שבת", shabbatExit, "Saturday; ${settings.motzeiShabbatMethod.caption(settings, hebrew = false)} + ${settings.holyDayTosefetMinutes}m", "מוצאי שבת; ${settings.motzeiShabbatMethod.caption(settings, hebrew = true)} + ${settings.holyDayTosefetMinutes} דק׳", id = ZmanimTimeOption.MotzeiShabbat.storageValue),
-                    ZmanItem("Rabbeinu Tam", "רבינו תם", shabbatEndCalendar.rabbeinuTam(settings)?.toInstant(), "Saturday; ${settings.rabbeinuTamMethod.caption(settings, hebrew = false)}", "מוצאי שבת; ${settings.rabbeinuTamMethod.caption(settings, hebrew = true)}", id = ZmanimTimeOption.RabbeinuTam.storageValue),
+                    ZmanItem("Rabbeinu Tam", "רבינו תם", shabbatEndCalendar.rabbeinuTam(settings), "Saturday; ${settings.rabbeinuTamMethod.caption(settings, hebrew = false)}", "מוצאי שבת; ${settings.rabbeinuTamMethod.caption(settings, hebrew = true)}", id = ZmanimTimeOption.RabbeinuTam.storageValue),
                 ),
             ),
             ZmanimGroup(
@@ -270,33 +270,30 @@ fun tzeitForDate(
     location: JewishLocation = defaultJerusalemLocation,
     date: LocalDate,
     settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
-): Instant? = complexZmanimCalendar(location, date, settings)
+): Instant? = comprehensiveZmanimCalendar(location, date, settings)
     .tzeit(settings)
-    ?.toInstant()
 
 /** Sunset for [date]. The Hebrew date rolls at tzeit, not here — see [tzeitForDate]. */
 fun sunsetForDate(
     location: JewishLocation = defaultJerusalemLocation,
     date: LocalDate,
     settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
-): Instant? = complexZmanimCalendar(location, date, settings)
+): Instant? = comprehensiveZmanimCalendar(location, date, settings)
     .sunset(settings.sunsetMethod)
-    ?.toInstant()
 
 /** When a holy day beginning or ending on [date] goes out: motzei plus the user's tosefet. */
 fun holyDayExitForDate(
     location: JewishLocation = defaultJerusalemLocation,
     date: LocalDate,
     settings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
-): Instant? = complexZmanimCalendar(location, date, settings)
+): Instant? = comprehensiveZmanimCalendar(location, date, settings)
     .holyDayExit(settings)
-    ?.toInstant()
 
 private fun dailyItems(
     jewishCalendar: JewishCalendar,
     englishFormatter: HebrewDateFormatter,
     hebrewFormatter: HebrewDateFormatter,
-    calendar: ComplexZmanimCalendar,
+    calendar: ComprehensiveZmanimCalendar,
     settings: ZmanimCalculationSettings,
     location: JewishLocation,
     date: LocalDate,
@@ -320,8 +317,8 @@ private fun dailyItems(
     }
     if (jewishCalendar.yomTovIndex == JewishCalendar.EREV_PESACH) {
         val chametzTimes = calendar.chametzTimes(settings)
-        add(ZmanItem("Eat Chametz Until", "סוף זמן אכילת חמץ", chametzTimes.first?.toInstant(), settings.chametzMethod.caption(settings, hebrew = false), settings.chametzMethod.caption(settings, hebrew = true)))
-        add(ZmanItem("Burn Chametz Until", "סוף זמן ביעור חמץ", chametzTimes.second?.toInstant(), settings.chametzMethod.caption(settings, hebrew = false), settings.chametzMethod.caption(settings, hebrew = true)))
+        add(ZmanItem("Eat Chametz Until", "סוף זמן אכילת חמץ", chametzTimes.first, settings.chametzMethod.caption(settings, hebrew = false), settings.chametzMethod.caption(settings, hebrew = true)))
+        add(ZmanItem("Burn Chametz Until", "סוף זמן ביעור חמץ", chametzTimes.second, settings.chametzMethod.caption(settings, hebrew = false), settings.chametzMethod.caption(settings, hebrew = true)))
     }
 }
 
@@ -358,7 +355,7 @@ private fun announcedFastDayInfo(
         }
         val info = fastDayInfo(
             jewishCalendar = fastCalendar,
-            calendar = complexZmanimCalendar(location, fastDate, settings),
+            calendar = comprehensiveZmanimCalendar(location, fastDate, settings),
             settings = settings,
             location = location,
             date = fastDate,
@@ -388,7 +385,7 @@ private fun fastAnnouncedFrom(
     tzeitForDate(location, date.minusDays(2), settings)
 } else {
     // Begins at alot on [date]; announce it from alot the previous morning.
-    complexZmanimCalendar(location, date.minusDays(1), settings).alotHashachar(settings)?.toInstant()
+    comprehensiveZmanimCalendar(location, date.minusDays(1), settings).alotHashachar(settings)
 }
 
 /**
@@ -417,7 +414,7 @@ private fun announcedHolyDayInfo(
         setInIsrael(inIsrael)
     }
     fun isForbidden(day: LocalDate) = calendarFor(day).isAssurBemelacha
-    fun exitOf(day: LocalDate) = complexZmanimCalendar(location, day, settings).holyDayExit(settings)?.toInstant()
+    fun exitOf(day: LocalDate) = comprehensiveZmanimCalendar(location, day, settings).holyDayExit(settings)
 
     // Start far enough back to catch a run already under way, and far enough forward to catch the
     // next one while it is being announced.
@@ -454,8 +451,8 @@ private fun announcedHolyDayInfo(
         // The stretch as a whole: in at the first day's candle lighting, out when the last day goes
         // out. The boundaries in between — where candles are lit from an existing flame — change
         // nothing about what is forbidden, so they are not times anyone needs from the header.
-        val entry = complexZmanimCalendar(location, runStart.minusDays(1), settings)
-            .candleLighting?.toInstant()
+        val entry = comprehensiveZmanimCalendar(location, runStart.minusDays(1), settings)
+            .candleLighting(settings)?.time
         val exit = exitOf(runEnd)
         // A fast beginning the day after the run ends is part of what is still ahead: Tzom
         // Gedalyah follows Rosh Hashana, so "חג כפול" alone would understate the stretch.
@@ -551,7 +548,7 @@ private fun parshaLabel(
     hebrew: Boolean,
 ): String? {
     if (day.dayOfWeek != DayOfWeek.SATURDAY) return null
-    val parsha = formatter.formatParsha(calendar)
+    val parsha = formatter.formatParshah(calendar)
     if (parsha.isNullOrBlank()) return null
     return if (hebrew) "פרשת $parsha" else "Parashat $parsha"
 }
@@ -649,7 +646,7 @@ private fun fastFollowsRun(
     }
     return fastDayInfo(
         jewishCalendar = calendar,
-        calendar = complexZmanimCalendar(location, nextDay, settings),
+        calendar = comprehensiveZmanimCalendar(location, nextDay, settings),
         settings = settings,
         location = location,
         date = nextDay,
@@ -692,7 +689,7 @@ private fun startsPreviousEvening(jewishCalendar: JewishCalendar): Boolean =
 
 private fun fastDayInfo(
     jewishCalendar: JewishCalendar,
-    calendar: ComplexZmanimCalendar,
+    calendar: ComprehensiveZmanimCalendar,
     settings: ZmanimCalculationSettings,
     location: JewishLocation,
     date: LocalDate,
@@ -702,11 +699,11 @@ private fun fastDayInfo(
     // Tisha B'Av begins at the previous sunset, the four dawn fasts at alot. None of them carries
     // a tosefet either side — they are not holy days — so all simply end at tzeit.
     val startTime = if (startsPreviousEvening(jewishCalendar)) {
-        complexZmanimCalendar(location, date.minusDays(1), settings)
-            .sunset(settings.sunsetMethod)?.toInstant()
+        comprehensiveZmanimCalendar(location, date.minusDays(1), settings)
+            .sunset(settings.sunsetMethod)
     } else {
-        calendar.alotHashachar(settings)?.toInstant()
+        calendar.alotHashachar(settings)
     }
-    val endTime = calendar.tzeit(settings)?.toInstant()
+    val endTime = calendar.tzeit(settings)
     return FastDayInfo(name = name, nameHebrew = nameHebrew, startTime = startTime, endTime = endTime)
 }

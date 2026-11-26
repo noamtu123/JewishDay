@@ -23,11 +23,11 @@ fun skyDayFor(
     date: LocalDate,
     settings: ZmanimCalculationSettings,
 ): SkyDay {
-    val calendar = complexZmanimCalendar(location, date, settings)
+    val calendar = comprehensiveZmanimCalendar(location, date, settings)
     return SkyDay(
-        alot = calendar.alotHashachar(settings)?.toInstant(),
-        sunrise = calendar.sunrise(settings.sunriseMethod)?.toInstant(),
-        sunset = calendar.sunset(settings.sunsetMethod)?.toInstant(),
-        tzeit = calendar.tzeit(settings)?.toInstant(),
+        alot = calendar.alotHashachar(settings),
+        sunrise = calendar.sunrise(settings.sunriseMethod),
+        sunset = calendar.sunset(settings.sunsetMethod),
+        tzeit = calendar.tzeit(settings),
     )
 }
