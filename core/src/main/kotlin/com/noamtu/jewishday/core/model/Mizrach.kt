@@ -1,0 +1,91 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+package com.noamtu.jewishday.core.model
+
+import androidx.compose.runtime.Immutable
+import java.lang.Math.toDegrees
+import java.lang.Math.toRadians
+import java.time.ZoneId
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.sqrt
+
+private const val EARTH_RADIUS_KM = 6371.0088
+
+// The point the prayer compass faces: 31°46′40.8″N 35°14′07.44″E (the Foundation Stone / Har HaBayit).
+internal val kodeshHakodashimLocation = JewishLocation(
+    name = "Kodesh HaKodashim",
+    latitude = 31.778000,
+    longitude = 35.235400,
+    elevationMeters = 740.0,
+    zoneId = ZoneId.of("Asia/Jerusalem"),
+)
+
+@Immutable
+public data class MizrachInfo(
+    val fromLocationName: String,
+    val fromLatitude: Double,
+    val fromLongitude: Double,
+    val fromElevationMeters: Double,
+    val bearingDegreesExact: Float,
+    val bearingDegrees: Int,
+    val distanceKm: Int,
+    val distanceMeters: Double,
+)
+
+public fun mizrachInfo(from: JewishLocation = defaultJerusalemLocation): MizrachInfo {
+    val fromLatitude = toRadians(from.latitude)
+    val toLatitude = toRadians(kodeshHakodashimLocation.latitude)
+    val longitudeDelta = toRadians(kodeshHakodashimLocation.longitude - from.longitude)
+
+    val y = sin(longitudeDelta) * cos(toLatitude)
+    val x = cos(fromLatitude) * sin(toLatitude) -
+        sin(fromLatitude) * cos(toLatitude) * cos(longitudeDelta)
+    val bearing = normalizeDegrees(toDegrees(atan2(y, x)))
+
+    val distanceKm = haversineDistanceKm(
+        from.latitude,
+        from.longitude,
+        kodeshHakodashimLocation.latitude,
+        kodeshHakodashimLocation.longitude,
+    )
+
+    return MizrachInfo(
+        fromLocationName = from.name,
+        fromLatitude = from.latitude,
+        fromLongitude = from.longitude,
+        fromElevationMeters = from.elevationMeters,
+        bearingDegreesExact = bearing.toFloat(),
+        bearingDegrees = normalizeDegrees(bearing.roundToInt()),
+        distanceKm = distanceKm.roundToInt(),
+        distanceMeters = distanceKm * 1_000.0,
+    )
+}
+
+private fun normalizeDegrees(degrees: Double): Double = ((degrees % 360.0) + 360.0) % 360.0
+
+private fun normalizeDegrees(degrees: Int): Int = ((degrees % 360) + 360) % 360
+
+private fun haversineDistanceKm(
+    fromLatitude: Double,
+    fromLongitude: Double,
+    toLatitude: Double,
+    toLongitude: Double,
+): Double {
+    val latitudeDelta = toRadians(toLatitude - fromLatitude)
+    val longitudeDelta = toRadians(toLongitude - fromLongitude)
+    val fromLatitudeRadians = toRadians(fromLatitude)
+    val toLatitudeRadians = toRadians(toLatitude)
+
+    // Clamped: floating-point error near antipodal points can push the sum just past 1,
+    // which would make sqrt(1 - a) NaN.
+    val a = (
+        sin(latitudeDelta / 2) * sin(latitudeDelta / 2) +
+            cos(fromLatitudeRadians) * cos(toLatitudeRadians) *
+            sin(longitudeDelta / 2) * sin(longitudeDelta / 2)
+        ).coerceIn(0.0, 1.0)
+    val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return EARTH_RADIUS_KM * c
+}

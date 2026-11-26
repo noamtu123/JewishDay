@@ -8,6 +8,7 @@ import android.view.View
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.core.i18n.LanguageFormatter
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -48,12 +49,13 @@ class TextResolver(
     private fun formatter(pattern: String): DateTimeFormatter =
         formatters.getOrPut(pattern) { DateTimeFormatter.ofPattern(pattern, locale) }
 
-    fun string(@StringRes id: Int, vararg args: Any): String = resolve(UiText.Res(id, args.toList()))
+    fun string(@StringRes id: Int, vararg args: UiText): String = resolve(UiText.Res(id, args.toList()))
 
     fun resolve(text: UiText): String = when (text) {
         is UiText.Res ->
             if (text.args.isEmpty()) strings.getString(text.id) else strings.getString(text.id, *resolveArgs(text.args))
         is UiText.Plural -> strings.getQuantityString(text.id, text.count, *resolveArgs(text.args))
+        is UiText.Number -> String.format(locale, "%d", text.value)
         is UiText.Verbatim -> text.text
         is UiText.Calendar -> language.format(text.text)
         is UiText.Time -> {
@@ -68,8 +70,8 @@ class TextResolver(
         }
     }
 
-    private fun resolveArgs(args: List<Any>): Array<Any> =
-        args.map { if (it is UiText) resolve(it) else it }.toTypedArray()
+    private fun resolveArgs(args: List<UiText>): Array<Any> =
+        args.map { if (it is UiText.Number) it.value else resolve(it) }.toTypedArray()
 
     companion object {
         /**

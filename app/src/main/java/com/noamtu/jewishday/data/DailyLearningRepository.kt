@@ -3,7 +3,7 @@
 package com.noamtu.jewishday.data
 
 import android.util.Log
-import com.noamtu.jewishday.model.ZmanItem
+import com.noamtu.jewishday.day.ZmanItem
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject

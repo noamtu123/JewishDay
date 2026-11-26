@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.core.graphics.createBitmap
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.ui.theme.SkyFrame
 import com.noamtu.jewishday.ui.theme.drawBloom
@@ -127,7 +128,7 @@ private fun DrawScope.drawSky(sky: SkyFrame, layout: SkyLayout, rtl: Boolean) {
 
 /** Clips [source] to a rounded rectangle, anti-aliased (a clip path on a bitmap canvas is not). */
 private fun roundCorners(source: Bitmap, radius: Float): Bitmap {
-    val output = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+    val output = createBitmap(source.width, source.height)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         shader = BitmapShader(source, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
     }

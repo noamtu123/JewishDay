@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The Hebrew date widget one row high and three or more wide: the two dates side by side. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:baselineAligned="false"
     android:id="@android:id/background"
     style="@style/Widget.JewishDay.Root"
     android:gravity="center_vertical"

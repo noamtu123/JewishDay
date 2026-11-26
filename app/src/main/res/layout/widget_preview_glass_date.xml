@@ -2,6 +2,7 @@
 <!-- What the widget picker shows on Android 12-14: the layout with sample content, by day.
      Android 15+ shows the widget itself instead (WidgetUpdater.publishPreviews). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@android:id/background"
     android:layoutDirection="rtl"
     style="@style/Widget.JewishDay.Glass.Root">
@@ -31,7 +32,9 @@
             android:text="@string/widget_preview_special_day"
             style="@style/Widget.JewishDay.GlassDay.Text.Chip" />
 
+        <!-- A spacer: RemoteViews has no Space or plain View, so an empty FrameLayout takes the weight. -->
         <FrameLayout
+            tools:ignore="UselessLeaf"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />

@@ -2,13 +2,13 @@
 
 package com.noamtu.jewishday.widget
 
+import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.ZmanimTimeOption
+import com.noamtu.jewishday.core.model.defaultJerusalemLocation
+import com.noamtu.jewishday.core.model.nextZmanimRefreshBoundary
+import com.noamtu.jewishday.core.model.sunsetForDate
+import com.noamtu.jewishday.core.model.zmanimDayFacts
 import com.noamtu.jewishday.i18n.TestText
-import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.ZmanimTimeOption
-import com.noamtu.jewishday.model.defaultJerusalemLocation
-import com.noamtu.jewishday.model.nextZmanimRefreshBoundary
-import com.noamtu.jewishday.model.sunsetForDate
-import com.noamtu.jewishday.model.zmanimForDate
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -29,8 +29,8 @@ class WidgetContentTest {
         hebrew: Boolean = false,
         enabled: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     ) = widgetContent(
-        day = zmanimForDate(date = date, settings = settings, now = now),
-        tomorrow = { zmanimForDate(date = date.plusDays(1), settings = settings, hebrewDateRolled = false) },
+        day = zmanimDayFacts(date = date, settings = settings, now = now),
+        tomorrow = { zmanimDayFacts(date = date.plusDays(1), settings = settings, hebrewDateRolled = false) },
         text = if (hebrew) TestText.hebrew else TestText.english,
         use24HourTime = true,
         enabledZmanim = enabled,
@@ -110,5 +110,21 @@ class WidgetContentTest {
         assertTrue(rows.any { it.index == nextIndex })
         // Everything fits: nothing is dropped.
         assertEquals(content.zmanim.size, visibleRows(content, capacity = 50).size)
+    }
+
+    @Test
+    fun aTapOpensTheShabbatWidgetOnShabbatItselfAndTheOthersOnTheirDay() {
+        val saturday = friday.plusDays(1)
+        // Announced (the header's card, from Friday) and not yet (the week's Shabbat section).
+        val announced = content(fridayAfternoon)
+        val tuesday = friday.minusDays(3)
+        val earlyInTheWeek = content(tuesday.atTime(12, 0).atZone(defaultJerusalemLocation.zoneId).toInstant(), date = tuesday)
+
+        assertTrue(requireNotNull(announced.shabbat).announced)
+        assertEquals(saturday, announced.shabbat.day)
+        assertFalse(requireNotNull(earlyInTheWeek.shabbat).announced)
+        assertEquals(saturday, earlyInTheWeek.shabbat.day)
+        assertEquals(friday, announced.date)
+        assertEquals(tuesday, earlyInTheWeek.date)
     }
 }

@@ -13,21 +13,20 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.core.content.edit
-import com.noamtu.jewishday.i18n.TextResolver
+import com.noamtu.jewishday.core.model.JewishLocation
+import com.noamtu.jewishday.core.model.SkyDay
+import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.nextZmanimRefreshBoundary
+import com.noamtu.jewishday.core.model.skyDayFor
+import com.noamtu.jewishday.core.model.zmanimDayFacts
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
-import com.noamtu.jewishday.data.JewishDayRepository
 import com.noamtu.jewishday.di.ApplicationScope
-import com.noamtu.jewishday.model.JewishLocation
-import com.noamtu.jewishday.model.SkyDay
-import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.nextZmanimRefreshBoundary
-import com.noamtu.jewishday.model.skyDayFor
-import com.noamtu.jewishday.model.zmanimForDate
+import com.noamtu.jewishday.i18n.TextResolver
 import com.noamtu.jewishday.ui.theme.SkyFrame
-import com.noamtu.jewishday.ui.theme.skyAt
 import com.noamtu.jewishday.ui.theme.nextSkyRedraw
+import com.noamtu.jewishday.ui.theme.skyAt
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Clock
 import java.time.Duration
@@ -36,6 +35,7 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
@@ -66,7 +66,6 @@ class WidgetUpdater @Inject constructor(
     private val appSettingsRepository: AppSettingsRepository,
     private val currentLocationRepository: CurrentLocationRepository,
     private val developerOverridesRepository: DeveloperOverridesRepository,
-    private val jewishDayRepository: JewishDayRepository,
     private val clock: Clock,
     @ApplicationScope private val scope: CoroutineScope,
 ) {
@@ -124,10 +123,11 @@ class WidgetUpdater @Inject constructor(
             val previewsDue = Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM &&
                 previewPreferences.getString(PreviewsForKey, null) != previewsFor
             if (!placed && !previewsDue) return@withLock
-            val day = jewishDayRepository.getZmanim(location, zmanimSettings)
+            // Today as the main screen shows it, and tomorrow read whole, as a stepped-to day is.
+            val day = zmanimDayFacts(location, today, zmanimSettings, now)
             fun contentAt(at: Instant) = widgetContent(
                 day = day,
-                tomorrow = { zmanimForDate(location, day.date.plusDays(1), zmanimSettings, null, false) },
+                tomorrow = { zmanimDayFacts(location, today.plusDays(1), zmanimSettings, null, false) },
                 text = text,
                 use24HourTime = settings.use24HourTime,
                 enabledZmanim = settings.enabledZmanimTimes,
@@ -145,7 +145,7 @@ class WidgetUpdater @Inject constructor(
                     ?: skyFor(location, zmanimSettings, now),
             )
             val skyDay = skyDayFor(location, today, zmanimSettings)
-            if (previewsDue && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            if (previewsDue) {
                 publishPreviews(manager, ::contentAt, skyDay, location, previewsFor)
             }
             if (!placed) return@withLock
@@ -175,6 +175,9 @@ class WidgetUpdater @Inject constructor(
             val hasGlass = widgets.any { (kind, ids) -> kind.glass && ids.isNotEmpty() }
             val skyRedraw = nextSkyRedraw(now, skyDay, location.zoneId)
             scheduleRefresh(if (hasGlass) minOf(content.refreshAt, skyRedraw) else content.refreshAt)
+        } catch (cancelled: CancellationException) {
+            // The work was called off (the service or the scope is going away): not a failure.
+            throw cancelled
         } catch (exception: Exception) {
             // Leave the widgets as they are and try again soon, rather than blanking them.
             Log.w(TAG, "Widget update failed; retrying later", exception)

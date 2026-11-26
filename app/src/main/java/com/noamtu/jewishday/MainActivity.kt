@@ -3,7 +3,7 @@
 package com.noamtu.jewishday
 
 import android.content.Context
-import android.graphics.drawable.ColorDrawable
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -12,8 +12,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noamtu.jewishday.data.AppSettingsRepository
@@ -25,9 +28,11 @@ import com.noamtu.jewishday.data.hasLocationPermission
 import com.noamtu.jewishday.i18n.AppLanguageController
 import com.noamtu.jewishday.i18n.AppLocales
 import com.noamtu.jewishday.ui.JewishDayApp
+import com.noamtu.jewishday.ui.ShowDayRequest
 import com.noamtu.jewishday.ui.theme.JewishDayTheme
 import com.noamtu.jewishday.ui.theme.appThemeBackgroundColor
 import dagger.hilt.android.AndroidEntryPoint
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -59,6 +64,11 @@ class MainActivity : ComponentActivity() {
      */
     private var reopened = false
 
+    // The latest widget tap's day to open on. Taken from the intent that started the activity (not
+    // from a recreation, which must not step the screen back to a day the user has moved on from)
+    // and from any later one delivered to it; the zmanim screen acts on each request once.
+    private var showDayRequest by mutableStateOf<ShowDayRequest?>(null)
+
     /** Android 12 and older have no per-app language, so the activity takes the app's by hand. */
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(AppLocales.wrap(newBase))
@@ -66,7 +76,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Two things have to happen before a single setting is read, and both block:
+        // Three things have to happen before a single setting is read, and all of them block:
         //
         //  - anything a backup restored is judged, so the first launch after a reinstall clears it
         //    while settings carried from another phone are kept (the alternative is the UI reading
@@ -99,6 +109,7 @@ class MainActivity : ComponentActivity() {
         }
         setStartupWindowBackground(initialRootSettings.themeOption)
         enableEdgeToEdge()
+        if (savedInstanceState == null) showDayRequest = intent.showDayRequest()
 
         setContent {
             val rootSettings by appSettingsRepository.rootUiSettings.collectAsStateWithLifecycle(
@@ -117,7 +128,7 @@ class MainActivity : ComponentActivity() {
             }
 
             JewishDayTheme(themeOption = rootSettings.themeOption) {
-                JewishDayApp()
+                JewishDayApp(showDayRequest = showDayRequest)
             }
         }
     }
@@ -128,6 +139,12 @@ class MainActivity : ComponentActivity() {
      * bypass the repository's own five-minute throttle on fresh fixes: coming back to the app after
      * travelling is exactly when the cached fix is the wrong one.
      */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intent.showDayRequest()?.let { showDayRequest = it }
+    }
+
     override fun onStart() {
         super.onStart()
         if (!reopened) return
@@ -148,9 +165,7 @@ class MainActivity : ComponentActivity() {
         val backgroundColor = appThemeBackgroundColor(themeOption)
         if (startupWindowBackgroundColor == backgroundColor) return
         startupWindowBackgroundColor = backgroundColor
-        window.setBackgroundDrawable(
-            ColorDrawable(backgroundColor),
-        )
+        window.setBackgroundDrawable(backgroundColor.toDrawable())
     }
 
     // Status/navigation bar icons contrast with the app's own theme background. No theme follows
@@ -162,5 +177,19 @@ class MainActivity : ComponentActivity() {
         val controller = WindowCompat.getInsetsController(window, window.decorView)
         controller.isAppearanceLightStatusBars = lightBackground
         controller.isAppearanceLightNavigationBars = lightBackground
+    }
+
+    companion object {
+        private const val ExtraShowDate = "com.noamtu.jewishday.extra.SHOW_DATE"
+
+        /** Opens the app afresh on the zmanim of [date] (see [ShowDayRequest]). */
+        fun showDayIntent(context: Context, date: LocalDate): Intent =
+            Intent(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .putExtra(ExtraShowDate, date.toString())
+
+        private fun Intent.showDayRequest(): ShowDayRequest? = getStringExtra(ExtraShowDate)
+            ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            ?.let(::ShowDayRequest)
     }
 }

@@ -4,6 +4,9 @@ package com.noamtu.jewishday.i18n
 
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Immutable
+import com.noamtu.jewishday.core.i18n.CalendarText
+import com.noamtu.jewishday.core.i18n.LanguageFormatter
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -15,14 +18,19 @@ import java.time.ZoneId
  * language. Nothing below the edges ever holds a finished sentence, so a language change is just a
  * new resolver, and a new language is a new translation folder.
  *
- * Arguments may themselves be [UiText]; they are resolved first, in the same language.
+ * Arguments are [UiText] too: they are worded first, in the same language, and a [Number] fills a
+ * `%d` as the number it is.
  */
+@Immutable
 sealed interface UiText {
     /** A string resource, with its format arguments. */
-    data class Res(@StringRes val id: Int, val args: List<Any> = emptyList()) : UiText
+    data class Res(@StringRes val id: Int, val args: List<UiText> = emptyList()) : UiText
 
     /** A plurals resource for [count]; [args] defaults to the count itself. */
-    data class Plural(@PluralsRes val id: Int, val count: Int, val args: List<Any> = listOf(count)) : UiText
+    data class Plural(@PluralsRes val id: Int, val count: Int, val args: List<UiText> = listOf(Number(count))) : UiText
+
+    /** A whole number, for a `%d` placeholder; on its own it reads as its digits. */
+    data class Number(val value: Int) : UiText
 
     /** Data that is not the app's own wording and is never translated: a place name, a version. */
     data class Verbatim(val text: String) : UiText
@@ -55,10 +63,10 @@ enum class DateStyle {
     DayMonth,
 }
 
-fun uiText(@StringRes id: Int, vararg args: Any): UiText = UiText.Res(id, args.toList())
+fun uiText(@StringRes id: Int, vararg args: UiText): UiText = UiText.Res(id, args.toList())
 
-fun pluralText(@PluralsRes id: Int, count: Int, vararg args: Any): UiText =
-    UiText.Plural(id, count, if (args.isEmpty()) listOf(count) else args.toList())
+fun pluralText(@PluralsRes id: Int, count: Int, vararg args: UiText): UiText =
+    UiText.Plural(id, count, if (args.isEmpty()) listOf(UiText.Number(count)) else args.toList())
 
 fun verbatim(text: String): UiText = UiText.Verbatim(text)
 

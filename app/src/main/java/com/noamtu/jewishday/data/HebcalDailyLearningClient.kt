@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.data
 
+import com.noamtu.jewishday.core.model.HebcalLearningEntry
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -94,13 +95,6 @@ class HebcalDailyLearningClient @Inject constructor() {
         )
     }
 }
-
-data class HebcalLearningEntry(
-    val category: String,
-    val title: String,
-    val hebrew: String? = null,
-    val memo: String? = null,
-)
 
 private fun String.urlEncode(): String = URLEncoder.encode(this, Charsets.UTF_8.name())
 

@@ -3,7 +3,8 @@
      The rows share the height left under the header equally, so the list fills it at any size. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
-    style="@style/Widget.JewishDay.Root">
+    style="@style/Widget.JewishDay.Root"
+    android:orientation="vertical">
 
     <TextView
         android:id="@+id/widget_hebrew_date"

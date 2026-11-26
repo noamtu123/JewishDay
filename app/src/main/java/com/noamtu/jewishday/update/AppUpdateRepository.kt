@@ -13,19 +13,44 @@ import java.net.HttpURLConnection
 import java.net.URL
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.coroutineContext
 
+/** Finds, checks and downloads the app's own releases. */
+interface AppUpdateRepository {
+    /**
+     * The newest release worth offering, or null when this build is already current — or when the
+     * check simply could not be made. A failed check is not worth interrupting anyone over.
+     */
+    suspend fun findUpdate(): AppRelease?
+
+    /**
+     * The same check as [findUpdate], but saying what happened rather than only what to install.
+     *
+     * Nothing user-facing shows this: a launch check that finds nothing, or cannot reach GitHub at
+     * all, stays quiet by design. The developer tools show it, because "no dialog appeared" is
+     * otherwise indistinguishable between "already current" and "the request never succeeded".
+     */
+    suspend fun check(): UpdateCheckReport
+
+    /** Downloads [release]'s APK, reporting progress, and returns the file. */
+    suspend fun download(release: AppRelease, onProgress: (downloaded: Long, total: Long) -> Unit): File
+
+    /** Deletes downloaded APKs. */
+    fun clearDownloads()
+}
+
+/** [AppUpdateRepository] over the project's GitHub releases. */
 @Singleton
-class AppUpdateRepository @Inject constructor(
+class GitHubAppUpdateRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val releaseClient: GitHubReleaseClient,
     private val developerOverrides: DeveloperOverridesRepository,
     private val appSettingsRepository: AppSettingsRepository,
-) {
+) : AppUpdateRepository {
 
     /**
      * The version to compare releases against: this build's, or whatever the developer tools are
@@ -37,20 +62,9 @@ class AppUpdateRepository @Inject constructor(
     private suspend fun installedVersion(): AppVersion? =
         AppVersion.parse(developerOverrides.current().spoofedVersionName.ifBlank { BuildConfig.VERSION_NAME })
 
-    /**
-     * The newest release worth offering, or null when this build is already current — or when the
-     * check simply could not be made. A failed check is not worth interrupting anyone over.
-     */
-    suspend fun findUpdate(): AppRelease? = (check() as? UpdateCheckReport.Available)?.release
+    override suspend fun findUpdate(): AppRelease? = (check() as? UpdateCheckReport.Available)?.release
 
-    /**
-     * The same check as [findUpdate], but saying what happened rather than only what to install.
-     *
-     * Nothing user-facing shows this: a launch check that finds nothing, or cannot reach GitHub at
-     * all, stays quiet by design. The developer tools show it, because "no dialog appeared" is
-     * otherwise indistinguishable between "already current" and "the request never succeeded".
-     */
-    suspend fun check(): UpdateCheckReport = withContext(Dispatchers.IO) {
+    override suspend fun check(): UpdateCheckReport = withContext(Dispatchers.IO) {
         val installed = installedVersion()
             ?: return@withContext UpdateCheckReport.Failed("Could not read the installed version")
         val releases = runCatching { releaseClient.fetchReleases() }
@@ -87,7 +101,7 @@ class AppUpdateRepository @Inject constructor(
      * Downloads [release] into the app's own cache, reporting bytes written and the total expected.
      * The total is 0 while the server declines to say how large the file is.
      */
-    suspend fun download(release: AppRelease, onProgress: (downloaded: Long, total: Long) -> Unit): File =
+    override suspend fun download(release: AppRelease, onProgress: (downloaded: Long, total: Long) -> Unit): File =
         withContext(Dispatchers.IO) {
             val target = File(updatesDir(), "JewishDay-${release.version}.apk")
             target.delete()
@@ -126,7 +140,7 @@ class AppUpdateRepository @Inject constructor(
         }
 
     /** Clears anything left behind by an update that was downloaded but never installed. */
-    fun clearDownloads() {
+    override fun clearDownloads() {
         updatesDir().listFiles()?.forEach(File::delete)
     }
 

@@ -4,7 +4,7 @@ package com.noamtu.jewishday.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import com.noamtu.jewishday.model.SkyDay
+import com.noamtu.jewishday.core.model.SkyDay
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId

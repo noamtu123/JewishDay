@@ -5,8 +5,8 @@ package com.noamtu.jewishday.feature.about
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.noamtu.jewishday.BuildConfig
-import com.noamtu.jewishday.update.AppVersion
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
+import com.noamtu.jewishday.update.AppVersion
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted

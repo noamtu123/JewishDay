@@ -3,13 +3,13 @@
 package com.noamtu.jewishday.widget
 
 import android.appwidget.AppWidgetManager
-import androidx.annotation.StringRes
-import com.noamtu.jewishday.R
 import android.appwidget.AppWidgetProvider
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import androidx.annotation.StringRes
+import com.noamtu.jewishday.R
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors

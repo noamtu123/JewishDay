@@ -7,19 +7,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
+import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.englishHebrewDateFormatter
+import com.noamtu.jewishday.core.model.isInIsrael
+import com.noamtu.jewishday.core.model.jewishCalendar
+import com.noamtu.jewishday.core.model.jewishDayCivilDate
+import com.noamtu.jewishday.core.model.skyDayFor
 import com.noamtu.jewishday.data.AppSettingsRepository
-import com.noamtu.jewishday.data.SkyPreview
-import com.noamtu.jewishday.model.skyDayFor
-import com.noamtu.jewishday.ui.theme.SkyPhase
-import com.noamtu.jewishday.ui.theme.skyPhases
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
-import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.englishHebrewDateFormatter
-import com.noamtu.jewishday.model.isInIsrael
-import com.noamtu.jewishday.model.jewishDayCivilDate
+import com.noamtu.jewishday.data.SkyPreview
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
+import com.noamtu.jewishday.ui.theme.SkyPhase
+import com.noamtu.jewishday.ui.theme.skyPhases
 import com.noamtu.jewishday.update.AppUpdateRepository
 import com.noamtu.jewishday.update.PendingUpdateStore
 import com.noamtu.jewishday.update.UpdateCheckReport
@@ -32,9 +33,9 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -263,10 +264,7 @@ class DeveloperViewModel @Inject constructor(
 
         // The readout names the Hebrew date the app is showing, which rolls at tzeit like the main
         // screen's header — shifting the clock past nightfall must move it to the next date.
-        val jewishCalendar = JewishCalendar(jewishDayCivilDate(location, zmanimSettings, instant)).apply {
-            isUseModernHolidays = true
-            setInIsrael(inIsrael)
-        }
+        val jewishCalendar = jewishCalendar(jewishDayCivilDate(location, zmanimSettings, instant), inIsrael)
         val hebrewFormatter = HebrewDateFormatter().apply { isHebrewFormat = true }
 
         return DeveloperUiState(
@@ -295,10 +293,7 @@ class DeveloperViewModel @Inject constructor(
     }
 
     private fun matches(target: DeveloperJumpTarget, date: LocalDate, inIsrael: Boolean): Boolean {
-        val jc = JewishCalendar(date).apply {
-            isUseModernHolidays = true
-            setInIsrael(inIsrael)
-        }
+        val jc = jewishCalendar(date, inIsrael)
         return when (target) {
             DeveloperJumpTarget.RoshHashana -> jc.yomTovIndex == JewishCalendar.ROSH_HASHANA
             DeveloperJumpTarget.YomKippur -> jc.yomTovIndex == JewishCalendar.YOM_KIPPUR

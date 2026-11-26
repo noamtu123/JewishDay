@@ -4,13 +4,15 @@ package com.noamtu.jewishday.data
 
 import androidx.annotation.StringRes
 import com.noamtu.jewishday.R
-import com.noamtu.jewishday.i18n.CalendarText
+import com.noamtu.jewishday.core.i18n.CalendarText
+import com.noamtu.jewishday.core.model.DailyLearningType
+import com.noamtu.jewishday.core.model.HebcalLearningEntry
+import com.noamtu.jewishday.day.ZmanItem
 import com.noamtu.jewishday.i18n.UiText
 import com.noamtu.jewishday.i18n.asUiText
+import com.noamtu.jewishday.i18n.label
 import com.noamtu.jewishday.i18n.pluralText
 import com.noamtu.jewishday.i18n.uiText
-import com.noamtu.jewishday.model.DailyLearningType
-import com.noamtu.jewishday.model.ZmanItem
 
 internal fun List<HebcalLearningEntry>.toZmanItems(): List<ZmanItem> {
     val byCategory = groupBy(HebcalLearningEntry::category)

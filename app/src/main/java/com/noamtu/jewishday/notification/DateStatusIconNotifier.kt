@@ -18,11 +18,14 @@ import android.graphics.Typeface
 import android.graphics.drawable.Icon
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.core.graphics.createBitmap
 import com.noamtu.jewishday.MainActivity
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.core.model.JewishDayInfo
 import com.noamtu.jewishday.i18n.TextResolver
-import com.noamtu.jewishday.model.JewishDayInfo
+import com.noamtu.jewishday.i18n.hebrewDate
+import com.noamtu.jewishday.i18n.weekday
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -158,7 +161,7 @@ class DateStatusIconNotifier @Inject constructor(
     fun cancelAll() {
         notificationManager.cancel(ForegroundId)
         notificationManager.cancel(SecondaryId)
-        cache.edit().clear().apply()
+        cache.edit { clear() }
     }
 
     fun canPostNotifications(): Boolean =
@@ -166,14 +169,14 @@ class DateStatusIconNotifier @Inject constructor(
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
     private fun persist(rendered: DateIconSpec) {
-        cache.edit().apply {
+        cache.edit {
             putString(KeyPrimaryText, rendered.iconText)
             putString(KeyPrimaryTitle, rendered.title)
             putString(KeyPrimaryContent, rendered.content)
             remove(KeySecondaryText)
             remove(KeySecondaryTitle)
             remove(KeySecondaryContent)
-        }.apply()
+        }
     }
 
     private fun dateIconBitmap(text: String): Bitmap {

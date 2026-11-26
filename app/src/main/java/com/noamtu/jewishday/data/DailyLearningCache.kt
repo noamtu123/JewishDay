@@ -3,6 +3,8 @@
 package com.noamtu.jewishday.data
 
 import android.content.Context
+import androidx.core.content.edit
+import com.noamtu.jewishday.core.model.HebcalLearningEntry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Duration
 import java.time.Instant
@@ -60,14 +62,14 @@ class SharedPreferencesDailyLearningCache @Inject constructor(
                     .getOrNull()
                     ?.isBefore(startDate) == true
         }
-        preferences.edit().apply {
+        preferences.edit {
             staleDayKeys.forEach(::remove)
             putString(windowEndKey(inIsrael), endDate.toString())
             putLong(refreshedAtKey(inIsrael), refreshedAt.toEpochMilli())
             days.forEach { (date, entries) ->
                 putString(dayKey(date, inIsrael), DailyLearningCacheCodec.encode(entries))
             }
-        }.apply()
+        }
     }
 
     private fun dayKey(date: LocalDate, inIsrael: Boolean): String = "${scope(inIsrael)}:day:$date"

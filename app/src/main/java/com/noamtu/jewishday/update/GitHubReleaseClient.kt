@@ -5,10 +5,10 @@ package com.noamtu.jewishday.update
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
-import javax.inject.Inject
-import javax.inject.Singleton
 import java.time.Instant
 import java.time.format.DateTimeParseException
+import javax.inject.Inject
+import javax.inject.Singleton
 import org.json.JSONArray
 
 /**

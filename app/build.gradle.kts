@@ -72,6 +72,26 @@ android {
         // Lint is run explicitly as :app:lintRelease (see the justfile); this only stops it being
         // re-run as part of assembleRelease, which would analyze the same variant twice.
         checkReleaseBuilds = false
+        // :app:lintRelease also lints :core, so one task covers every module.
+        checkDependencies = true
+        // targetSdk stays at 36 on purpose until the glass widgets' sky bitmaps are measured against
+        // API 37's RemoteViews memory cap on a device; kept visible as a note rather than a warning.
+        informational += "OldTargetApi"
+        // "A newer version is available" depends on what was published today, not on this code: with
+        // warnings as errors it would fail a build that passed yesterday. Upgrades are a deliberate
+        // step (coroutines, for one, stay on the version AndroidX brings in).
+        informational += listOf("NewerVersionAvailable", "GradleDependency", "AndroidGradlePluginVersion")
+        // Lint has nothing left to say; keep it that way. A warning that truly cannot be fixed is
+        // suppressed where it occurs, with the reason beside it.
+        warningsAsErrors = true
+    }
+
+    bundle {
+        // The app switches its own language at runtime, so an app bundle must carry every language
+        // to every device rather than only the phone's. (Releases are APKs; this keeps a bundle honest.)
+        language {
+            enableSplit = false
+        }
     }
 
     compileOptions {
@@ -88,6 +108,7 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        allWarningsAsErrors.set(true)
     }
 }
 
@@ -107,7 +128,7 @@ dependencies {
     implementation(libs.androidx.hilt.work)
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.hilt.android)
-    implementation(libs.kosherjava.zmanim)
+    implementation(project(":core"))
 
     ksp(libs.hilt.compiler)
     ksp(libs.androidx.hilt.compiler)
@@ -115,6 +136,8 @@ dependencies {
     testImplementation(libs.junit)
     // android.jar's org.json is a stub in unit tests; the real one lets release parsing be tested.
     testImplementation(libs.json)
+    // Dispatchers.setMain, for the view models' viewModelScope.
+    testImplementation(libs.kotlinx.coroutines.test)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

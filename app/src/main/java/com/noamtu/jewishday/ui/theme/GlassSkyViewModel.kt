@@ -4,12 +4,12 @@ package com.noamtu.jewishday.ui.theme
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.noamtu.jewishday.core.model.defaultJerusalemLocation
+import com.noamtu.jewishday.core.model.skyDayFor
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.data.SkyPreview
-import com.noamtu.jewishday.model.defaultJerusalemLocation
-import com.noamtu.jewishday.model.skyDayFor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import javax.inject.Inject
@@ -41,7 +41,6 @@ class GlassSkyViewModel @Inject constructor(
     val previewing: StateFlow<Boolean> = skyPreview.time
         .map { it != null }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
-
 
     private val ticks = flow {
         while (true) {

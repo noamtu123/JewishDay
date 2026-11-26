@@ -5,6 +5,7 @@
     android:id="@android:id/background"
     android:layoutDirection="rtl"
     style="@style/Widget.JewishDay.Root"
+    android:orientation="vertical"
     android:gravity="center_vertical"
     android:paddingTop="8dp"
     android:paddingBottom="8dp">

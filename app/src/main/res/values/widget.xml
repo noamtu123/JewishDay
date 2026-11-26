@@ -42,7 +42,6 @@
         <item name="android:layout_height">match_parent</item>
         <item name="android:background">@drawable/widget_background</item>
         <item name="android:padding">@dimen/widget_padding</item>
-        <item name="android:orientation">vertical</item>
     </style>
 
     <style name="Widget.JewishDay.Text" parent="">

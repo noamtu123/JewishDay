@@ -33,18 +33,12 @@ sealed interface InstallOutcome {
  * never leaves the app's own storage, so there is no FileProvider and no read permission granted to
  * other apps. The user still confirms in the system dialog — this stages the bytes and asks.
  */
-@Singleton
-class ApkInstaller @Inject constructor(
-    @ApplicationContext private val context: Context,
-) {
-
+interface ApkInstaller {
     /** True when the user has allowed this app to install packages. */
-    fun canInstall(): Boolean = context.packageManager.canRequestPackageInstalls()
+    fun canInstall(): Boolean
 
     /** The system screen where that permission is granted, for when it has to be asked for. */
-    fun manageUnknownSourcesIntent(): Intent =
-        Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-            .setData("package:${context.packageName}".toUri())
+    fun manageUnknownSourcesIntent(): Intent
 
     /**
      * Copies [apk] into a fresh install session and returns its id, without committing.
@@ -55,7 +49,30 @@ class ApkInstaller @Inject constructor(
      * means the waiting can happen while the user is still in Settings, leaving nothing but the
      * confirmation itself for the moment they come back.
      */
-    suspend fun stage(apk: File): Int = withContext(Dispatchers.IO) {
+    suspend fun stage(apk: File): Int
+
+    /**
+     * Commits an already staged session, which is what raises the system's confirmation dialog.
+     * Call it only with the app in the foreground. The outcome arrives through [InstallResults].
+     */
+    fun commit(sessionId: Int)
+
+    /** Throws away a session that was staged but never committed. */
+    fun abandon(sessionId: Int)
+}
+
+/** [ApkInstaller] over the system's [PackageInstaller]. */
+@Singleton
+class PackageInstallerApkInstaller @Inject constructor(
+    @ApplicationContext private val context: Context,
+) : ApkInstaller {
+    override fun canInstall(): Boolean = context.packageManager.canRequestPackageInstalls()
+
+    override fun manageUnknownSourcesIntent(): Intent =
+        Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+            .setData("package:${context.packageName}".toUri())
+
+    override suspend fun stage(apk: File): Int = withContext(Dispatchers.IO) {
         val installer = context.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
             .apply { setAppPackageName(context.packageName) }
@@ -70,11 +87,7 @@ class ApkInstaller @Inject constructor(
         sessionId
     }
 
-    /**
-     * Commits an already staged session, which is what raises the system's confirmation dialog.
-     * Call it only with the app in the foreground. The outcome arrives through [InstallResults].
-     */
-    fun commit(sessionId: Int) {
+    override fun commit(sessionId: Int) {
         val installer = context.packageManager.packageInstaller
         installer.openSession(sessionId).use { session ->
             val callback = PendingIntent.getBroadcast(
@@ -88,8 +101,7 @@ class ApkInstaller @Inject constructor(
         }
     }
 
-    /** Throws away a session that was staged but never committed. */
-    fun abandon(sessionId: Int) {
+    override fun abandon(sessionId: Int) {
         runCatching { context.packageManager.packageInstaller.abandonSession(sessionId) }
     }
 

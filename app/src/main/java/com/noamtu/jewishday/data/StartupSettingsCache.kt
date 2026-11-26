@@ -3,6 +3,7 @@
 package com.noamtu.jewishday.data
 
 import android.content.Context
+import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,13 +28,13 @@ class SharedPreferencesStartupSettingsCache @Inject constructor(
     }
 
     override fun write(settings: RootUiSettings) {
-        preferences.edit()
-            .putString(ThemeOptionKey, settings.themeOption.storageValue)
+        preferences.edit {
+            putString(ThemeOptionKey, settings.themeOption.storageValue)
             // The language left this cache for Android's per-app language; drop what earlier
             // versions kept here.
-            .remove(LanguageKey)
-            .remove(LegacyHebrewKey)
-            .apply()
+            remove(LanguageKey)
+            remove(LegacyHebrewKey)
+        }
     }
 
     private companion object {

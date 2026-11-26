@@ -2,13 +2,11 @@
 
 package com.noamtu.jewishday.data
 
-import com.noamtu.jewishday.i18n.TestText
+import com.noamtu.jewishday.core.model.DailyLearningType
+import com.noamtu.jewishday.core.model.HebcalLearningEntry
 import com.noamtu.jewishday.i18n.en
 import com.noamtu.jewishday.i18n.he
-import com.noamtu.jewishday.model.ZmanimGroupKind
-import com.noamtu.jewishday.model.DailyLearningType
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DailyLearningCacheCodecTest {

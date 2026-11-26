@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@android:id/background"
     style="@style/Widget.JewishDay.Glass.Root">
 
@@ -24,12 +25,15 @@
             style="@style/Widget.JewishDay.Glass.Text.Chip"
             android:visibility="gone" />
 
+        <!-- A spacer: RemoteViews has no Space or plain View, so an empty FrameLayout takes the weight. -->
         <FrameLayout
+            tools:ignore="UselessLeaf"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
 
         <LinearLayout
+            android:baselineAligned="false"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
@@ -52,14 +56,11 @@
                     android:textSize="22sp" />
             </LinearLayout>
 
-            <FrameLayout
-                android:layout_width="8dp"
-                android:layout_height="match_parent" />
-
             <LinearLayout
                 android:id="@+id/glass_exit_pane"
                 style="@style/Widget.JewishDay.Glass.Pane"
                 android:layout_width="0dp"
+                android:layout_marginStart="8dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical">

@@ -11,14 +11,15 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.noamtu.jewishday.core.model.nextStatusIconBoundary
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.JewishDayRepository
-import com.noamtu.jewishday.model.nextStatusIconBoundary
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Clock
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -104,6 +105,9 @@ class DateStatusIconService : Service() {
             // The weekday flips at midnight and the Hebrew date at sunset, so wake at whichever
             // of the two comes first.
             alarmScheduler.scheduleNext(nextStatusIconBoundary(location, settings.zmanimSettings, now))
+        } catch (cancelled: CancellationException) {
+            // The work was called off (the service or the scope is going away): not a failure.
+            throw cancelled
         } catch (exception: Exception) {
             // Keep the existing icon up and retry soon rather than disappearing it.
             Log.w(TAG, "Date status icon refresh failed; retrying later", exception)

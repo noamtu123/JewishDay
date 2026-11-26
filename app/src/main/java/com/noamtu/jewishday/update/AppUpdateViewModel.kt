@@ -8,16 +8,17 @@ import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** Everything the update dialog can be showing. */
 sealed interface UpdateState {
@@ -172,7 +173,7 @@ class AppUpdateViewModel @Inject constructor(
     fun download(release: AppRelease) {
         viewModelScope.launch {
             _state.value = UpdateState.Downloading(release, 0L, release.sizeBytes)
-            runCatching {
+            runCatchingCancellable {
                 repository.download(release) { downloaded, total ->
                     _state.value = UpdateState.Downloading(release, downloaded, total)
                 }
@@ -221,7 +222,7 @@ class AppUpdateViewModel @Inject constructor(
             } ?: return@launch
 
             val apk = downloaded?.takeIf { it.exists() } ?: return@launch
-            runCatching { installer.stage(apk) }
+            runCatchingCancellable { installer.stage(apk) }
                 .onSuccess { sessionId ->
                     stagedSessionId = sessionId
                     _state.value = UpdateState.Installing(release)
@@ -244,7 +245,7 @@ class AppUpdateViewModel @Inject constructor(
         permissionWatch?.cancel()
         viewModelScope.launch {
             _state.value = UpdateState.Installing(release)
-            runCatching { installer.commit(installer.stage(apk)) }
+            runCatchingCancellable { installer.commit(installer.stage(apk)) }
                 .onFailure { error -> _state.value = UpdateState.Failed(release, error.message) }
         }
     }
@@ -256,7 +257,6 @@ class AppUpdateViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        super.onCleared()
         permissionWatch?.cancel()
         // A session written but never committed would otherwise sit in the installer's storage.
         stagedSessionId?.let(installer::abandon)
@@ -269,4 +269,16 @@ class AppUpdateViewModel @Inject constructor(
         /** Long enough to find the switch, short enough not to poll forever if they never do. */
         const val PermissionWatchMillis = 5 * 60 * 1000L
     }
+}
+
+/**
+ * [runCatching] for suspending work: a coroutine that is cancelled — the dialog's view model going
+ * away mid-download — stays cancelled rather than being reported as a failed update.
+ */
+private inline fun <T> runCatchingCancellable(block: () -> T): Result<T> = try {
+    Result.success(block())
+} catch (cancelled: CancellationException) {
+    throw cancelled
+} catch (error: Throwable) {
+    Result.failure(error)
 }

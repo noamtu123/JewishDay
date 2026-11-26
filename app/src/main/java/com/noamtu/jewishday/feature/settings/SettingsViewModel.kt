@@ -4,30 +4,30 @@ package com.noamtu.jewishday.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.noamtu.jewishday.data.AppThemeOption
-import com.noamtu.jewishday.data.AppSettingsRepository
-import com.noamtu.jewishday.i18n.AppLanguageController
-import com.noamtu.jewishday.model.AlotHashacharMethod
-import com.noamtu.jewishday.model.CandleLightingMethod
-import com.noamtu.jewishday.model.ChametzMethod
-import com.noamtu.jewishday.model.ChatzotMethod
-import com.noamtu.jewishday.model.CustomZmanUnit
-import com.noamtu.jewishday.model.DailyLearningType
-import com.noamtu.jewishday.model.MinchaGedolaMethod
-import com.noamtu.jewishday.model.MinchaKetanaMethod
-import com.noamtu.jewishday.model.MisheyakirMethod
-import com.noamtu.jewishday.model.MotzeiShabbatMethod
-import com.noamtu.jewishday.model.PlagHaminchaMethod
-import com.noamtu.jewishday.model.RabbeinuTamMethod
-import com.noamtu.jewishday.model.SofZmanShemaMethod
-import com.noamtu.jewishday.model.SofZmanTefillahMethod
-import com.noamtu.jewishday.model.SunriseMethod
-import com.noamtu.jewishday.model.SunsetMethod
-import com.noamtu.jewishday.model.TzeitHakochavimMethod
-import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.ZmanimTimeOption
-import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import com.noamtu.jewishday.BuildConfig
+import com.noamtu.jewishday.core.model.AlotHashacharMethod
+import com.noamtu.jewishday.core.model.CandleLightingMethod
+import com.noamtu.jewishday.core.model.ChametzMethod
+import com.noamtu.jewishday.core.model.ChatzotMethod
+import com.noamtu.jewishday.core.model.CustomZmanUnit
+import com.noamtu.jewishday.core.model.DailyLearningType
+import com.noamtu.jewishday.core.model.MinchaGedolaMethod
+import com.noamtu.jewishday.core.model.MinchaKetanaMethod
+import com.noamtu.jewishday.core.model.MisheyakirMethod
+import com.noamtu.jewishday.core.model.MotzeiShabbatMethod
+import com.noamtu.jewishday.core.model.PlagHaminchaMethod
+import com.noamtu.jewishday.core.model.RabbeinuTamMethod
+import com.noamtu.jewishday.core.model.SofZmanShemaMethod
+import com.noamtu.jewishday.core.model.SofZmanTefillahMethod
+import com.noamtu.jewishday.core.model.SunriseMethod
+import com.noamtu.jewishday.core.model.SunsetMethod
+import com.noamtu.jewishday.core.model.TzeitHakochavimMethod
+import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.ZmanimTimeOption
+import com.noamtu.jewishday.data.AppSettingsRepository
+import com.noamtu.jewishday.data.AppThemeOption
+import com.noamtu.jewishday.i18n.AppLanguageController
+import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import com.noamtu.jewishday.update.AppUpdateRepository
 import com.noamtu.jewishday.update.AppVersion
 import com.noamtu.jewishday.update.PendingUpdateStore
@@ -88,7 +88,6 @@ class SettingsViewModel @Inject constructor(
             appSettingsRepository.setHebrewDateStatusIconEnabled(enabled)
         }
     }
-
 
     /** Makes [tag] the app's language; see [AppLanguageController.select]. */
     fun setAppLanguage(tag: String) {
