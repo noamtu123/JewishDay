@@ -33,6 +33,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -174,6 +175,9 @@ class DeveloperViewModel @Inject constructor(
         // banner raised for the old spoof is the same lie in a louder place.
         _updateCheckResult.value = null
         pendingUpdates.clear()
+        // A new version is exactly what the check answers for, so ask straight away instead of
+        // waiting for a manual check or the next launch.
+        runUpdateCheck(restart = true)
     }
 
     /**
@@ -186,9 +190,11 @@ class DeveloperViewModel @Inject constructor(
      * finds nothing clears any offer a previous check left, so the banner never outlives the
      * spoofed version that produced it.
      */
-    fun runUpdateCheck() {
-        if (_updateCheckResult.value == CheckingLabel) return
-        viewModelScope.launch {
+    fun runUpdateCheck(restart: Boolean = false) {
+        // [restart]: a check still running was asked for the previous version, and its answer would
+        // land after this one's, so it is cancelled rather than waited for.
+        if (restart) updateCheck?.cancel() else if (updateCheck?.isActive == true) return
+        updateCheck = viewModelScope.launch {
             _updateCheckResult.value = CheckingLabel
             _updateCheckResult.value = when (val report = appUpdateRepository.check()) {
                 is UpdateCheckReport.Available -> {
@@ -219,14 +225,27 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setHideTimeOverrideBanner(hidden)
     }
 
+    /** The update check under way, if any. */
+    private var updateCheck: Job? = null
+
     /** The Sky theme's time of day, for the backdrop alone — see [SkyPreview]. */
     val skyPreviewTime: StateFlow<LocalTime?> = skyPreview.time
     val skyPreviewPlaying: StateFlow<Boolean> = skyPreview.playing
 
     fun showSkyAt(time: LocalTime) = skyPreview.show(time)
-    fun playSkyDay() = skyPreview.play()
+    fun playSkyDay() = skyPreview.play(now = skyNow())
+
+    /** Plays the day for the Zmanim screen: the play goes on once the developer tools are left. */
+    fun playSkyDayOnZmanim() = skyPreview.play(now = skyNow(), outlivesTools = true)
+
     fun stopSkyDay() = skyPreview.stop()
     fun followClockWithSky() = skyPreview.clear()
+
+    /** The developer screen left composition — see [SkyPreview.developerToolsLeft]. */
+    fun leftDeveloperScreen() = skyPreview.developerToolsLeft()
+
+    // The sky reads the clock in the location's zone, so a play starts from the time it shows now.
+    private fun skyNow(): LocalTime = clock.instant().atZone(uiState.value.skyZone).toLocalTime()
 
     fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()

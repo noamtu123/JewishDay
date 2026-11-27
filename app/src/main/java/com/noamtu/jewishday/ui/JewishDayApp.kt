@@ -191,7 +191,10 @@ private fun JewishDayNavHost(
                             )
                         }
                         composable(AppDestination.Developer.route) {
-                            DeveloperScreen(onExit = { navController.popBackStack() })
+                            DeveloperScreen(
+                                onExit = { navController.popBackStack() },
+                                onShowZmanim = { navController.navigateTopLevelTo(AppDestination.Zmanim.route) },
+                            )
                         }
                     }
                 }

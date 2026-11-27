@@ -23,6 +23,7 @@ import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.AppThemeOption
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.RestoredSettingsReconciler
+import com.noamtu.jewishday.data.SkyPreview
 import com.noamtu.jewishday.data.StartupSettingsCache
 import com.noamtu.jewishday.data.hasLocationPermission
 import com.noamtu.jewishday.i18n.AppLanguageController
@@ -54,6 +55,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var appLanguageController: AppLanguageController
+
+    @Inject
+    lateinit var skyPreview: SkyPreview
 
     private var startupWindowBackgroundColor: Int? = null
 
@@ -158,7 +162,11 @@ class MainActivity : ComponentActivity() {
         super.onStop()
         // A rotation stops and restarts the Activity without the app ever leaving the foreground,
         // and the recreated composition does its own refresh, so it is not a reopening.
-        if (!isChangingConfigurations) reopened = true
+        if (!isChangingConfigurations) {
+            reopened = true
+            // Out of sight (another app, or the screen off): a developer sky preview ends here.
+            skyPreview.appLeft()
+        }
     }
 
     private fun setStartupWindowBackground(themeOption: AppThemeOption) {

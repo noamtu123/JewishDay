@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.feature.developer
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -20,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -44,6 +46,7 @@ import java.time.LocalTime
 fun DeveloperScreen(
     modifier: Modifier = Modifier,
     onExit: () -> Unit = {},
+    onShowZmanim: () -> Unit = {},
     viewModel: DeveloperViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -55,6 +58,15 @@ fun DeveloperScreen(
     val skyZone = state.skyZone
     var showSpoofedVersionDialog by rememberSaveable { mutableStateOf(false) }
     var showDisableDialog by rememberSaveable { mutableStateOf(false) }
+
+    // Leaving the tools ends a sky preview, so it is never left on by mistake — but not when the
+    // activity is only being recreated (a rotation), which is still this same screen.
+    val activity = LocalActivity.current
+    DisposableEffect(viewModel) {
+        onDispose {
+            if (activity?.isChangingConfigurations != true) viewModel.leftDeveloperScreen()
+        }
+    }
 
     ScreenSurface(modifier = modifier) {
         LazyColumn(
@@ -202,6 +214,14 @@ fun DeveloperScreen(
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = if (skyPlaying) viewModel::stopSkyDay else viewModel::playSkyDay) {
                             Text(if (skyPlaying) "Pause" else "Play the day")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.playSkyDayOnZmanim()
+                                onShowZmanim()
+                            },
+                        ) {
+                            Text("Play on Zmanim screen")
                         }
                         state.skyPhases.forEach { phase ->
                             AssistChip(
