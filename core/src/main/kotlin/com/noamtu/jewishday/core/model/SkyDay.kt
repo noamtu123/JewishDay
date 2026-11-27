@@ -30,6 +30,9 @@ public fun skyDayFor(
         alot = calendar.alotHashachar(settings),
         sunrise = calendar.sunrise(settings.sunriseMethod),
         sunset = calendar.sunset(settings.sunsetMethod),
-        tzeit = calendar.tzeit(settings),
+        // The sky keys to the dark itself, never to a stand-in from Jerusalem's clock: on a night the
+        // sun never sinks to the user's angle that is solar midnight, the darkest it gets.
+        tzeit = calendar.ownTzeit(settings)
+            ?: calendar.chatzotHaLaila(ChatzotMethod.Solar).takeIf { calendar.sunset(settings.sunsetMethod) != null },
     )
 }

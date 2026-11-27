@@ -12,6 +12,7 @@ import com.noamtu.jewishday.core.model.MinchaGedolaMethod
 import com.noamtu.jewishday.core.model.MinchaKetanaMethod
 import com.noamtu.jewishday.core.model.MisheyakirMethod
 import com.noamtu.jewishday.core.model.MotzeiShabbatMethod
+import com.noamtu.jewishday.core.model.NoTzeitFallback
 import com.noamtu.jewishday.core.model.PlagHaminchaMethod
 import com.noamtu.jewishday.core.model.RabbeinuTamMethod
 import com.noamtu.jewishday.core.model.SofZmanShemaMethod
@@ -114,6 +115,7 @@ class DataStoreAppSettingsRepositoryTest {
             sunsetMethod = SunsetMethod.ElevationAdjusted,
             tzeitHakochavimMethod = TzeitHakochavimMethod.CustomMinutes,
             tzeitHakochavimCustom = CustomZmanValue(degrees = 5.9, minutes = 51, zmaniyotMinutes = 53),
+            noTzeitFallback = NoTzeitFallback.EretzYisrael,
             candleLightingMethod = CandleLightingMethod.Custom,
             candleLightingCustomMinutes = 22,
             motzeiShabbatMethod = MotzeiShabbatMethod.CustomZmaniyotMinutes,

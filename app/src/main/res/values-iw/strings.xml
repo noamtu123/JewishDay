@@ -178,6 +178,14 @@
     <string name="method_bein_hashmashot_13_5">בין השמשות 13.5 דקות לפני 7.083°</string>
     <string name="method_bein_hashmashot_2_stars">בין השמשות שני כוכבים</string>
     <string name="method_candles_at_plag">פלג המנחה — הזמן המוקדם ביותר</string>
+    <string name="method_no_tzeit_72">72 דקות אחרי השקיעה (פניני הלכה)</string>
+    <string name="method_no_tzeit_caption_72">72 דקות אחרי השקיעה (אין צאת הכוכבים הלילה)</string>
+    <string name="method_no_tzeit_chatzot">חצות הלילה (הרב גורן)</string>
+    <string name="method_no_tzeit_eretz_yisrael">כמו בארץ ישראל (דברי יציב)</string>
+    <string name="method_no_tzeit_caption_chatzot">חצות הלילה (אין צאת הכוכבים הלילה)</string>
+    <string name="method_no_tzeit_caption_eretz_yisrael">כמו בירושלים (אין צאת הכוכבים הלילה)</string>
+    <string name="method_no_sunset_caption_chatzot">חצות הלילה (אין שקיעה)</string>
+    <string name="method_no_sunset_caption_eretz_yisrael">כמו בירושלים (אין שקיעה)</string>
 
     <!-- Settings -->
     <string name="settings_summary">התאם את התצוגה היומית לצרכים שלך.</string>
@@ -223,6 +231,8 @@
     <string name="settings_method_plag_description">גבול מוקדם לקבלת שבת או מעריב.</string>
     <string name="settings_method_sunset_description">שקיעה במישור או מתוקנת לפי גובה.</string>
     <string name="settings_method_tzeit_description">צאת הכוכבים שמשמש גם להחלפת תאריך עברי באפליקציה.</string>
+    <string name="settings_method_no_tzeit">לילות בלי צאת הכוכבים</string>
+    <string name="settings_method_no_tzeit_description">כאן יש לילות שבהם השמש אינה יורדת מספיק לצאת הכוכבים. מה קובע את הלילה בהם.</string>
     <string name="settings_method_chatzot_halaila_description">חצות הלילה: שמשי או מקומי קבוע.</string>
     <string name="settings_method_candle_lighting_description">דקות לפני שקיעה להדלקת נרות.</string>
     <string name="settings_method_motzei_description">זמן צאת שבת הראשי.</string>

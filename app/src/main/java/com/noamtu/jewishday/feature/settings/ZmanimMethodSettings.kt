@@ -32,6 +32,7 @@ import com.noamtu.jewishday.core.model.MinchaGedolaMethod
 import com.noamtu.jewishday.core.model.MinchaKetanaMethod
 import com.noamtu.jewishday.core.model.MisheyakirMethod
 import com.noamtu.jewishday.core.model.MotzeiShabbatMethod
+import com.noamtu.jewishday.core.model.NoTzeitFallback
 import com.noamtu.jewishday.core.model.PlagHaminchaMethod
 import com.noamtu.jewishday.core.model.RabbeinuTamMethod
 import com.noamtu.jewishday.core.model.SofZmanShemaMethod
@@ -54,6 +55,7 @@ import com.noamtu.jewishday.i18n.verbatim
 internal fun AdvancedZmanimChoices(
     settings: ZmanimCalculationSettings,
     candleLightingDefault: CandleLightingMethod?,
+    offersNoTzeitFallback: Boolean,
     viewModel: SettingsViewModel,
 ) {
     var activePicker by remember { mutableStateOf<ZmanimMethodPicker?>(null) }
@@ -260,6 +262,21 @@ internal fun AdvancedZmanimChoices(
             values = settings.tzeitHakochavimCustom,
             onSelectCustom = viewModel::setTzeitHakochavimCustomValue,
         )
+    }
+    // Only where some night in the coming year has no tzeit by the method above: anywhere else the
+    // choice would never change a thing, and only clutters the list.
+    if (offersNoTzeitFallback) {
+        SettingsDivider()
+        MethodChoiceRow(text(R.string.settings_method_no_tzeit), text(R.string.settings_method_no_tzeit_description), settings.noTzeitFallback.label.text()) {
+            activePicker = picker(
+                text(R.string.settings_method_no_tzeit),
+                NoTzeitFallback.entries,
+                settings.noTzeitFallback,
+                defaults.noTzeitFallback,
+                { it.label.text() },
+                viewModel::setNoTzeitFallback,
+            )
+        }
     }
     SettingsDivider()
     MethodChoiceRow(text(R.string.zman_chatzot_halaila), text(R.string.settings_method_chatzot_halaila_description), settings.chatzotHaLailaMethod.label.text()) {
