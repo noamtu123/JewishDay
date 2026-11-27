@@ -26,7 +26,7 @@ android {
     defaultConfig {
         applicationId = "com.noamtu.jewishday"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 20
         versionName = "1.3.0"
 
@@ -74,9 +74,6 @@ android {
         checkReleaseBuilds = false
         // :app:lintRelease also lints :core, so one task covers every module.
         checkDependencies = true
-        // targetSdk stays at 36 on purpose until the glass widgets' sky bitmaps are measured against
-        // API 37's RemoteViews memory cap on a device; kept visible as a note rather than a warning.
-        informational += "OldTargetApi"
         // "A newer version is available" depends on what was published today, not on this code: with
         // warnings as errors it would fail a build that passed yesterday. Upgrades are a deliberate
         // step (coroutines, for one, stay on the version AndroidX brings in).
