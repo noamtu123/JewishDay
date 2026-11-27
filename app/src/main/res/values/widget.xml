@@ -26,16 +26,16 @@
     <string name="widget_next_zman_description" translatable="false">The next zman and the one after it · הזמן הבא והזמן שאחריו</string>
     <string name="widget_zmanim_label" translatable="false">Minimal · Today\'s zmanim · מינימליסטי · זמני היום</string>
     <string name="widget_zmanim_description" translatable="false">Today\'s zmanim, the next one highlighted · זמני היום, והבא מודגש</string>
-    <string name="widget_shabbat_label" translatable="false">Minimal · Shabbat &amp; chag · מינימליסטי · שבת וחג</string>
-    <string name="widget_shabbat_description" translatable="false">Candle lighting and when Shabbat or chag goes out · הדלקת נרות וצאת שבת או חג</string>
+    <string name="widget_shabbat_label" translatable="false">Minimal · Shabbat &amp; Yom Tov · מינימליסטי · שבת וחג</string>
+    <string name="widget_shabbat_description" translatable="false">Candle lighting and when Shabbat or Yom Tov goes out · הדלקת נרות וצאת שבת או חג</string>
     <string name="widget_glass_date_label" translatable="false">Glassy sky · Hebrew date · שמי זכוכית · תאריך עברי</string>
     <string name="widget_glass_date_description" translatable="false">Today\'s Hebrew date and the next zman, over the live sky · התאריך העברי והזמן הבא, על השמיים החיים</string>
     <string name="widget_glass_next_label" translatable="false">Glassy sky · Next zman · שמי זכוכית · הזמן הבא</string>
     <string name="widget_glass_next_description" translatable="false">The next zman, over the live sky · הזמן הבא, על השמיים החיים</string>
     <string name="widget_glass_zmanim_label" translatable="false">Glassy sky · Today\'s zmanim · שמי זכוכית · זמני היום</string>
     <string name="widget_glass_zmanim_description" translatable="false">Today\'s zmanim, the next one highlighted, over the live sky · זמני היום, והבא מודגש, על השמיים החיים</string>
-    <string name="widget_glass_shabbat_label" translatable="false">Glassy sky · Shabbat &amp; chag · שמי זכוכית · שבת וחג</string>
-    <string name="widget_glass_shabbat_description" translatable="false">Candle lighting and when Shabbat or chag goes out, under the candle-lighting sky · הדלקת נרות וצאת שבת או חג, בשמי הדלקת הנרות</string>
+    <string name="widget_glass_shabbat_label" translatable="false">Glassy sky · Shabbat &amp; Yom Tov · שמי זכוכית · שבת וחג</string>
+    <string name="widget_glass_shabbat_description" translatable="false">Candle lighting and when Shabbat or Yom Tov goes out, under the candle-lighting sky · הדלקת נרות וצאת שבת או חג, בשמי הדלקת הנרות</string>
 
     <style name="Widget.JewishDay.Root" parent="">
         <item name="android:layout_width">match_parent</item>

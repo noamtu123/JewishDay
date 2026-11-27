@@ -10,9 +10,9 @@
     <!-- The app's name. A brand: never translated. -->
     <string name="app_name" translatable="false">JewishDay</string>
     <!-- Name of the notification channel for the Hebrew-date status-bar icon, shown in the phone's notification settings for the app. -->
-    <string name="notification_channel_date_status_icon">Date status icons</string>
+    <string name="notification_channel_date_status_icon">Hebrew date icon</string>
     <!-- Description of that notification channel, shown under its name in the phone's notification settings. -->
-    <string name="notification_channel_date_status_icon_description">Persistent Hebrew date icon</string>
+    <string name="notification_channel_date_status_icon_description">Keeps today\'s Hebrew date in the status bar</string>
 
     <!-- ==== Navigation ==== -->
     <!-- Bottom tab and screen title: the daily zmanim (halachic times) screen. -->
@@ -26,7 +26,7 @@
     <!-- Screen title of the hidden developer tools. -->
     <string name="nav_developer">Developer</string>
     <!-- Menu item that opens an email to the developer. -->
-    <string name="report_issue">Report bug or request feature</string>
+    <string name="report_issue">Report a bug or request a feature</string>
 
     <!-- ==== Zmanim screen ==== -->
     <!-- Warning banner at the top of the zmanim screen while the hidden developer clock is faking the time. -->
@@ -36,7 +36,7 @@
     <!-- Button under that question that opens the choices. -->
     <string name="zmanim_candle_prompt_choose">Choose</string>
     <!-- Title of the dialog with the candle-lighting choices. -->
-    <string name="zmanim_candle_prompt_title">Welcome Shabbat</string>
+    <string name="zmanim_candle_prompt_title">Welcoming Shabbat</string>
     <!-- Text in that dialog, above the 20 / 30 / 40 / custom choices. -->
     <string name="zmanim_candle_prompt_body">Choose how many minutes before sunset:</string>
     <!-- Choice in that dialog for typing in another number of minutes. -->
@@ -52,11 +52,11 @@
     <!-- Accessibility label of the day switcher's "next day" arrow. -->
     <string name="zmanim_day_next">Next day</string>
     <!-- Shown while the zmanim are being calculated. -->
-    <string name="zmanim_loading">Calculating zmanim</string>
+    <string name="zmanim_loading">Calculating zmanim…</string>
     <!-- Small red note under the date when the times are calculated for Jerusalem because the location is unknown. -->
-    <string name="zmanim_location_jerusalem">Times based on Jerusalem</string>
+    <string name="zmanim_location_jerusalem">Times for Jerusalem</string>
     <!-- Small note under the date naming the place the times were calculated for. %1$s: the place name. -->
-    <string name="zmanim_location_named">Times based on %1$s</string>
+    <string name="zmanim_location_named">Times for %1$s</string>
     <!-- The civil date under the Hebrew date in the zmanim header and on widgets. %1$s: the weekday ("Sunday"); %2$s: the day and month (see date_pattern_day_month). -->
     <string name="header_date">%1$s, %2$s</string>
     <!-- A java.time date pattern, not text: how a day and month are written, e.g. "October 11". MMMM is the month name, d the day; letters to show as they are go in single quotes (Hebrew writes "11 באוקטובר" as d 'ב'MMMM). -->
@@ -95,18 +95,18 @@
     <string name="holy_day_starts_yom_tov">Yom Tov starts</string>
     <!-- Label for the time a one-day Yom Tov goes out. -->
     <string name="holy_day_ends_yom_tov">Yom Tov ends</string>
-    <!-- Label for the time the first of two or three Yom Tov days in a row comes in. Starts lower-case in English, as shown. -->
-    <string name="holy_day_starts_first_day">the first day of Yom Tov starts</string>
+    <!-- Label for the time the first of two or three Yom Tov days in a row comes in. It starts a line, so it is capitalised. -->
+    <string name="holy_day_starts_first_day">First day of Yom Tov starts</string>
     <!-- Label for the time the first of several Yom Tov days in a row goes out (when the stretch ends on it). -->
-    <string name="holy_day_ends_first_day">the first day of Yom Tov ends</string>
+    <string name="holy_day_ends_first_day">First day of Yom Tov ends</string>
     <!-- Label for the time the second Yom Tov day of a stretch comes in (when the stretch starts on it). -->
-    <string name="holy_day_starts_second_day">the second day of Yom Tov starts</string>
+    <string name="holy_day_starts_second_day">Second day of Yom Tov starts</string>
     <!-- Label for the time the second day of a two-day Yom Tov goes out. -->
-    <string name="holy_day_ends_second_day">the second day of Yom Tov ends</string>
+    <string name="holy_day_ends_second_day">Second day of Yom Tov ends</string>
     <!-- Label for the time the third Yom Tov day of a stretch comes in. -->
-    <string name="holy_day_starts_third_day">the third day of Yom Tov starts</string>
+    <string name="holy_day_starts_third_day">Third day of Yom Tov starts</string>
     <!-- Label for the time the third Yom Tov day of a stretch goes out. -->
-    <string name="holy_day_ends_third_day">the third day of Yom Tov ends</string>
+    <string name="holy_day_ends_third_day">Third day of Yom Tov ends</string>
     <!-- Part of the line under the header card listing what is still ahead in a stretch of holy days, e.g. "Two-day Yom Tov + Shabbat": one Yom Tov day. -->
     <string name="sequel_yom_tov">Yom Tov</string>
     <!-- Same line: two Yom Tov days in a row. -->
@@ -148,7 +148,7 @@
     <!-- Zman: the latest time for the morning prayer, by the GRA. -->
     <string name="zman_tefillah_gra">Sof Zman Tefillah (GRA)</string>
     <!-- Zman: midday. -->
-    <string name="zman_chatzot_hayom">Chatzot HaYom</string>
+    <string name="zman_chatzot_hayom">Chatzot Hayom</string>
     <!-- Zman: the earliest time for Mincha. -->
     <string name="zman_mincha_gedola">Mincha Gedola</string>
     <!-- Zman: mincha ketana. -->
@@ -160,7 +160,7 @@
     <!-- Zman: nightfall (tzeit hakochavim). Row title; the settings row uses settings_method_tzeit. -->
     <string name="zman_tzeit">Tzeit</string>
     <!-- Zman: midnight. -->
-    <string name="zman_chatzot_halaila">Chatzot HaLaila</string>
+    <string name="zman_chatzot_halaila">Chatzot Halaila</string>
     <!-- Item in Settings → "Zmanim to show": the Shabbat section's candle-lighting row. -->
     <string name="zman_option_shabbat_candles">Candle Lighting (Shabbat)</string>
     <!-- Item in Settings → "Zmanim to show": the Shabbat section's sunset row. -->
@@ -293,7 +293,7 @@
     <!-- Method: Rav Moshe Feinstein's, measured from fixed local midday. -->
     <string name="method_rav_moshe_fixed_local">Rav Moshe Feinstein (fixed local Chatzot)</string>
     <!-- Tallit & Tefillin method: six minutes after dawn. -->
-    <string name="method_6_minutes_after_alot" tools:ignore="Typos">6 min after alot hashachar</string>
+    <string name="method_6_minutes_after_alot" tools:ignore="Typos">6 min after Alot Hashachar</string>
     <!-- Sunrise method: at sea level, ignoring elevation. -->
     <string name="method_sunrise_sea_level">Sea-level sunrise</string>
     <!-- Sunrise method: as seen from the location's elevation. -->
@@ -313,7 +313,7 @@
     <!-- Chatzot method: the sun's actual midpoint. -->
     <string name="method_chatzot_solar">Solar Chatzot</string>
     <!-- Chatzot method: fixed local mean midday. -->
-    <string name="method_chatzot_fixed_local">Fixed-local Chatzot</string>
+    <string name="method_chatzot_fixed_local">Fixed local Chatzot</string>
     <!-- Mincha Gedola method. -->
     <string name="method_30_minutes_after_chatzot">30 minutes after Chatzot</string>
     <!-- Mincha Gedola method: whichever is later. -->
@@ -363,13 +363,13 @@
     <!-- Settings row (and dialog title) for the app's language. -->
     <string name="settings_language">Language</string>
     <!-- Description under that row. -->
-    <string name="settings_language_description">Interface language for the app’s navigation and labels.</string>
+    <string name="settings_language_description">The app\'s language, also used for its widgets and notification.</string>
     <!-- Settings row (and dialog title) for the colour theme. -->
     <string name="settings_theme">Theme</string>
     <!-- Settings switch: show times as 6:45 AM instead of 06:45. -->
     <string name="settings_12_hour_format">12-hour format</string>
     <!-- Description under that switch. -->
-    <string name="settings_12_hour_format_description">Show Zmanim as 6:45 AM. Off keeps 24-hour format.</string>
+    <string name="settings_12_hour_format_description">Show times as 6:45 AM. Off keeps the 24-hour format.</string>
     <!-- Settings switch: also offer test versions (pre-releases) as updates. -->
     <string name="settings_prereleases">Test versions</string>
     <!-- Description under that switch. -->
@@ -379,7 +379,7 @@
     <!-- Section title in Settings for everything about the zmanim. -->
     <string name="settings_zmanim_options">Zmanim calculation methods and zmanim to show</string>
     <!-- Expandable Settings section: the calculation method of each zman. -->
-    <string name="settings_advanced_zmanim">Detailed Calculation Methods</string>
+    <string name="settings_advanced_zmanim">Detailed calculation methods</string>
     <!-- Description under that section's title. -->
     <string name="settings_advanced_zmanim_description">Choose the exact halachic method for each displayed zman.</string>
     <!-- Expandable Settings section: which zmanim the zmanim screen shows. -->
@@ -389,7 +389,7 @@
     <!-- Expandable Settings section: which daily-learning tracks are shown. -->
     <string name="settings_daily_learning_section">Daily learning to show</string>
     <!-- Description under that section's title. -->
-    <string name="settings_daily_learning_section_description">Choose which daily-study tracks appear on the Zmanim tab.</string>
+    <string name="settings_daily_learning_section_description">Choose which daily learning tracks appear on the Zmanim tab.</string>
     <!-- Accessibility label of the button that resets a Settings section to its defaults. %1$s: the section's title, e.g. "Zmanim to show". -->
     <string name="settings_reset">Reset %1$s</string>
     <!-- Button that closes a dialog without changing anything. -->
@@ -411,11 +411,11 @@
     <!-- Settings row: the method for the Erev Pesach chametz deadlines. -->
     <string name="settings_method_chametz">Erev Pesach Chametz</string>
     <!-- Description under the Alot Hashachar method row. -->
-    <string name="settings_method_alot_description">Dawn start used for Magen Avraham and fast days.</string>
+    <string name="settings_method_alot_description">Dawn: the start of the day for Magen Avraham and fast days.</string>
     <!-- Description under the Tallit & Tefillin method row. -->
     <string name="settings_method_tallit_description">Earliest tallit and tefillin time (misheyakir).</string>
     <!-- Description under the Sunrise method row. -->
-    <string name="settings_method_sunrise_description">Sea level is the common zmanim base; observed uses elevation.</string>
+    <string name="settings_method_sunrise_description">Sea level is the usual basis for zmanim; observed takes elevation into account.</string>
     <!-- Description under the Sof Zman Shema (GRA) method row. -->
     <string name="settings_method_shema_gra_description">Method for the GRA Shema row.</string>
     <!-- Description under the Sof Zman Shema (Magen Avraham) method row. -->
@@ -425,13 +425,13 @@
     <!-- Description under the Sof Zman Tefillah (Magen Avraham) method row. -->
     <string name="settings_method_tefillah_mga_description">Method for the Magen Avraham Tefillah row.</string>
     <!-- Description under the Chatzot HaYom method row. -->
-    <string name="settings_method_chatzot_description">Solar or fixed-local midday.</string>
+    <string name="settings_method_chatzot_description">Solar or fixed local midday.</string>
     <!-- Description under the Mincha Gedola method row. -->
     <string name="settings_method_mincha_gedola_description">Earliest regular Mincha.</string>
     <!-- Description under the Mincha Ketana method row. -->
     <string name="settings_method_mincha_ketana_description">Preferred later Mincha window.</string>
     <!-- Description under the Plag Hamincha method row. -->
-    <string name="settings_method_plag_description">Earliest Shabbat or Maariv boundary.</string>
+    <string name="settings_method_plag_description">Earliest time to accept Shabbat or pray Maariv.</string>
     <!-- Description under the Sunset method row. -->
     <string name="settings_method_sunset_description">Sea level or elevation-adjusted sunset.</string>
     <!-- Description under the Tzeit Hakochavim method row. -->
@@ -441,7 +441,7 @@
     <!-- Description under the "Nights Without Tzeit" settings row. -->
     <string name="settings_method_no_tzeit_description">Here the sun sometimes never sinks far enough for tzeit. What marks nightfall then.</string>
     <!-- Description under the Chatzot HaLaila method row. -->
-    <string name="settings_method_chatzot_halaila_description">Solar or fixed-local midnight.</string>
+    <string name="settings_method_chatzot_halaila_description">Solar or fixed local midnight.</string>
     <!-- Description under the Candle Lighting method row. -->
     <string name="settings_method_candle_lighting_description">Minutes before sunset for candle lighting.</string>
     <!-- Description under the Motzei Shabbat method row. -->
@@ -449,11 +449,11 @@
     <!-- Description under the Tosefet method row. -->
     <string name="settings_method_tosefet_description">Minutes added after nightfall before Shabbat or Yom Tov goes out.</string>
     <!-- Description under the Rabbeinu Tam method row. -->
-    <string name="settings_method_rabbeinu_tam_description">Separate Rabbeinu Tam Shabbat opinion.</string>
+    <string name="settings_method_rabbeinu_tam_description">End of Shabbat by Rabbeinu Tam\'s opinion.</string>
     <!-- Description under the Ateret Torah minutes row. -->
     <string name="settings_method_ateret_torah_offset_description">The end of the day every Ateret Torah opinion is measured to. 25 minutes in Israel, 40 elsewhere.</string>
     <!-- Description under the Erev Pesach Chametz method row. -->
-    <string name="settings_method_chametz_description">Sof zman eating and burning chametz.</string>
+    <string name="settings_method_chametz_description">Latest times to eat and burn chametz.</string>
     <!-- Text in the dialog for the tosefet minutes. -->
     <string name="settings_tosefet_dialog">Minutes added after nightfall. The default is 5.</string>
     <!-- Text in the dialog for the Ateret Torah minutes. -->
@@ -497,7 +497,7 @@
     <!-- Widget in the "Add widget" list: today's zmanim. -->
     <string name="widget_kind_zmanim">Today\'s zmanim</string>
     <!-- Widget in the "Add widget" list: the coming Shabbat or Yom Tov. -->
-    <string name="widget_kind_shabbat">Shabbat &amp; chag</string>
+    <string name="widget_kind_shabbat">Shabbat &amp; Yom Tov</string>
     <!-- Heading on the "next zman" widgets, above the next time. -->
     <string name="widget_next_label">Next zman</string>
     <!-- Heading on the "next zman" widgets, before the time after the next one. -->
@@ -533,23 +533,23 @@
     <!-- The bearing in degrees. Not translated. -->
     <string name="mizrach_degrees" translatable="false">%1$d°</string>
     <!-- Prayer compass: asks for the location permission. -->
-    <string name="mizrach_need_location">Allow location so Prayer Compass can calculate from where you are now.</string>
+    <string name="mizrach_need_location">Allow location so the prayer compass can calculate from where you are now.</string>
     <!-- Button: grant the location permission. -->
     <string name="mizrach_allow_location">Allow location</string>
     <!-- Prayer compass: waiting for a location fix. -->
     <string name="mizrach_waiting_location">Waiting for current location…</string>
     <!-- Prayer compass: the location fix is too coarse. -->
-    <string name="mizrach_location_accuracy_low">Location accuracy is too low for confident alignment. Try again for a better fix.</string>
+    <string name="mizrach_location_accuracy_low">Location accuracy is too low to show the direction reliably. Try again for a more precise location.</string>
     <!-- Prayer compass: only approximate location was granted. -->
-    <string name="mizrach_precise_location_required">Precise location is required for confident alignment.</string>
+    <string name="mizrach_precise_location_required">Precise location is needed to show the direction reliably.</string>
     <!-- Button: grant precise location. -->
     <string name="mizrach_allow_precise_location">Allow precise location</string>
     <!-- Prayer compass: live direction is off while a developer location is in use. -->
     <string name="mizrach_developer_location_compass">Live alignment is disabled while using a developer location override.</string>
     <!-- Button: try getting a location fix again. -->
-    <string name="mizrach_retry_location">Try location again</string>
+    <string name="mizrach_retry_location">Try again</string>
     <!-- Prayer compass: the phone's location is switched off. -->
-    <string name="mizrach_location_off">Location is turned off. Turn it on so Prayer Compass can find where you are now.</string>
+    <string name="mizrach_location_off">Location is turned off. Turn it on so the prayer compass can find where you are now.</string>
     <!-- Button: open the location settings. -->
     <string name="mizrach_turn_on_location">Turn on location</string>
     <!-- Prayer compass: waiting for the compass sensor. -->
@@ -608,7 +608,7 @@
     <!-- Text while the update installs. -->
     <string name="update_installing_body">Confirm the installation when Android asks.</string>
     <!-- Shown when the offered stable version is older than the installed test version. -->
-    <string name="update_downgrade_body">This is the latest stable release, and it is an earlier build than the test version you are running. Installing it takes you back to it.</string>
+    <string name="update_downgrade_body">This is the latest stable release, and it is an earlier build than the test version you are running. Installing it takes you back to the stable version.</string>
     <!-- Dialog title: the update failed. -->
     <string name="update_failed_title">Update failed</string>
     <!-- Text when the update failed. -->

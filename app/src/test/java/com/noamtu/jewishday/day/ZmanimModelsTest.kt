@@ -76,8 +76,8 @@ class ZmanimModelsTest {
         assertTrue(zmanimItems.contains("Sof Zman Shema (Magen Avraham)"))
         assertTrue(zmanimItems.contains("Sof Zman Tefillah (GRA)"))
         assertTrue(zmanimItems.contains("Sof Zman Tefillah (Magen Avraham)"))
-        assertTrue(zmanimItems.contains("Chatzot HaYom"))
-        assertTrue(zmanimItems.contains("Chatzot HaLaila"))
+        assertTrue(zmanimItems.contains("Chatzot Hayom"))
+        assertTrue(zmanimItems.contains("Chatzot Halaila"))
         assertFalse(zmanimItems.contains("Samuch LeMincha Ketana"))
 
         // Misheyakir row is now labelled Tallit & Tefillin.
