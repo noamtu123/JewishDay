@@ -28,7 +28,8 @@ internal fun nextTzeit(
     now: Instant,
 ): Instant {
     val localToday = now.atZone(location.zoneId).toLocalDate()
-    return listOf(localToday, localToday.plusDays(1), localToday.plusDays(2))
+    // Yesterday's too: far enough north in summer it comes after midnight (see [jewishDayCivilDate]).
+    return listOf(localToday.minusDays(1), localToday, localToday.plusDays(1), localToday.plusDays(2))
         .mapNotNull { date -> tzeitForDate(location, date, settings)?.plus(1, ChronoUnit.MINUTES) }
         .firstOrNull { it.isAfter(now) }
         ?: nextGregorianMidnight(location, now)
@@ -49,6 +50,10 @@ public fun chatzotHaLailaForDate(
  * The civil date whose daytime belongs to the Jewish day now in progress — the civil date of the
  * Hebrew date to show. It rolls at tzeit: from nightfall on Thursday the Hebrew date is Friday's.
  * The zmanim list does not follow it; the times stay on the calendar day and turn over at midnight.
+ *
+ * The tzeit that rolls it is the one of the civil day the Jewish day began on. Far enough north in
+ * summer that comes after midnight — 00:33 in Helsinki on 2 July 2026 — and until then the Hebrew
+ * date is still yesterday's.
  */
 public fun jewishDayCivilDate(
     location: JewishLocation,
@@ -56,9 +61,18 @@ public fun jewishDayCivilDate(
     now: Instant,
 ): LocalDate {
     val civilDate = now.atZone(location.zoneId).toLocalDate()
+    if (beforeYesterdaysTzeit(location, civilDate, settings, now)) return civilDate.minusDays(1)
     val tzeit = tzeitForDate(location, civilDate, settings)
     return if (tzeit != null && !now.isBefore(tzeit)) civilDate.plusDays(1) else civilDate
 }
+
+/** Whether [now], on [civilDate], is still before the tzeit of the day before — after midnight. */
+internal fun beforeYesterdaysTzeit(
+    location: JewishLocation,
+    civilDate: LocalDate,
+    settings: ZmanimCalculationSettings,
+    now: Instant,
+): Boolean = tzeitForDate(location, civilDate.minusDays(1), settings)?.let { now.isBefore(it) } == true
 
 /**
  * How many days the zmanim screen steps from today to show [date]. Steps count from the Hebrew day

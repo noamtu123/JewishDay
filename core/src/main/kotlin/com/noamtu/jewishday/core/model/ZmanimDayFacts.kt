@@ -18,7 +18,8 @@ public data class ZmanimDayFacts(
     // The civil date these zmanim are for. It turns over at midnight like any calendar day, and is
     // whatever day the user has stepped to.
     val date: LocalDate,
-    // The civil date the Hebrew date belongs to: [date] until tzeit, the day after from tzeit on.
+    // The civil date the Hebrew date belongs to: [date] until tzeit, the day after from tzeit on —
+    // or, after midnight but before a northern summer's late tzeit of the day before, that day.
     val displayedDate: LocalDate,
     // The day's own name — "ערב פסח", "פורים", "חול המועד סוכות" — on the days no fast or holy day
     // already claims it. Read off the same calendar as the displayed Hebrew date, so the two never

@@ -18,7 +18,8 @@ import java.time.LocalDate
 @Immutable
 public data class JewishDayInfo(
     val gregorianDate: LocalDate,
-    // The civil date the Hebrew date belongs to — [gregorianDate], or the next day from tzeit on.
+    // The civil date the Hebrew date belongs to — [gregorianDate], or the next day from tzeit on (or
+    // the day before, until a tzeit that falls after midnight; see [jewishDayCivilDate]).
     val jewishDate: LocalDate,
     val hebrewDayOfMonth: Int,
     // The icon's glyph: the day of the month in Hebrew numerals ("ט״ו") in every language, since the
