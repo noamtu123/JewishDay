@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -74,6 +75,9 @@ class AppUpdateViewModel @Inject constructor(
     val pendingRelease: StateFlow<UpdateState.Available?> = pendingUpdates.pending
 
     private var downloaded: File? = null
+
+    /** How far the download under way has come; it carries on when its dialog is closed. */
+    private var downloadProgress: UpdateState.Downloading? = null
 
     /** A session already written to disk, waiting only for the app to be in front to commit. */
     private var stagedSessionId: Int? = null
@@ -167,20 +171,34 @@ class AppUpdateViewModel @Inject constructor(
     /** Reopens the dialog for the waiting update, from the banner. */
     fun showPendingRelease() {
         val pending = pendingUpdates.pending.value ?: return
-        if (_state.value == UpdateState.Idle) _state.value = pending
+        // A download closed mid-way is still running: the banner shows it, rather than offering
+        // to start a second one into the same file.
+        if (_state.value == UpdateState.Idle) _state.value = downloadProgress ?: pending
     }
 
     fun download(release: AppRelease) {
+        downloadProgress?.let { progress ->
+            _state.value = progress
+            return
+        }
+        val started = UpdateState.Downloading(release, 0L, release.sizeBytes)
+        downloadProgress = started
+        _state.value = started
         viewModelScope.launch {
-            _state.value = UpdateState.Downloading(release, 0L, release.sizeBytes)
             runCatchingCancellable {
                 repository.download(release) { downloaded, total ->
-                    _state.value = UpdateState.Downloading(release, downloaded, total)
+                    val progress = UpdateState.Downloading(release, downloaded, total)
+                    downloadProgress = progress
+                    // Only into an open dialog: written regardless, the next 64 KB reopened one the
+                    // user had just closed. A closed download reopens it when it ends, below.
+                    _state.update { shown -> if (shown is UpdateState.Downloading) progress else shown }
                 }
             }.onSuccess { file ->
+                downloadProgress = null
                 downloaded = file
                 startInstall(release)
             }.onFailure { error ->
+                downloadProgress = null
                 _state.value = UpdateState.Failed(release, error.message)
             }
         }

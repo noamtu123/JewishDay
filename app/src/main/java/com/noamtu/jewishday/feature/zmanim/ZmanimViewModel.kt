@@ -57,6 +57,12 @@ private data class ZmanimCalculationInput(
     val dayOffset: Int,
 )
 
+/** A computed day and the step count it was computed for, which travel together to the screen. */
+private data class ShownDay(val zmanimDay: ZmanimDay, val dayOffset: Int)
+
+/** Hebcal's learning and the day it is for, so it is never shown on another one. */
+private data class DayLearning(val date: LocalDate, val items: List<ZmanItem>)
+
 private data class ZmanimDisplayInput(
     val zmanimDay: ZmanimDay,
     val dailyLearningItems: List<ZmanItem>,
@@ -151,11 +157,12 @@ class ZmanimViewModel @Inject constructor(
                 .map { ZmanimCalculationInput(trigger.calculationSettings, trigger.location, trigger.dayOffset) }
         }
         .map { input ->
-            jewishDayRepository.getZmanim(
+            val day = jewishDayRepository.getZmanim(
                 location = input.location,
                 settings = input.calculationSettings,
                 dayOffset = input.dayOffset,
             )
+            ShownDay(day, input.dayOffset)
         }
         .distinctUntilChanged()
         .flowOn(Dispatchers.Default)
@@ -166,7 +173,7 @@ class ZmanimViewModel @Inject constructor(
         )
 
     private val dailyLearningItems = combine(
-        zmanimDay.map { day -> day.date }.distinctUntilChanged(),
+        zmanimDay.map { shown -> shown.zmanimDay.date }.distinctUntilChanged(),
         location.map { it.isInIsrael }.distinctUntilChanged(),
         ::DailyLearningRequest,
     )
@@ -175,27 +182,32 @@ class ZmanimViewModel @Inject constructor(
             dailyLearningRepository.learningItems(
                 date = request.date,
                 inIsrael = request.inIsrael,
-            ).onStart { emit(emptyList()) }
+            )
+                .onStart { emit(emptyList()) }
+                .map { items -> DayLearning(request.date, items) }
         }
         .distinctUntilChanged()
         .flowOn(Dispatchers.Default)
 
+    // The step count comes with the day computed for it, not from [_dayOffset]: read straight from
+    // there it reached the screen ahead of its day, so for a moment after each step the screen counted
+    // the new day over the old day's times. Hebcal's rows likewise wait for their own day.
     val uiState: StateFlow<ZmanimUiState> = combine(
         zmanimDay,
         dailyLearningItems,
         settings,
         developerOverrides,
-        _dayOffset,
-    ) { day, learning, settings, overrides, dayOffset ->
+    ) { shown, learning, settings, overrides ->
+        val day = shown.zmanimDay
         ZmanimDisplayInput(
             zmanimDay = day,
-            dailyLearningItems = learning,
+            dailyLearningItems = if (learning.date == day.date) learning.items else emptyList(),
             use24HourTime = settings.use24HourTime,
             enabledZmanimTimes = settings.enabledZmanimTimes,
             enabledDailyLearning = settings.enabledDailyLearning,
             showCandleLightingPrompt = !settings.candleLightingPromptHandled,
             developerTimeOverrideActive = overrides.timeOverrideEnabled && !overrides.hideTimeOverrideBanner,
-            dayOffset = dayOffset,
+            dayOffset = shown.dayOffset,
         )
     }
         .distinctUntilChanged()

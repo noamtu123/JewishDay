@@ -109,7 +109,10 @@ class MainActivity : ComponentActivity() {
         }
         setStartupWindowBackground(initialRootSettings.themeOption)
         enableEdgeToEdge()
-        if (savedInstanceState == null) showDayRequest = intent.showDayRequest()
+        // Nor from Recents: reopening a closed task there hands back the intent that first started
+        // it, and an old Shabbat-widget tap would step the screen to that day again, days later.
+        val fromRecents = (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0
+        if (savedInstanceState == null && !fromRecents) showDayRequest = intent.showDayRequest()
 
         setContent {
             val rootSettings by appSettingsRepository.rootUiSettings.collectAsStateWithLifecycle(
