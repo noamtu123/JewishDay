@@ -2,6 +2,7 @@
 
 package com.noamtu.jewishday.core.model
 
+import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
@@ -146,9 +147,9 @@ public fun nextWeeklyParshaBoundary(
 /**
  * The next moment the date header changes state: a fast or a holy day coming in or going out.
  *
- * The header's name appears and disappears on exactly these instants, and not one of them lands on
- * sunset or midnight — candle lighting is minutes before sunset, alot is hours before it, and both
- * exits fall between sunset and midnight. Without them a screen left open would keep showing the
+ * The header's name appears and disappears on exactly these instants, and only Tisha B'Av's lands on
+ * sunset: candle lighting is minutes before sunset, alot is hours before it, and both exits fall
+ * after sunset. Without them a screen left open would keep showing the
  * previous state for hours: no name at candle lighting on a Friday evening, or a finished fast's
  * name lingering until midnight.
  *
@@ -160,13 +161,18 @@ internal fun nextObservanceBoundary(
     now: Instant,
 ): Instant? {
     val localToday = now.atZone(location.zoneId).toLocalDate()
-    return (0..2)
+    val inIsrael = location.isInIsrael
+    // From yesterday: far enough north a summer fast ends (and Shabbat goes out) after midnight.
+    return (-1..2)
         .map { localToday.plusDays(it.toLong()) }
         .flatMap { date ->
             val calendar = comprehensiveZmanimCalendar(location, date, settings)
             listOfNotNull(
                 calendar.candleLighting(settings)?.time, // a holy day comes in
                 calendar.alotHashachar(settings), // a dawn fast begins
+                // Tisha B'Av begins at the sunset before its day.
+                calendar.sunset(settings.sunsetMethod)
+                    ?.takeIf { jewishCalendar(date.plusDays(1), inIsrael).yomTovIndex == JewishCalendar.TISHA_BEAV },
                 calendar.tzeit(settings), // a fast ends
                 calendar.holyDayExit(settings), // a holy day goes out
             )

@@ -35,7 +35,9 @@ public data class FastDayInfo(
  * begins and disappears the moment it ends, so at most one is ever current.
  *
  * Today plus the next two civil days are considered: an evening fast begins at the sunset before
- * its own date, so its announcement starts two civil days ahead of that date.
+ * its own date, so its announcement starts two civil days ahead of that date. Yesterday is too,
+ * since far enough north a summer fast ends after midnight (00:33 in Helsinki on 17 Tammuz): until
+ * its stars are out, yesterday's fast is still the one under way.
  */
 internal fun announcedFastDayInfo(
     date: LocalDate,
@@ -45,7 +47,9 @@ internal fun announcedFastDayInfo(
     location: JewishLocation,
     inIsrael: Boolean,
 ): FastDayInfo? {
-    for (offset in 0L..2L) {
+    // Without a clock there is no window to place us in, so only the civil day's own fast is read.
+    val offsets = if (now == null) 0L..0L else -1L..2L
+    for (offset in offsets) {
         val fastDate = date.plusDays(offset)
         val fastCalendar = jewishCalendar(fastDate, inIsrael)
         val info = fastDayInfo(fastCalendar, fastDate, settings, location) ?: continue
