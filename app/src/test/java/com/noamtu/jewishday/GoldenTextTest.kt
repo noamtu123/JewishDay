@@ -11,7 +11,6 @@ import com.noamtu.jewishday.core.model.ChatzotMethod
 import com.noamtu.jewishday.core.model.CustomZmanUnit
 import com.noamtu.jewishday.core.model.CustomZmanValue
 import com.noamtu.jewishday.core.model.DailyLearningType
-import com.noamtu.jewishday.core.model.HebcalLearningEntry
 import com.noamtu.jewishday.core.model.JewishLocation
 import com.noamtu.jewishday.core.model.MinchaGedolaMethod
 import com.noamtu.jewishday.core.model.MinchaKetanaMethod
@@ -33,9 +32,7 @@ import com.noamtu.jewishday.core.model.nextZmanimRefreshBoundary
 import com.noamtu.jewishday.core.model.sunsetForDate
 import com.noamtu.jewishday.core.model.tzeitForDate
 import com.noamtu.jewishday.core.model.zmanimDayFacts
-import com.noamtu.jewishday.data.toZmanItems
 import com.noamtu.jewishday.day.ZmanimDay
-import com.noamtu.jewishday.day.withDailyLearningItems
 import com.noamtu.jewishday.day.zmanimForDate
 import com.noamtu.jewishday.feature.zmanim.ZmanimUiState
 import com.noamtu.jewishday.feature.zmanim.filterForDisplay
@@ -378,47 +375,28 @@ class GoldenTextTest {
         }
     }
 
-    private val hebcalSets = listOf(
-        "fixtures" to listOf(
-            HebcalLearningEntry(category = "dafyomi", title = "Sanhedrin 78", hebrew = "סנהדרין ע״ח"),
-            HebcalLearningEntry(category = "yerushalmi", title = "Yerushalmi Berakhot 32", hebrew = "ברכות לב"),
-            HebcalLearningEntry(category = "mishnayomi", title = "Kelim 11:7-8", hebrew = "כלים 11:7-8"),
-            HebcalLearningEntry(category = "dailyRambam1", title = "Prayer 5", hebrew = "הלכות תפילה פרק ה"),
-            HebcalLearningEntry(category = "dailyPsalms", title = "Psalms 106-107", hebrew = "תהלים ק״ו-ק״ז"),
-            HebcalLearningEntry(category = "tanakhYomi", title = "Psalms Seder 3", hebrew = "תנ״ך ס׳ ג", memo = "Psalms 20:10-29:10"),
-            HebcalLearningEntry(category = "shemiratHaLashon", title = "Book I, Shaar HaZechira 1.1-1.4", hebrew = "Book I, שער הזכירה 1.1-1.4"),
-            HebcalLearningEntry(category = "kitzurShulchanAruch", title = "161:18-162:5", hebrew = "קסא:יח-קסב:ה"),
-        ),
-        "bothRambam" to listOf(
-            HebcalLearningEntry(category = "dafyomi", title = "Berakhot 2", hebrew = "ברכות ב׳"),
-            HebcalLearningEntry(category = "yerushalmi", title = "Yerushalmi Bava Kamma 5", hebrew = "בבא קמא ה"),
-            HebcalLearningEntry(category = "mishnayomi", title = "Berakhot 1:1", hebrew = "ברכות 1:1"),
-            HebcalLearningEntry(category = "dailyRambam1", title = "Sabbath 19", hebrew = "הלכות שבת פרקים יט", memo = "Sabbath 19\nhttps://www.sefaria.org/x"),
-            HebcalLearningEntry(category = "dailyRambam3", title = "Prayer 3-5", hebrew = "הלכות תפילה פרק 3-5"),
-            HebcalLearningEntry(category = "tanakhYomi", title = "Seder 3", hebrew = "תנ״ך ס׳ ג", memo = "Seder 3"),
-            HebcalLearningEntry(category = "shemiratHaLashon", title = "Book II 1.1-1.2", hebrew = "Book II 1.1-1.2"),
-            HebcalLearningEntry(category = "kitzurShulchanAruch", title = "12:3", hebrew = "יב:ג"),
-        ),
-        "multiBook" to listOf(
-            HebcalLearningEntry(category = "yerushalmi", title = "Yerushalmi Berakhot", hebrew = "ירושלמי ברכות"),
-            HebcalLearningEntry(category = "dailyRambam1", title = "Intro", hebrew = "הלכות תפילה פרק אחד"),
-            HebcalLearningEntry(category = "dailyRambam3", title = "Prayer 8, Blessings 1-2", hebrew = "הלכות תפילה פרק ח, הלכות ברכות פרק 1-2"),
-            HebcalLearningEntry(category = "shemiratHaLashon", title = "Book I, Hakdamah 3-5", hebrew = "Book I, הקדמה 3-5"),
-            HebcalLearningEntry(category = "shemiratHaLashon", title = "Book I, Shaar HaTevuna 2.3-3.1", hebrew = "Book I, שער התבונה 2.3-3.1"),
-            HebcalLearningEntry(category = "tanakhYomi", title = "II Kings 4", hebrew = "מלכים ב ד", memo = "II Kings 4:1-5:27"),
-        ),
+    // Days that show each daily-learning track's harder cases, beside the plain ones every day dump has:
+    // a reading across chapters, tractates and books (Mishnah, Rambam, Tanakh), the Rambam's introductory
+    // books, Shemirat HaLashon's footnote, and a leap year's Adar II, when the Kitzur pauses for two options.
+    private val learningDays = listOf(
+        "fixtures" to LocalDate.of(2026, 10, 7),
+        "acrossChapters" to LocalDate.of(2026, 5, 29),
+        "acrossBooks" to LocalDate.of(2026, 1, 16),
+        "introduction" to LocalDate.of(2026, 2, 12),
+        "footnote" to LocalDate.of(2026, 7, 28),
+        "adarII" to LocalDate.of(2027, 3, 18),
     )
 
     private fun dumpLearning() {
-        val base: ZmanimDay = zmanimForDate(date = LocalDate.of(2026, 10, 7), now = null, hebrewDateRolled = false)
-        for ((name, entries) in hebcalSets) {
-            val state = base.withDailyLearningItems(entries.toZmanItems())
+        for ((name, date) in learningDays) {
+            val base: ZmanimDay = zmanimForDate(date = date, now = null, hebrewDateRolled = false)
+            val state = base
                 .filterForDisplay(ZmanimTimeOption.Default, DailyLearningType.entries.toSet())
                 .mergeRambamRows()
                 .toUiState(use24HourTime = true, showCandleLightingPrompt = false, developerTimeOverrideActive = false, dayOffset = 0)
             for (hebrew in listOf(false, true)) dumpState("learning|$name|${if (hebrew) "he" else "en"}", state, text(hebrew))
             // Only one Rambam track shown.
-            val single = base.withDailyLearningItems(entries.toZmanItems())
+            val single = base
                 .filterForDisplay(ZmanimTimeOption.Default, DailyLearningType.entries.toSet() - DailyLearningType.RambamYomi)
                 .mergeRambamRows()
                 .toUiState(use24HourTime = true, showCandleLightingPrompt = false, developerTimeOverrideActive = false, dayOffset = 0)

@@ -41,7 +41,7 @@ public data class ZmanimDayFacts(
     // The coming Shabbat's own section, or null once Shabbat is in and the header already gives
     // everything it would (see `zmanimDayFacts`).
     val shabbat: ShabbatTimes?,
-    // The daily learning KosherJava can work out offline, shown until (or unless) Hebcal answers.
+    // The day's daily learning, every track worked out on the phone.
     val offlineLearning: List<OfflineLearning>,
 )
 
@@ -83,13 +83,19 @@ public data class ShabbatTimes(
     val exitFallback: NoTzeitFallback? = null,
 )
 
-/** The daily-learning tracks KosherJava can work out offline, in the order they are listed. */
+/** The daily-learning tracks, in the order they are listed. */
 public enum class OfflineLearningTrack(public val type: DailyLearningType) {
     DafYomiBavli(DailyLearningType.DafYomiBavli),
     DafYomiYerushalmi(DailyLearningType.DafYomiYerushalmi),
+    MishnahYomi(DailyLearningType.MishnahYomi),
+    RambamYomi(DailyLearningType.RambamYomi),
+    RambamYomiThreeChapters(DailyLearningType.RambamYomiThreeChapters),
     TehillimYomi(DailyLearningType.TehillimYomi),
+    TanakhYomi(DailyLearningType.TanakhYomi),
+    ShemiratHaLashon(DailyLearningType.ShemiratHaLashon),
+    KitzurShulchanAruch(DailyLearningType.KitzurShulchanAruch),
 }
 
-/** One offline daily-learning reading: its track, and the day's portion of it. */
+/** One daily-learning reading: its track, and the day's portion of it. */
 @Immutable
 public data class OfflineLearning(val track: OfflineLearningTrack, val reading: CalendarText)

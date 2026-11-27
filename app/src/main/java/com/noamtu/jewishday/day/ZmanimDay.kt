@@ -78,14 +78,3 @@ enum class ZmanimGroupKind(@StringRes val title: Int?) {
     Shabbat(R.string.group_shabbat),
     DailyLearning(R.string.group_daily_learning),
 }
-
-/** The day with Hebcal's daily learning in place of the offline rows, when Hebcal sent any. */
-fun ZmanimDay.withDailyLearningItems(items: List<ZmanItem>): ZmanimDay = copy(
-    groups = groups.map { group ->
-        if (group.kind == ZmanimGroupKind.DailyLearning) {
-            group.copy(items = items.ifEmpty { group.items })
-        } else {
-            group
-        }
-    },
-)

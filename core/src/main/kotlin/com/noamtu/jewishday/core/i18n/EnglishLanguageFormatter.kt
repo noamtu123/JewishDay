@@ -6,6 +6,11 @@ import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
 import com.kosherjava.zmanim.hebrewcalendar.YerushalmiYomiCalculator
 import com.noamtu.jewishday.core.model.englishHebrewDateFormatter
 import com.noamtu.jewishday.core.model.jewishCalendar
+import com.noamtu.jewishday.core.model.kitzurShulchanAruch
+import com.noamtu.jewishday.core.model.mishnahYomi
+import com.noamtu.jewishday.core.model.rambamYomi
+import com.noamtu.jewishday.core.model.shemiratHaLashon
+import com.noamtu.jewishday.core.model.tanakhYomi
 import com.noamtu.jewishday.core.model.tehillimRangeForDay
 
 /**
@@ -37,6 +42,10 @@ public class EnglishLanguageFormatter : LanguageFormatter {
                 "Psalm ${range.chapterStart}:${range.verseStart}-${range.verseEnd}"
             }
         }
-        is CalendarText.Hebcal -> text.entry.englishText()
+        is CalendarText.MishnahYomi -> mishnahYomi(text.date)?.english().orEmpty()
+        is CalendarText.RambamYomi -> rambamYomi(text.date, text.chaptersPerDay)?.english().orEmpty()
+        is CalendarText.TanakhYomi -> tanakhYomi(text.date)?.english().orEmpty()
+        is CalendarText.ShemiratHaLashon -> shemiratHaLashon(text.date)?.english().orEmpty()
+        is CalendarText.KitzurShulchanAruch -> kitzurShulchanAruch(text.date)?.english().orEmpty()
     }
 }

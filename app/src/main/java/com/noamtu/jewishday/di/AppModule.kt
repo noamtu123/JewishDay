@@ -6,18 +6,14 @@ import com.noamtu.jewishday.data.AndroidCurrentLocationRepository
 import com.noamtu.jewishday.data.AndroidDeviceIdentity
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
-import com.noamtu.jewishday.data.DailyLearningCache
-import com.noamtu.jewishday.data.DailyLearningRepository
 import com.noamtu.jewishday.data.DataStoreAppSettingsRepository
 import com.noamtu.jewishday.data.DataStoreDeveloperOverridesRepository
 import com.noamtu.jewishday.data.DefaultJewishDayRepository
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.data.DeviceIdentity
-import com.noamtu.jewishday.data.HebcalDailyLearningRepository
 import com.noamtu.jewishday.data.InstallMarker
 import com.noamtu.jewishday.data.JewishDayRepository
 import com.noamtu.jewishday.data.NotificationPromptState
-import com.noamtu.jewishday.data.SharedPreferencesDailyLearningCache
 import com.noamtu.jewishday.data.SharedPreferencesInstallMarker
 import com.noamtu.jewishday.data.SharedPreferencesNotificationPromptState
 import com.noamtu.jewishday.data.SharedPreferencesStartupSettingsCache
@@ -71,10 +67,6 @@ abstract class AppModule {
 
     @Binds
     @Singleton
-    abstract fun bindDailyLearningCache(cache: SharedPreferencesDailyLearningCache): DailyLearningCache
-
-    @Binds
-    @Singleton
     abstract fun bindCurrentLocationRepository(repository: AndroidCurrentLocationRepository): CurrentLocationRepository
 
     @Binds
@@ -94,8 +86,4 @@ abstract class AppModule {
     @Binds
     @Singleton
     abstract fun bindDateStatusIconScheduler(scheduler: ServiceDateStatusIconScheduler): DateStatusIconScheduler
-
-    @Binds
-    @Singleton
-    abstract fun bindDailyLearningRepository(repository: HebcalDailyLearningRepository): DailyLearningRepository
 }

@@ -227,20 +227,14 @@
     <string name="learning_yerushalmi_kosherjava_description">KosherJava Yerushalmi cycle</string>
     <!-- Caption under the Tehillim row when calculated offline. -->
     <string name="learning_tehillim_kosherjava_description">Monthly Tehillim division by Hebrew date</string>
-    <!-- Caption under the Daf Yomi row when it comes from Hebcal (an online Jewish-calendar service). -->
-    <string name="learning_daf_yomi_hebcal_description">Hebcal Daf Yomi cycle</string>
-    <!-- Caption under the Yerushalmi row, from Hebcal. -->
-    <string name="learning_yerushalmi_hebcal_description">Hebcal Yerushalmi cycle</string>
-    <!-- Caption under the Mishnah Yomi row, from Hebcal. -->
-    <string name="learning_mishnah_yomi_hebcal_description">Hebcal Mishnah Yomi cycle</string>
-    <!-- Caption under the Tehillim row, from Hebcal. -->
-    <string name="learning_tehillim_hebcal_description">Daily Tehillim division</string>
-    <!-- Caption under the Tanakh Yomi row, from Hebcal. -->
-    <string name="learning_tanakh_yomi_hebcal_description">Hebcal Tanakh Yomi cycle</string>
-    <!-- Caption under the Shemirat HaLashon row, from Hebcal. -->
-    <string name="learning_shemirat_halashon_hebcal_description">Daily Shemirat HaLashon</string>
-    <!-- Caption under the Kitzur Shulchan Aruch row, from Hebcal. -->
-    <string name="learning_kitzur_hebcal_description">Daily halacha from Hebcal</string>
+    <!-- Caption under the Mishnah Yomi row (two mishnayot a day, through the whole Mishnah). -->
+    <string name="learning_mishnah_yomi_description">Mishnah Yomi cycle</string>
+    <!-- Caption under the Tanakh Yomi row (a seder of Nach each weekday, once through each year). -->
+    <string name="learning_tanakh_yomi_description">Tanakh Yomi cycle</string>
+    <!-- Caption under the Shemirat HaLashon row. -->
+    <string name="learning_shemirat_halashon_description">Daily Shemirat HaLashon</string>
+    <!-- Caption under the Kitzur Shulchan Aruch row. -->
+    <string name="learning_kitzur_description">Daily halacha</string>
     <!-- Caption under the Rambam row when both Rambam tracks are shown together in it. -->
     <string name="learning_rambam_merged_description">Daily Rambam cycle</string>
     <!-- Which Rambam track a row is: "1 chapter" or "3 chapters" a day. Caption under the row, and the label of each line when both tracks share one row. -->

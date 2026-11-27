@@ -70,7 +70,8 @@ class ZmanimDayFactsTest {
     fun theYerushalmiRowGoesOnTheDaysItsCycleSkips() {
         val yomKippur = firstDayIn(2026) { it.yomTovIndex == JewishCalendar.YOM_KIPPUR }
         val tracks = { date: LocalDate -> zmanimDayFacts(location, date).offlineLearning.map { it.track } }
-        assertEquals(OfflineLearningTrack.entries, tracks(yomKippur.minusDays(2)))
+        // Three days before (a Friday) every track has a reading; two before is Shabbat, Tanakh Yomi's day off.
+        assertEquals(OfflineLearningTrack.entries, tracks(yomKippur.minusDays(3)))
         assertFalse(OfflineLearningTrack.DafYomiYerushalmi in tracks(yomKippur))
     }
 

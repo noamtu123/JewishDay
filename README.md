@@ -32,7 +32,10 @@ in the same spirit of openness: every release still goes through tests, lint, an
 - Material 3
 - Hilt for dependency injection, DataStore for settings
 - [KosherJava](https://github.com/KosherJava/zmanim) for the Hebrew calendar and zmanim
-- The Hebcal API for daily-learning schedules
+- Daily-learning schedules worked out on the phone, from the tables of
+  [@hebcal/learning](https://github.com/hebcal/hebcal-learning) (BSD 2-Clause; notice in
+  `core/src/main/resources/licenses/hebcal-learning.txt`). Nothing needs the internet except the
+  check for a new version.
 - A foreground service that keeps the always-on Hebrew-date notification current
 - Gradle build; single release variant, tested and linted on each build
 

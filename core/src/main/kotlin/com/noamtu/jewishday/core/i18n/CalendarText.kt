@@ -3,7 +3,6 @@
 package com.noamtu.jewishday.core.i18n
 
 import androidx.compose.runtime.Immutable
-import com.noamtu.jewishday.core.model.HebcalLearningEntry
 import java.time.LocalDate
 
 /**
@@ -41,6 +40,18 @@ public sealed interface CalendarText {
     /** The day's portion of the monthly Tehillim division. */
     public data class TehillimYomi(val date: LocalDate, val inIsrael: Boolean) : CalendarText
 
-    /** One of Hebcal's daily-learning readings, as Hebcal sent it. */
-    public data class Hebcal(val entry: HebcalLearningEntry) : CalendarText
+    /** The day's two mishnayot of Mishnah Yomi. */
+    public data class MishnahYomi(val date: LocalDate) : CalendarText
+
+    /** The day's Rambam, on the one-chapter or the three-chapter track ([chaptersPerDay] 1 or 3). */
+    public data class RambamYomi(val date: LocalDate, val chaptersPerDay: Int) : CalendarText
+
+    /** The day's seder of Tanakh Yomi; only asked for on days the program reads one. */
+    public data class TanakhYomi(val date: LocalDate) : CalendarText
+
+    /** The day's piece of Shemirat HaLashon. */
+    public data class ShemiratHaLashon(val date: LocalDate) : CalendarText
+
+    /** The day's Kitzur Shulchan Aruch; only asked for on days the calendar has one. */
+    public data class KitzurShulchanAruch(val date: LocalDate) : CalendarText
 }
