@@ -12,8 +12,10 @@ import com.noamtu.jewishday.testing.eventually
 import java.io.File
 import java.io.IOException
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -130,5 +132,60 @@ class AppUpdateViewModelTest {
         viewModel.state.awaitFirst { it is UpdateState.Installing }
         results.publish(InstallOutcome.Failed("declined"))
         assertEquals(UpdateState.Failed(release, "declined"), viewModel.state.awaitFirst { it is UpdateState.Failed })
+    }
+
+    /** GitHub with a download that moves on only as the test sends it bytes, and ends when it closes. */
+    private class SteppedDownload(private val release: AppRelease, private val apk: File) : AppUpdateRepository {
+        val bytes = Channel<Long>(Channel.UNLIMITED)
+        var downloads = 0
+            private set
+        var reported = 0L
+            private set
+
+        override suspend fun findUpdate() = release
+        override suspend fun check(): UpdateCheckReport = error("not checked here")
+        override suspend fun download(release: AppRelease, onProgress: (downloaded: Long, total: Long) -> Unit): File {
+            downloads++
+            for (downloaded in bytes) {
+                onProgress(downloaded, release.sizeBytes)
+                reported = downloaded
+            }
+            return apk
+        }
+        override fun clearDownloads() = Unit
+    }
+
+    @Test
+    fun aClosedDownloadStaysClosedUntilItIsDone() = runBlocking {
+        TestStores(folder).use { stores ->
+            val updates = SteppedDownload(release, folder.newFile("update.apk").apply { writeText("apk") })
+            val installer = FakeApkInstaller()
+            val pending = PendingUpdateStore().apply { offer(release, isDowngrade = false) }
+            val viewModel = AppUpdateViewModel(updates, installer, InstallResults(), stores.developerOverrides, pending)
+            try {
+                viewModel.download(release)
+                updates.bytes.send(1)
+                viewModel.state.awaitFirst { it == UpdateState.Downloading(release, 1, release.sizeBytes) }
+                // "Close": the download goes on without its dialog.
+                viewModel.dismiss()
+                updates.bytes.send(2)
+                eventually { updates.reported == 2L }
+                // It used to reopen the dialog on the very next progress report.
+                assertEquals(UpdateState.Idle, viewModel.state.value)
+                // The banner opens it again on the download in progress, not on a second one.
+                viewModel.showPendingRelease()
+                assertEquals(UpdateState.Downloading(release, 2, release.sizeBytes), viewModel.state.value)
+                viewModel.download(release)
+                assertEquals(1, updates.downloads)
+                viewModel.dismiss()
+                // Finished, it opens by itself, for the install.
+                updates.bytes.close()
+                viewModel.state.awaitFirst { it is UpdateState.Installing }
+                eventually { installer.committed == listOf(FakeApkInstaller.StagedSession) }
+                assertFalse(viewModel.state.value is UpdateState.Downloading)
+            } finally {
+                viewModel.viewModelScope.cancel()
+            }
+        }
     }
 }

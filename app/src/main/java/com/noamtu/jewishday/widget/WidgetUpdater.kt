@@ -22,6 +22,7 @@ import com.noamtu.jewishday.core.model.zmanimDayFacts
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
+import com.noamtu.jewishday.data.alarmTriggerMillis
 import com.noamtu.jewishday.di.ApplicationScope
 import com.noamtu.jewishday.i18n.TextResolver
 import com.noamtu.jewishday.ui.theme.SkyFrame
@@ -243,7 +244,8 @@ class WidgetUpdater @Inject constructor(
 
     private fun scheduleRefresh(at: Instant) {
         val pendingIntent = refreshPendingIntent()
-        val triggerMillis = at.toEpochMilli()
+        // [at] is on the app's clock, which the developer tools may pin elsewhere (see alarmTriggerMillis).
+        val triggerMillis = alarmTriggerMillis(clock, at)
         try {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
                 alarmManager.setExact(AlarmManager.RTC, triggerMillis, pendingIntent)
