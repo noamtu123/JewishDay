@@ -30,9 +30,10 @@ public fun zmanimDayFacts(
     val jewishCalendar = jewishCalendar(date, inIsrael)
     // The displayed Hebrew date rolls over to the next day at tzeit hakochavim — not at sunset,
     // which only opens bein hashmashot, the doubtful stretch between the two days. From tzeit
-    // onward the header shows the current Jewish date. Day events and the zmanim themselves stay
-    // on [date] — the plain calendar day, which turns over at midnight; the fast chip/card follows
-    // the active fast (see [announcedFastDayInfo]).
+    // onward the header shows the current Jewish date. The zmanim and most day events stay on
+    // [date] — the plain calendar day, which turns over at midnight — but the Omer and Chanukah
+    // follow the evening (see [dayEvents]); the fast chip/card follows the active fast (see
+    // [announcedFastDayInfo]).
     val tzeit = calendar.tzeit(settings)
     val afterTzeit = hebrewDateRolled ?: (now != null && tzeit != null && !now.isBefore(tzeit))
     // Far enough north in summer yesterday's tzeit comes after midnight, and until it does the Hebrew
@@ -105,7 +106,19 @@ public fun zmanimDayFacts(
         fastDayInfo = fastDayInfo,
         holyDayInfo = holyDayInfo,
         fastLeadsHeader = fastLeadsHeader(fastDayInfo, holyDayInfo, now),
-        events = dayEvents(jewishCalendar, calendar, settings, date, inIsrael),
+        events = dayEvents(
+            jewishCalendar = jewishCalendar,
+            // Tonight's Omer count and Chanukah candle once tzeit has passed: both belong to the
+            // evening, and the header already shows tomorrow's Hebrew date. Only a rolled day: a
+            // stepped-to day (never rolled) is read whole, and the stretch after midnight before a
+            // northern summer's late tzeit still looks ahead to [date]'s own evening.
+            eveningCalendar = if (displayedDate.isAfter(date)) displayJewishCalendar else jewishCalendar,
+            eveningDate = if (displayedDate.isAfter(date)) displayedDate else date,
+            calendar = calendar,
+            settings = settings,
+            date = date,
+            inIsrael = inIsrael,
+        ),
         zmanim = dayZmanim(
             calendar = calendar,
             settings = settings,
@@ -167,20 +180,49 @@ private fun dayZmanim(
  * modern holidays are all said by the header chip instead (see [minorDayName]), which is where the
  * eye already is. A Yom Tov proper was never here either — the header names it along with its entry
  * and exit.
+ *
+ * Rosh Chodesh and the chametz times belong to the civil day; the Omer and Chanukah to the evening
+ * ([eveningCalendar], the Hebrew day of [eveningDate]), so after tzeit they show tonight's.
  */
 private fun dayEvents(
     jewishCalendar: JewishCalendar,
+    eveningCalendar: JewishCalendar,
+    eveningDate: LocalDate,
     calendar: ComprehensiveZmanimCalendar,
     settings: ZmanimCalculationSettings,
     date: LocalDate,
     inIsrael: Boolean,
 ): List<DayEvent> = buildList {
     if (jewishCalendar.isRoshChodesh) add(DayEvent.RoshChodesh(CalendarText.RoshChodesh(date, inIsrael)))
-    if (jewishCalendar.dayOfOmer != -1) add(DayEvent.Omer(CalendarText.Omer(date, inIsrael)))
-    if (jewishCalendar.isChanukah) add(DayEvent.Chanukah(jewishCalendar.dayOfChanukah))
-    if (jewishCalendar.yomTovIndex == JewishCalendar.EREV_PESACH) {
-        val (eatUntil, burnUntil) = calendar.chametzTimes(settings)
-        add(DayEvent.Chametz(eatUntil, burnUntil))
+    if (eveningCalendar.dayOfOmer != -1) add(DayEvent.Omer(CalendarText.Omer(eveningDate, inIsrael)))
+    if (eveningCalendar.isChanukah) add(DayEvent.Chanukah(eveningCalendar.dayOfChanukah))
+    chametzEvent(jewishCalendar, calendar, settings, date, inIsrael)?.let(::add)
+}
+
+/**
+ * Erev Pesach's chametz times. When Erev Pesach falls on Shabbat the chametz is burned on Friday the
+ * 13th, by the same hour as any other year, so Friday shows only the burn and Shabbat only the last
+ * time to eat.
+ */
+private fun chametzEvent(
+    jewishCalendar: JewishCalendar,
+    calendar: ComprehensiveZmanimCalendar,
+    settings: ZmanimCalculationSettings,
+    date: LocalDate,
+    inIsrael: Boolean,
+): DayEvent.Chametz? {
+    val erevPesach = jewishCalendar.yomTovIndex == JewishCalendar.EREV_PESACH
+    val burnsBeforeShabbat = date.dayOfWeek == DayOfWeek.FRIDAY &&
+        jewishCalendar(date.plusDays(1), inIsrael).yomTovIndex == JewishCalendar.EREV_PESACH
+    if (!erevPesach && !burnsBeforeShabbat) return null
+    if (burnsBeforeShabbat) {
+        return DayEvent.Chametz(eatUntil = null, burnUntil = calendar.burnChametzByOnAnyDay(settings), eats = false)
+    }
+    val (eatUntil, burnUntil) = calendar.chametzTimes(settings)
+    return if (date.dayOfWeek == DayOfWeek.SATURDAY) {
+        DayEvent.Chametz(eatUntil = eatUntil, burnUntil = null, burns = false)
+    } else {
+        DayEvent.Chametz(eatUntil, burnUntil)
     }
 }
 

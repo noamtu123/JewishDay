@@ -159,7 +159,10 @@ val NoTzeitFallback.nightfallCaption: UiText get() = when (this) {
     NoTzeitFallback.EretzYisrael -> uiText(R.string.method_no_tzeit_caption_eretz_yisrael)
 }
 
-val CandleLightingMethod.label: UiText get() = offsetMinutes?.let(::minutes) ?: uiText(R.string.method_minutes)
+val CandleLightingMethod.label: UiText get() = when (this) {
+    CandleLightingMethod.AtPlag -> uiText(R.string.method_candles_option_plag)
+    else -> offsetMinutes?.let(::minutes) ?: uiText(R.string.method_minutes)
+}
 
 val MotzeiShabbatMethod.label: UiText get() = when (this) {
     MotzeiShabbatMethod.Degrees6Point2 -> uiText(R.string.method_tzeit_6_2)
@@ -248,8 +251,10 @@ fun RabbeinuTamMethod.caption(settings: ZmanimCalculationSettings): UiText =
 fun ChametzMethod.caption(settings: ZmanimCalculationSettings): UiText =
     captionOf(customUnit, settings.chametzCustom, label)
 
-fun CandleLightingMethod.caption(settings: ZmanimCalculationSettings): UiText =
-    minutes(offsetMinutes ?: settings.candleLightingCustomMinutes)
+fun CandleLightingMethod.caption(settings: ZmanimCalculationSettings): UiText = when (this) {
+    CandleLightingMethod.AtPlag -> uiText(R.string.method_candles_at_plag)
+    else -> minutes(offsetMinutes ?: settings.candleLightingCustomMinutes)
+}
 
 /** What a candle-lighting row says under its time: the method, or that it was held at plag. */
 fun CandleLighting?.caption(settings: ZmanimCalculationSettings): UiText = when {

@@ -65,6 +65,7 @@
 
     <!-- Zmanim (row titles and the "Zmanim to show" list) -->
     <string name="group_zmanim">זמנים</string>
+    <string name="zmanim_none_selected">אין זמנים מוצגים</string>
     <string name="group_shabbat">שבת</string>
     <string name="group_daily_learning">לימוד יומי</string>
     <string name="zman_alot">עלות השחר</string>
@@ -97,7 +98,6 @@
     <string name="row_torah_reading">קריאת התורה</string>
     <string name="row_upcoming_reading">קריאת התורה הקרובה</string>
     <string name="row_rosh_chodesh">ראש חודש</string>
-    <string name="row_rosh_chodesh_description">חודש עברי חדש</string>
     <string name="row_omer">עומר</string>
     <string name="row_omer_description">ספירת העומר</string>
     <string name="row_chanukah">חנוכה</string>
@@ -178,6 +178,7 @@
     <string name="method_bein_hashmashot_13_5">בין השמשות 13.5 דקות לפני 7.083°</string>
     <string name="method_bein_hashmashot_2_stars">בין השמשות שני כוכבים</string>
     <string name="method_candles_at_plag">פלג המנחה — הזמן המוקדם ביותר</string>
+    <string name="method_candles_option_plag">בפלג המנחה</string>
     <string name="method_no_tzeit_72">72 דקות אחרי השקיעה (פניני הלכה)</string>
     <string name="method_no_tzeit_caption_72">72 דקות אחרי השקיעה (אין צאת הכוכבים הלילה)</string>
     <string name="method_no_tzeit_chatzot">חצות הלילה (הרב גורן)</string>
@@ -243,6 +244,7 @@
     <string name="settings_tosefet_dialog">דקות שמתווספות אחרי צאת הכוכבים. ברירת המחדל היא 5.</string>
     <string name="settings_ateret_torah_dialog">דקות אחרי השקיעה. חכם הררי־רפול נתן 25 דקות לארץ ישראל; בחו״ל נוהגים 40.</string>
     <string name="settings_candle_lighting_dialog">דקות לפני השקיעה.</string>
+    <string name="settings_candle_lighting_plag_note">מוקדם מפלג המנחה? יוצג פלג המנחה</string>
     <string name="settings_custom_method_dialog">איך הזמן נמדד, והערך:</string>
 
     <!-- Themes -->
@@ -302,9 +304,9 @@
         <item quantity="other">מצפן. קודש הקודשים נמצא ב־%d מעלות מהצפון האמיתי.</item>
     </plurals>
     <string name="mizrach_compass_caption">החזק את הטלפון במאוזן או במאונך. המחט מצביעה לכיוון קודש הקודשים.</string>
-    <string name="mizrach_figure_eight_tip">לשיפור הדיוק, הזז את הטלפון כמה פעמים בתנועת שמונה.</string>
-    <string name="mizrach_compass_accuracy_low">דיוק המצפן נמוך. הזז את הטלפון בתנועת שמונה והרחק אותו ממגנטים.</string>
-    <string name="mizrach_compass_unreliable">המצפן אינו אמין כרגע — כנראה שמגנט מפריע. הזז את הטלפון בתנועת שמונה והרחק אותו ממגנטים.</string>
+    <string name="mizrach_figure_eight_tip">לשיפור הדיוק, הזז את הטלפון כמה פעמים בצורת שמונה.</string>
+    <string name="mizrach_compass_accuracy_low">דיוק המצפן נמוך. הזז את הטלפון בצורת שמונה והרחק אותו ממגנטים.</string>
+    <string name="mizrach_compass_unreliable">המצפן אינו אמין כרגע — כנראה שמגנט מפריע. הזז את הטלפון בצורת שמונה והרחק אותו ממגנטים.</string>
     <string name="mizrach_aligned">מכוון לקודש הקודשים</string>
     <string name="mizrach_turn_left">פנה שמאלה</string>
     <string name="mizrach_turn_right">פנה ימינה</string>

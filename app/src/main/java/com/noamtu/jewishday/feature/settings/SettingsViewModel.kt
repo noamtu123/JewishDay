@@ -404,7 +404,7 @@ class SettingsViewModel @Inject constructor(
 
     /** A typed-in candle-lighting offset, which also selects the custom option that uses it. */
     fun setCandleLightingCustomMinutes(minutes: Int) {
-        val clamped = minutes.coerceIn(0, 120)
+        val clamped = minutes.coerceAtLeast(0)
         updateZmanimSettings {
             it.copy(
                 candleLightingMethod = CandleLightingMethod.Custom,

@@ -7,6 +7,7 @@ import com.noamtu.jewishday.core.model.ZmanimTimeOption
 import com.noamtu.jewishday.core.model.defaultJerusalemLocation
 import com.noamtu.jewishday.core.model.nextZmanimRefreshBoundary
 import com.noamtu.jewishday.core.model.sunsetForDate
+import com.noamtu.jewishday.core.model.upcomingChatzotHaLaila
 import com.noamtu.jewishday.core.model.zmanimDayFacts
 import com.noamtu.jewishday.i18n.TestText
 import java.time.Duration
@@ -126,5 +127,19 @@ class WidgetContentTest {
         assertEquals(saturday, earlyInTheWeek.shabbat.day)
         assertEquals(friday, announced.date)
         assertEquals(tuesday, earlyInTheWeek.date)
+    }
+
+    @Test
+    fun justAfterMidnightTheNextZmanIsTonightsChatzotHaLaila() {
+        // In a Jerusalem summer chatzot halaila is about 00:45, so from 00:00 until then it is still ahead.
+        val summerDay = LocalDate.of(2026, 7, 1)
+        val now = summerDay.atTime(0, 10).atZone(defaultJerusalemLocation.zoneId).toInstant()
+        val chatzot = requireNotNull(upcomingChatzotHaLaila(defaultJerusalemLocation, settings, now))
+        assertEquals(summerDay, chatzot.atZone(defaultJerusalemLocation.zoneId).toLocalDate())
+
+        val content = content(now, date = summerDay)
+        val next = requireNotNull(content.next)
+        assertEquals(chatzot, next.instant)
+        assertEquals(0, content.nextIndex)
     }
 }

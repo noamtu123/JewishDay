@@ -199,11 +199,12 @@ class ZmanimViewModelTest {
     }
 
     @Test
-    fun typedMinutesAreHeldToTwoHoursAtMost() = scenario { viewModel, stores ->
+    fun typedMinutesAreKeptAsTyped() = scenario { viewModel, stores ->
+        // No upper limit: a time earlier than plag hamincha is held at plag when it is shown.
         viewModel.selectCandleLightingMinutes(500)
         val settings = stores.settings.settings.awaitFirst { it.candleLightingPromptHandled && it.candleLightingDefault != null }
         assertEquals(CandleLightingMethod.Custom, settings.zmanimSettings.candleLightingMethod)
-        assertEquals(120, settings.zmanimSettings.candleLightingCustomMinutes)
+        assertEquals(500, settings.zmanimSettings.candleLightingCustomMinutes)
         assertEquals(CandleLightingMethod.Custom, settings.candleLightingDefault)
     }
 }

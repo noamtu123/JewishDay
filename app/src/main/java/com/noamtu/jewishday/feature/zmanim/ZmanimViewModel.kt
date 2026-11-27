@@ -276,7 +276,7 @@ class ZmanimViewModel @Inject constructor(
             appSettingsRepository.updateZmanimSettings {
                 it.copy(
                     candleLightingMethod = CandleLightingMethod.Custom,
-                    candleLightingCustomMinutes = minutes.coerceIn(0, 120),
+                    candleLightingCustomMinutes = minutes.coerceAtLeast(0),
                 )
             }
             appSettingsRepository.setCandleLightingPromptHandled(true)

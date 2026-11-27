@@ -38,6 +38,9 @@ android {
         // res/xml/locales_config is generated from the translation folders (and resources.properties),
         // so Android 13+'s per-app language setting always lists exactly the languages the app has.
         generateLocaleConfig = true
+        // Ship only those languages: the libraries' own translations into dozens of others would
+        // never be shown, since the app itself speaks only these.
+        localeFilters += resourceLocaleFilters(translationLocales(file("src/main/res")))
     }
 
     // Release is the only variant shipped, so it is the one tested. Since AGP 9, unit tests exist
@@ -164,4 +167,15 @@ fun translationLocales(res: File): List<String> {
         }
         .sorted()
     return listOf("en") + found
+}
+
+/**
+ * The resource-qualifier forms of [tags] for `localeFilters`: "en", "iw" and "he" for Hebrew (its
+ * folders use the old code, and some libraries the new one), "b+pt+BR" for a regional tag.
+ */
+fun resourceLocaleFilters(tags: List<String>): List<String> {
+    val legacy = mapOf("he" to "iw", "id" to "in", "yi" to "ji")
+    return tags.flatMap { tag ->
+        if ('-' in tag) listOf("b+" + tag.replace('-', '+')) else listOfNotNull(tag, legacy[tag])
+    }.distinct()
 }

@@ -18,13 +18,30 @@ import java.time.LocalTime
 // arithmetic the library's own getters do, with the number coming from settings.
 // ---------------------------------------------------------------------------------------------
 
-/** A degree-based dawn: how long before sunrise the sun sits [degrees] below the horizon. */
+/**
+ * A degree-based dawn: how long before sunrise the sun sits [degrees] below the horizon. The sun is
+ * never more than 90° below it, so a larger angle — which the library's trigonometry would quietly
+ * fold back into a real-looking time — gives none, the way a far-north night with no such dark does.
+ */
 private fun ComprehensiveZmanimCalendar.sunriseByDegrees(degrees: Double): Instant? =
-    getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + degrees)
+    if (degrees.isReachableDepression()) getSunriseOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + degrees) else null
 
 /** The same after sunset, for nightfall opinions. */
 private fun ComprehensiveZmanimCalendar.sunsetByDegrees(degrees: Double): Instant? =
-    getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + degrees)
+    if (degrees.isReachableDepression()) getSunsetOffsetByDegrees(AstronomicalCalendar.GEOMETRIC_ZENITH + degrees) else null
+
+private fun Double.isReachableDepression(): Boolean = isFinite() && this in -90.0..90.0
+
+/**
+ * The longest custom offset a zman is worked out from. Any number may be typed in, but the library
+ * measures a halachic hour in nanoseconds (a Long, about 292 years), and a day built from two
+ * offsets of this length stays well inside that, at every hour of it. Past it there is no time to
+ * show, as on a day the sun never reaches the chosen angle.
+ */
+private val MaxCustomOffset: Duration = Duration.ofDays(100L * 365)
+
+/** [offset], when it is short enough to work a zman out from (see [MaxCustomOffset]); otherwise null. */
+private fun customOffset(offset: Duration): Duration? = offset.takeIf { it.abs() <= MaxCustomOffset }
 
 /**
  * A number of *zmaniyot* minutes as a duration: sixtieths of this day's GRA halachic hour, so 72 of
@@ -32,7 +49,7 @@ private fun ComprehensiveZmanimCalendar.sunsetByDegrees(degrees: Double): Instan
  * length to divide, as inside the arctic circle.
  */
 private fun ComprehensiveZmanimCalendar.zmaniyotOffset(minutes: Int): Duration? =
-    shaahZmanisGRA?.multipliedBy(minutes.toLong())?.dividedBy(60L)
+    shaahZmanisGRA?.multipliedBy(minutes.toLong())?.dividedBy(60L)?.let(::customOffset)
 
 private fun ComprehensiveZmanimCalendar.zmaniyotBeforeSunrise(minutes: Int): Instant? =
     zmaniyotOffset(minutes)?.let { AstronomicalCalendar.getTimeOffset(seaLevelSunrise, it.negated()) }
@@ -41,10 +58,10 @@ private fun ComprehensiveZmanimCalendar.zmaniyotAfterSunset(minutes: Int): Insta
     zmaniyotOffset(minutes)?.let { AstronomicalCalendar.getTimeOffset(seaLevelSunset, it) }
 
 private fun ComprehensiveZmanimCalendar.minutesBeforeSunrise(minutes: Int): Instant? =
-    AstronomicalCalendar.getTimeOffset(seaLevelSunrise, Duration.ofMinutes(-minutes.toLong()))
+    customOffset(Duration.ofMinutes(minutes.toLong()))?.let { AstronomicalCalendar.getTimeOffset(seaLevelSunrise, it.negated()) }
 
 private fun ComprehensiveZmanimCalendar.minutesAfterSunset(minutes: Int): Instant? =
-    AstronomicalCalendar.getTimeOffset(seaLevelSunset, Duration.ofMinutes(minutes.toLong()))
+    customOffset(Duration.ofMinutes(minutes.toLong()))?.let { AstronomicalCalendar.getTimeOffset(seaLevelSunset, it) }
 
 /**
  * The dawn a custom [unit]/[values] pair defines, which is the start of the halachic day for every
@@ -102,7 +119,7 @@ internal fun ComprehensiveZmanimCalendar.misheyakir(settings: ZmanimCalculationS
         // Measured from the sunrise the user chose, since this is the one option stated as an offset
         // from sunrise itself rather than as a position of the sun.
         MisheyakirMethod.CustomMinutesBeforeSunrise -> sunrise(settings.sunriseMethod)
-            ?.let { AstronomicalCalendar.getTimeOffset(it, Duration.ofMinutes(-custom.minutes.toLong())) }
+            ?.let { sunrise -> customOffset(Duration.ofMinutes(custom.minutes.toLong()))?.let { AstronomicalCalendar.getTimeOffset(sunrise, it.negated()) } }
         MisheyakirMethod.CustomZmaniyotMinutesBeforeSunrise -> zmaniyotBeforeSunrise(custom.zmaniyotMinutes)
         MisheyakirMethod.Minutes6AfterAlos -> alotHashachar(settings)
             ?.let { AstronomicalCalendar.getTimeOffset(it, Duration.ofMinutes(6)) }
@@ -268,8 +285,9 @@ internal fun ComprehensiveZmanimCalendar.plagHamincha(settings: ZmanimCalculatio
 
 /**
  * Candle lighting for the day this calendar is set to, and whether it had to be held at plag.
- * [isPlag] is true when the chosen minutes before sunset would fall before plag hamincha — on a short
- * winter day far north — since candles lit earlier than plag do not bring the day in.
+ * [isPlag] is true when the time is plag hamincha: chosen as such ([CandleLightingMethod.AtPlag]), or
+ * held there because the chosen minutes before sunset would fall before it — on a short winter day far
+ * north — since candles lit earlier than plag do not bring the day in.
  */
 @Immutable
 public data class CandleLighting(
@@ -281,7 +299,8 @@ public data class CandleLighting(
 
 /**
  * The chosen minutes before the chosen sunset, but never earlier than the plag the user picked: the
- * same plag their own plag row shows, not KosherJava's built-in GRA one. Computed here rather than
+ * same plag their own plag row shows, not KosherJava's built-in GRA one (or, on a day with no plag,
+ * than sunrise). Computed here rather than
  * through the library's getCandleLighting, whose answer on such a day is its own (null in 3.1).
  *
  * With no sunset and no tzeit either — the midnight sun, where day and night are not told apart —
@@ -301,12 +320,22 @@ internal fun ComprehensiveZmanimCalendar.candleLighting(settings: ZmanimCalculat
         } ?: return null
         return CandleLighting(entry, isPlag = false, fallback = source)
     }
-    val lighting = sunset.minus(Duration.ofMinutes(settings.candleLightingOffsetMinutes.toLong()))
     val plag = plagHamincha(settings)
-    return if (plag != null && lighting.isBefore(plag)) {
-        CandleLighting(plag, isPlag = true)
-    } else {
-        CandleLighting(lighting, isPlag = false)
+    // At plag by choice. Should plag itself not come out (it needs a sunrise), the usual 20 minutes.
+    val offset = settings.candleLightingOffsetMinutes
+        ?: return plag?.let { CandleLighting(it, isPlag = true) } ?: CandleLighting(sunset.minus(Duration.ofMinutes(20)), isPlag = false)
+    val lighting = sunset.minus(Duration.ofMinutes(offset.toLong()))
+    if (plag != null) {
+        return if (lighting.isBefore(plag)) CandleLighting(plag, isPlag = true) else CandleLighting(lighting, isPlag = false)
+    }
+    // No plag to hold it at (a custom plag the sun never reaches, say), yet any number of minutes may
+    // be typed in: no earlier than the day's own sunrise, and with no sunrise either, a time that
+    // falls before the day began is no candle lighting at all.
+    val sunrise = sunrise(settings.sunriseMethod)
+    return when {
+        sunrise != null -> CandleLighting(maxOf(lighting, sunrise), isPlag = false)
+        lighting.isBefore(sunset.minus(Duration.ofDays(1))) -> null
+        else -> CandleLighting(lighting, isPlag = false)
     }
 }
 
@@ -423,3 +452,21 @@ internal fun ComprehensiveZmanimCalendar.chametzTimes(settings: ZmanimCalculatio
         ChametzMethod.BaalHatanya -> sofZmanAchilasChametzBaalHatanya to sofZmanBiurChametzBaalHatanya
     }
 }
+
+/**
+ * The end of the fifth halachic hour on a day that is not Erev Pesach itself: the Friday chametz is
+ * burned on when Erev Pesach falls on Shabbat. KosherJava's own chametz getters answer only on 14
+ * Nisan, so the same hour is worked out here from each opinion's day.
+ */
+internal fun ComprehensiveZmanimCalendar.burnChametzByOnAnyDay(settings: ZmanimCalculationSettings): Instant? =
+    when (settings.chametzMethod) {
+        ChametzMethod.Gra -> graDay(settings) { start, end -> getShaahZmanisBasedZman(start, end, 5.0) }
+        ChametzMethod.CustomDegrees,
+        ChametzMethod.CustomMinutes,
+        ChametzMethod.CustomZmaniyotMinutes,
+        -> chametzTimes(settings).second
+        // Three hours in is sof zman shema; two more of the same day's hours make five.
+        ChametzMethod.BaalHatanya -> sofZmanShmaBaalHatanya?.let { shema ->
+            shaahZmanisBaalHatanya?.let { hour -> shema.plus(hour.multipliedBy(2)) }
+        }
+    }

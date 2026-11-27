@@ -21,12 +21,19 @@ public data class CustomZmanValue(
     val minutes: Int,
     val zmaniyotMinutes: Int,
 ) {
-    public fun withValue(unit: CustomZmanUnit, value: Double): CustomZmanValue = when (unit) {
-        // A degree value is entered to three decimals (19.848° is a real opinion); the minute ones
-        // are whole minutes, which is the only precision any of these opinions is stated in.
-        CustomZmanUnit.Degrees -> copy(degrees = value.coerceIn(0.0, 90.0))
-        CustomZmanUnit.Minutes -> copy(minutes = value.toInt().coerceIn(0, 300))
-        CustomZmanUnit.ZmaniyotMinutes -> copy(zmaniyotMinutes = value.toInt().coerceIn(0, 300))
+    /**
+     * [value] in [unit], taken as given: what anyone holds is their own choice. A degree value is
+     * entered to three decimals (19.848° is a real opinion); the minute ones are whole minutes, the
+     * only precision these opinions are stated in. Only what cannot be a number at all is refused
+     * (the old value stays), and a minute count past what an Int holds stops there; an angle the sun
+     * never reaches simply gives no time, as on a far-north day.
+     */
+    public fun withValue(unit: CustomZmanUnit, value: Double): CustomZmanValue = when {
+        value.isNaN() -> this
+        unit == CustomZmanUnit.Degrees -> if (value.isFinite()) copy(degrees = value) else this
+        // Double.toInt() saturates at Int.MIN_VALUE / Int.MAX_VALUE rather than overflowing.
+        unit == CustomZmanUnit.Minutes -> copy(minutes = value.toInt())
+        else -> copy(zmaniyotMinutes = value.toInt())
     }
 
     public fun value(unit: CustomZmanUnit): Double = when (unit) {
@@ -90,7 +97,14 @@ public data class ZmanimCalculationSettings(
     val holyDayTosefetMinutes: Int = 5,
     val ateretTorahSunsetOffsetMinutes: Int = 40,
 ) {
-    /** Minutes before sunset for candle lighting, whether from a minhag option or a typed-in value. */
-    val candleLightingOffsetMinutes: Int
-        get() = candleLightingMethod.offsetMinutes ?: candleLightingCustomMinutes
+    /**
+     * Minutes before sunset for candle lighting, whether from a minhag option or a typed-in value;
+     * null when it is at plag hamincha, which is no fixed number of minutes.
+     */
+    val candleLightingOffsetMinutes: Int?
+        get() = when (candleLightingMethod) {
+            CandleLightingMethod.AtPlag -> null
+            CandleLightingMethod.Custom -> candleLightingCustomMinutes
+            else -> candleLightingMethod.offsetMinutes
+        }
 }
