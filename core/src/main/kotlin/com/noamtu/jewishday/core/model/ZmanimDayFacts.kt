@@ -47,7 +47,8 @@ public data class ZmanimDayFacts(
 
 /**
  * One zman of the day's list: which it is, and when (null when it does not occur that day).
- * [fallback] says which stand-in gave [time] on a night with no tzeit of its own (see [NoTzeitFallback]).
+ * [fallback] says which stand-in gave [time] where the method gave none: a night with no tzeit, or a
+ * morning with no dawn or misheyakir, of its own (see [NoTzeitFallback]).
  */
 @Immutable
 public data class ZmanTime(

@@ -115,7 +115,7 @@ class DataStoreAppSettingsRepositoryTest {
             sunsetMethod = SunsetMethod.ElevationAdjusted,
             tzeitHakochavimMethod = TzeitHakochavimMethod.CustomMinutes,
             tzeitHakochavimCustom = CustomZmanValue(degrees = 5.9, minutes = 51, zmaniyotMinutes = 53),
-            noTzeitFallback = NoTzeitFallback.EretzYisrael,
+            noTzeitFallback = NoTzeitFallback.ChatzotHaLaila,
             candleLightingMethod = CandleLightingMethod.Custom,
             candleLightingCustomMinutes = 22,
             motzeiShabbatMethod = MotzeiShabbatMethod.CustomZmaniyotMinutes,

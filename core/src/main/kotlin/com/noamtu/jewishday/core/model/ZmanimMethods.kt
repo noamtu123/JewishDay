@@ -189,32 +189,51 @@ public enum class TzeitHakochavimMethod(public val storageValue: String) {
 }
 
 /**
- * What stands in for tzeit hakochavim on a night it never comes: far enough north or south in summer
- * the sun sets but never sinks to the user's nightfall angle, or does not set at all. Used only on
- * such a night; wherever the user's own tzeit exists it is never consulted.
+ * What stands in on a night that never gets dark enough: far enough north or south in summer the sun
+ * sets but never sinks to the user's nightfall angle, or to the dawn and misheyakir angles before the
+ * next sunrise, or does not set at all. One choice covers the whole night — each option is one
+ * posek's answer for it, evening and morning alike. Used only for a zman the user's own method gives
+ * no time for; wherever that exists it is never consulted.
  *
- * Plain civil midnight is deliberately absent: no posek gives it.
+ * Left out on purpose:
+ * - Plain civil midnight: no posek gives it.
+ * - "As in Eretz Yisrael" (Jerusalem's moment on the local clock), once offered here after the
+ *   Divrei Yatziv (OC 108). His Eretz Yisrael rule is for places with no sunrise or sunset at all,
+ *   said tentatively ("ואפשר דלענין שבת … נפשוט שנלך בתר ארה"ק") and apparently about which day is
+ *   Shabbat; where the sun does rise and set, he goes by them even without tzeit ("שפיר שייך יום
+ *   ולילה בשקיעת החמה אף דליכא צאה"כ"), as Chevel Nachalato 6:23 sums him up: "אזלינן בתר זריחה ושקיעה
+ *   ולא אחר עה"ש וצה"כ". Applied to white nights it put Helsinki's dawn after its own sunrise and its
+ *   tzeit before its own sunset. A stored "eretz_yisrael" now reads as the default.
  */
 public enum class NoTzeitFallback(public val storageValue: String) {
     /**
-     * 72 minutes after the user's own sunset (sea level or observed). Peninei Halakha (1:3, expanded,
-     * א,כה): in the northern countries the custom is to set tzeit all year at 72 minutes after sunset,
-     * and people relied on it for melacha on motzei Shabbat — he names the "white nights" outright.
-     * On a day with no sunset at all there is nothing to count from, and chatzot halaila is used.
+     * 72 minutes after the user's own sunset (sea level or observed). Peninei Halakha (Shabbat 1:3,
+     * expanded, א,כה): in the northern countries the custom is to set tzeit all year at 72 minutes
+     * after sunset, and people relied on it for melacha on motzei Shabbat; he names the "white nights"
+     * outright (א,ט), and says the Sages' minutes were stated for Eretz Yisrael.
+     *
+     * The morning takes the same fixed minutes from the user's sunrise, the figures Peninei Halakha
+     * gives for them: alot 72 minutes before sunrise (Tefillah 11:2 n. 1, the four-mil reckoning, which
+     * he pairs with 72 after sunset in Shabbat 1:3 expanded, א,יח), misheyakir about 50 (Tefillah 11:2,
+     * "סביב 50 דקות לפני הנץ"), and the Magen Avraham's day from the one 72 to the other. He does not
+     * apply these to the north himself; this is the morning side of the custom he does cite. Before
+     * this choice existed, alot and the Magen Avraham zmanim already fell back to exactly these times.
+     *
+     * On a day with no sunset (or no sunrise) there is nothing to count from, and chatzot halaila is
+     * used, as below.
      */
     Minutes72AfterSunset("minutes_72_after_sunset"),
 
     /**
-     * Solar midnight of that night, the darkest moment it has. Rav Shlomo Goren: where there is no
-     * nightfall, Shabbat comes in and goes out at chatzot halaila.
+     * Solar midnight, the darkest moment the night has. Rav Shlomo Goren (Torat HaShabbat VeHaMoed, as
+     * cited by later writers): where there is no nightfall, chatzot halaila ends bein hashmashot,
+     * Shabbat comes in and goes out at it, and dawn begins right after it. Rav Yaakov Singer (Beit
+     * Mashiach 259) rules the same for dawn: where the sun never reaches the dawn angle, "עלות השחר
+     * מתחיל מחצות הלילה". So alot and misheyakir are last night's chatzot, and the Magen Avraham's day
+     * runs chatzot to chatzot, putting sof zman shema six hours after it (Moadim U'Zmanim 2:155).
+     * Chevel Nachalato 6:23 reports that in Scandinavia Shabbat was taken out at chatzot.
      */
     ChatzotHaLaila("chatzot_halaila"),
-
-    /**
-     * The moment tzeit comes in Jerusalem that civil date, by the user's own method, shown in local
-     * time. Divrei Yatziv: in such places Eretz Yisrael decides.
-     */
-    EretzYisrael("eretz_yisrael"),
     ;
 
     public companion object {

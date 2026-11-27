@@ -28,7 +28,6 @@ class NoTzeitFallbackTest {
 
     private val minutes72 = ZmanimCalculationSettings()
     private val chatzot = ZmanimCalculationSettings(noTzeitFallback = NoTzeitFallback.ChatzotHaLaila)
-    private val eretzYisrael = ZmanimCalculationSettings(noTzeitFallback = NoTzeitFallback.EretzYisrael)
 
     /** 8.5° — never reached in Helsinki around midsummer, though 6.2° is. */
     private fun deeper(settings: ZmanimCalculationSettings) = settings.copy(
@@ -76,19 +75,8 @@ class NoTzeitFallbackTest {
     }
 
     @Test
-    fun aSummerNightWithoutTzeitCanTakeJerusalemsInstead() {
-        for ((city, settings) in listOf(helsinki to deeper(eretzYisrael), reykjavik to eretzYisrael)) {
-            val jerusalems = ownTzeit(defaultJerusalemLocation, midsummer, settings)
-            assertNotNull(jerusalems)
-            assertEquals(city.name, jerusalems, tzeitForDate(city, midsummer, settings))
-            val row = zmanimDayFacts(city, midsummer, settings).zmanim.single { it.option == ZmanimTimeOption.Tzeit }
-            assertEquals(NoTzeitFallback.EretzYisrael, row.fallback)
-        }
-    }
-
-    @Test
     fun theHebrewDateChangesAtTheFallback() {
-        for (settings in listOf(deeper(minutes72), deeper(chatzot), deeper(eretzYisrael))) {
+        for (settings in listOf(deeper(minutes72), deeper(chatzot))) {
             val fallback = requireNotNull(tzeitForDate(helsinki, midsummer, settings))
             val before = fallback.minusSeconds(60)
             val after = fallback.plusSeconds(60)
@@ -108,7 +96,7 @@ class NoTzeitFallbackTest {
     fun aFastWithoutTzeitEndsAtTheFallback() {
         // 17 Tammuz 5786.
         val fastDate = LocalDate.of(2026, 7, 2)
-        for (settings in listOf(deeper(minutes72), deeper(chatzot), deeper(eretzYisrael))) {
+        for (settings in listOf(deeper(minutes72), deeper(chatzot))) {
             assertNull(ownTzeit(helsinki, fastDate, settings))
             val noon = fastDate.atTime(12, 0).atZone(helsinki.zoneId).toInstant()
             val fast = requireNotNull(zmanimDayFacts(helsinki, fastDate, settings, now = noon).fastDayInfo)
@@ -139,17 +127,6 @@ class NoTzeitFallbackTest {
     }
 
     @Test
-    fun theMidnightSunCanFollowJerusalemsShabbat() {
-        val friday = midsummer
-        val shabbat = requireNotNull(zmanimDayFacts(tromso, friday.minusDays(2), eretzYisrael).shabbat)
-        val jerusalem = requireNotNull(zmanimDayFacts(defaultJerusalemLocation, friday.minusDays(2), eretzYisrael).shabbat)
-        assertEquals(jerusalem.candleLighting?.time, shabbat.candleLighting?.time)
-        assertEquals(NoTzeitFallback.EretzYisrael, shabbat.candleLighting?.fallback)
-        assertEquals(jerusalem.exit, shabbat.exit)
-        assertEquals(NoTzeitFallback.EretzYisrael, shabbat.exitFallback)
-    }
-
-    @Test
     fun placesWithTzeitAreUntouched() {
         val days = generateSequence(LocalDate.of(2026, 1, 1)) { it.plusDays(1) }
             .takeWhile { it.year == 2026 }
@@ -157,7 +134,7 @@ class NoTzeitFallbackTest {
         for (city in listOf(defaultJerusalemLocation, newYork)) {
             for (day in days) {
                 val own = requireNotNull(ownTzeit(city, day, minutes72))
-                for (settings in listOf(minutes72, chatzot, eretzYisrael)) {
+                for (settings in listOf(minutes72, chatzot)) {
                     assertEquals("${city.name} $day", own, tzeitForDate(city, day, settings))
                     assertEquals(holyDayExitForDate(city, day, minutes72), holyDayExitForDate(city, day, settings))
                 }
@@ -166,7 +143,6 @@ class NoTzeitFallbackTest {
                 val noon = day.atTime(12, 0).atZone(city.zoneId).toInstant()
                 val facts = zmanimDayFacts(city, day, minutes72, now = noon)
                 assertEquals("${city.name} $day", facts, zmanimDayFacts(city, day, chatzot, now = noon))
-                assertEquals("${city.name} $day", facts, zmanimDayFacts(city, day, eretzYisrael, now = noon))
                 assertTrue(facts.zmanim.all { it.fallback == null })
                 assertNull(facts.shabbat?.exitFallback)
                 assertNull(facts.shabbat?.candleLighting?.fallback)
@@ -177,14 +153,13 @@ class NoTzeitFallbackTest {
     @Test
     fun theChoiceIsOfferedOnlyWhereSomeNightHasNoTzeit() {
         val from = LocalDate.of(2026, 11, 27)
-        assertFalse(hasNightWithoutTzeit(defaultJerusalemLocation, minutes72, from))
-        assertFalse(hasNightWithoutTzeit(newYork, minutes72, from))
-        // Helsinki's midsummer sun reaches 6.2°, but not 8.5°.
-        assertFalse(hasNightWithoutTzeit(helsinki, minutes72, from))
-        assertTrue(hasNightWithoutTzeit(helsinki, deeper(minutes72), from))
-        assertTrue(hasNightWithoutTzeit(reykjavik, minutes72, from))
-        assertTrue(hasNightWithoutTzeit(tromso, minutes72, from))
+        assertFalse(hasNightThatStaysLight(defaultJerusalemLocation, minutes72, from))
+        assertFalse(hasNightThatStaysLight(newYork, minutes72, from))
+        // Helsinki's midsummer sun reaches 6.2° for tzeit, but never 16.1° for alot.
+        assertTrue(hasNightThatStaysLight(helsinki, minutes72, from))
+        assertTrue(hasNightThatStaysLight(reykjavik, minutes72, from))
+        assertTrue(hasNightThatStaysLight(tromso, minutes72, from))
         // The fallback itself is not part of the question.
-        assertTrue(hasNightWithoutTzeit(tromso, eretzYisrael, from))
+        assertTrue(hasNightThatStaysLight(tromso, chatzot, from))
     }
 }
