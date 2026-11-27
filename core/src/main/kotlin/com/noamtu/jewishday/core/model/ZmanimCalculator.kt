@@ -35,8 +35,18 @@ public fun zmanimDayFacts(
     // the active fast (see [announcedFastDayInfo]).
     val tzeit = calendar.tzeit(settings)
     val afterTzeit = hebrewDateRolled ?: (now != null && tzeit != null && !now.isBefore(tzeit))
-    val displayedDate = if (afterTzeit) date.plusDays(1) else date
-    val displayJewishCalendar = if (afterTzeit) jewishCalendar(displayedDate, inIsrael) else jewishCalendar
+    // Far enough north in summer yesterday's tzeit comes after midnight, and until it does the Hebrew
+    // date is still yesterday's (see [jewishDayCivilDate]). Only for the day [now] is on: any other
+    // day is read as it stands.
+    val stillYesterday = hebrewDateRolled == null && now != null &&
+        now.atZone(location.zoneId).toLocalDate() == date &&
+        beforeYesterdaysTzeit(location, date, settings, now)
+    val displayedDate = when {
+        stillYesterday -> date.minusDays(1)
+        afterTzeit -> date.plusDays(1)
+        else -> date
+    }
+    val displayJewishCalendar = if (displayedDate == date) jewishCalendar else jewishCalendar(displayedDate, inIsrael)
 
     val shabbatDates = shabbatDatesFor(date, location, settings, now)
     val shabbatStartCalendar = comprehensiveZmanimCalendar(location, shabbatDates.startDate, settings)
