@@ -223,7 +223,7 @@ class FastDayAndRolloverTest {
         // Only the Hebrew date has rolled.
         assertEquals(seventeenTammuz.plusDays(1), day.displayedDate)
 
-        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title.en() == "Chatzot HaLaila" }.time
+        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title.en() == "Chatzot Halaila" }.time
         assertEquals(chatzotHaLailaForDate(location, seventeenTammuz, settings), chatzotHaLaila)
     }
 
@@ -237,7 +237,7 @@ class FastDayAndRolloverTest {
         // away. Reading the row off the new calendar day alone would put it a whole day out.
         val smallHours = seventeenTammuz.plusDays(1).atTime(0, 15).atZone(zone).toInstant()
         val day = zmanimForDate(location, seventeenTammuz.plusDays(1), settings, smallHours)
-        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title.en() == "Chatzot HaLaila" }.time
+        val chatzotHaLaila = day.groups.flatMap { it.items }.first { it.title.en() == "Chatzot Halaila" }.time
 
         assertEquals(tonight, chatzotHaLaila)
         assertTrue("$chatzotHaLaila", requireNotNull(chatzotHaLaila).isAfter(smallHours))
