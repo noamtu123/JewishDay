@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.core.model.CandleLightingMethod
+import com.noamtu.jewishday.feature.settings.wholeMinutes
 import com.noamtu.jewishday.ui.theme.glassBorder
 import com.noamtu.jewishday.ui.theme.glassOr
 
@@ -119,7 +120,7 @@ internal fun CandleLightingPrompt(
         )
     }
     if (showCustomEntry) {
-        val minutes = customMinutes.toIntOrNull()
+        val minutes = wholeMinutes(customMinutes)
         val fieldLabel = stringResource(R.string.a11y_minutes_field)
         AlertDialog(
             onDismissRequest = { showCustomEntry = false },
@@ -135,10 +136,16 @@ internal fun CandleLightingPrompt(
                         modifier = Modifier.semantics { contentDescription = fieldLabel },
                         value = customMinutes,
                         onValueChange = { typed ->
-                            if (typed.length <= 3 && typed.all(Char::isDigit)) customMinutes = typed
+                            // Any number: one earlier than plag hamincha is held at plag.
+                            if (typed.all(Char::isDigit)) customMinutes = typed
                         },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    )
+                    Text(
+                        stringResource(R.string.settings_candle_lighting_plag_note),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             },

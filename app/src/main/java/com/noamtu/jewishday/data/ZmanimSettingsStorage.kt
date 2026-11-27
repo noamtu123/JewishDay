@@ -224,8 +224,10 @@ internal fun Preferences.customValues(
     defaults: CustomZmanValue,
     legacy: LegacyLadderChoice?,
 ): CustomZmanValue {
+    // Any number is the user's to choose; only a stored degree that is not a number at all (never
+    // written by the app) gives way to the default.
     val stored = CustomZmanValue(
-        degrees = this[customDegreesKey(zman)] ?: defaults.degrees,
+        degrees = this[customDegreesKey(zman)]?.takeIf { it.isFinite() } ?: defaults.degrees,
         minutes = this[customMinutesKey(zman)] ?: defaults.minutes,
         zmaniyotMinutes = this[customZmaniyotKey(zman)] ?: defaults.zmaniyotMinutes,
     )

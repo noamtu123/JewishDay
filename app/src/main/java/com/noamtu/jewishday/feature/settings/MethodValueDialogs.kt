@@ -77,8 +77,10 @@ internal fun CustomMethodDialog(
                 OutlinedTextField(
                     value = value,
                     onValueChange = { typed ->
-                        val allowed = typed.all { it.isDigit() || (decimal && it == '.') }
-                        if (allowed && typed.count { it == '.' } <= 1 && typed.length <= 7) value = typed
+                        // Digits (and one point, for degrees) only; any number of them is the
+                        // user's own choice.
+                        val allowed = typed.all { it.isDigit() || (decimal && it == '.') } && typed.count { it == '.' } <= 1
+                        if (allowed) value = typed
                     },
                     singleLine = true,
                     label = { Text(choice.label) },
@@ -91,7 +93,8 @@ internal fun CustomMethodDialog(
         confirmButton = {
             TextButton(
                 onClick = { entered?.let { onConfirm(choice, it) } },
-                enabled = entered != null,
+                // A run of digits too long for a Double reads as infinity, which is no number.
+                enabled = entered != null && entered.isFinite(),
             ) { Text(confirmLabel) }
         },
         dismissButton = {
@@ -105,19 +108,25 @@ internal fun CustomMethodDialog(
 private fun formatValue(value: Double, decimal: Boolean): String =
     if (!decimal || value % 1.0 == 0.0) value.toInt().toString() else value.toString()
 
-/** A small numeric entry dialog for a minutes-valued setting. Digits only, capped at two of them. */
+/**
+ * A small numeric entry dialog for a minutes-valued setting: whole minutes, up to [maxMinutes], or
+ * any number when it is null (one past what an Int holds is taken as the most it does). [note], when
+ * given, is one short line under the field.
+ */
 @Composable
 internal fun MinutesInputDialog(
     title: String,
     description: String,
     initialMinutes: Int,
+    maxMinutes: Int?,
     confirmLabel: String,
     dismissLabel: String,
     onDismiss: () -> Unit,
     onConfirm: (Int) -> Unit,
+    note: String? = null,
 ) {
     var value by rememberSaveable { mutableStateOf(initialMinutes.toString()) }
-    val minutes = value.toIntOrNull()
+    val minutes = wholeMinutes(value)
     val fieldLabel = stringResource(R.string.a11y_minutes_field)
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -131,12 +140,16 @@ internal fun MinutesInputDialog(
                     modifier = Modifier.semantics { contentDescription = fieldLabel },
                     value = value,
                     onValueChange = { entered ->
-                        // Keep it to a plain 0-99 number; anything else simply isn't accepted.
-                        if (entered.length <= 2 && entered.all(Char::isDigit)) value = entered
+                        // Keep it to a plain number (up to [maxMinutes]); anything else simply isn't accepted.
+                        val withinMax = maxMinutes == null || (wholeMinutes(entered) ?: 0) <= maxMinutes
+                        if (entered.all(Char::isDigit) && withinMax) value = entered
                     },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
+                note?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         },
         confirmButton = {
@@ -149,3 +162,11 @@ internal fun MinutesInputDialog(
         },
     )
 }
+
+/**
+ * A field of digits as whole minutes: null when empty, and Int.MAX_VALUE for a number too long for
+ * an Int, so no length of typing can overflow. The times built from it are held in Instants and
+ * Durations, which reach far past any such count.
+ */
+internal fun wholeMinutes(digits: String): Int? =
+    if (digits.isEmpty() || !digits.all(Char::isDigit)) null else digits.toIntOrNull() ?: Int.MAX_VALUE

@@ -70,6 +70,8 @@ data class ZmanimGroupUi(
     // Null for the untitled group of the day's events.
     val title: UiText?,
     val rows: List<ZmanimRowUi>,
+    // The one line shown in place of rows when the user has hidden every zman.
+    val emptyNote: UiText? = null,
 )
 
 @Immutable
@@ -84,7 +86,9 @@ data class ZmanimRowUi(
 
 /**
  * Drops the Zmanim rows and Daily-Learning rows the user has hidden, then removes any group
- * left empty. Rows without an id (always-on) and other groups are untouched.
+ * left empty. Rows without an id (always-on) and other groups are untouched. The Zmanim group is the
+ * exception: with every one of its rows hidden it stays, empty, so the screen can say so rather
+ * than lose the section without a word.
  */
 internal fun ZmanimDay.filterForDisplay(
     enabledZmanimTimes: Set<ZmanimTimeOption>,
@@ -98,7 +102,7 @@ internal fun ZmanimDay.filterForDisplay(
             ZmanimGroupKind.DailyLearning -> group.items.filter { it.id == null || it.id in learningIds }
             ZmanimGroupKind.Events -> group.items
         }
-        if (items.isEmpty()) null else group.copy(items = items)
+        if (items.isEmpty() && group.kind != ZmanimGroupKind.Zmanim) null else group.copy(items = items)
     }
     return copy(groups = filtered)
 }
@@ -157,6 +161,7 @@ internal fun ZmanimDay.toUiState(
                     isRambam = item.id.isRambamId(),
                 )
             },
+            emptyNote = uiText(R.string.zmanim_none_selected).takeIf { group.kind == ZmanimGroupKind.Zmanim && group.items.isEmpty() },
         )
     }
 

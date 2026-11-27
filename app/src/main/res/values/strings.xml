@@ -125,6 +125,8 @@
     <!-- ==== Zmanim (row titles and the "Zmanim to show" list) ==== -->
     <!-- Section title on the zmanim screen: the day's halachic times. -->
     <string name="group_zmanim">Zmanim</string>
+    <!-- Shown under the Zmanim section title when the user has hidden every zman in Settings → Zmanim to show. Keep it short. -->
+    <string name="zmanim_none_selected">No zmanim selected</string>
     <!-- Section title on the zmanim screen: the coming Shabbat's times. -->
     <string name="group_shabbat">Shabbat</string>
     <!-- Section title on the zmanim screen: the daily study schedules. -->
@@ -187,8 +189,6 @@
     <string name="row_upcoming_reading">Upcoming Torah reading</string>
     <!-- Row title on Rosh Chodesh (the new month). -->
     <string name="row_rosh_chodesh">Rosh Chodesh</string>
-    <!-- Caption under the Rosh Chodesh row. -->
-    <string name="row_rosh_chodesh_description">New Jewish month</string>
     <!-- Row title during the counting of the Omer. -->
     <string name="row_omer">Omer</string>
     <!-- Caption under the Omer row. -->
@@ -326,6 +326,8 @@
     <string name="method_bein_hashmashot_2_stars">Bein Hashmashot 2 stars</string>
     <!-- Caption under candle lighting when the chosen time would fall before plag hamincha, so plag is shown instead. -->
     <string name="method_candles_at_plag">Plag hamincha — the earliest time</string>
+    <!-- Candle-lighting option in Settings: light at plag hamincha, the earliest time Shabbat can be brought in. -->
+    <string name="method_candles_option_plag">At plag hamincha</string>
     <!-- Option for nights with no tzeit hakochavim (far north or south in summer): nightfall is 72 minutes after sunset, the custom of the northern countries cited by Peninei Halakha. -->
     <string name="method_no_tzeit_72">72 min after sunset (Peninei Halakha)</string>
     <!-- Caption under a nightfall time (tzeit, motzei Shabbat) on a night the sun never sinks far enough for tzeit, so 72 minutes after sunset was used instead. -->
@@ -454,6 +456,8 @@
     <string name="settings_ateret_torah_dialog">Minutes after sunset. Chacham Harari-Raful gave 25 for Israel; 40 is used elsewhere.</string>
     <!-- Text in the dialog for a custom candle-lighting time. -->
     <string name="settings_candle_lighting_dialog">Minutes before sunset.</string>
+    <!-- One short line under the candle-lighting minutes field: a number that would come before plag hamincha is shown as plag instead. -->
+    <string name="settings_candle_lighting_plag_note">Earlier than plag hamincha? Plag hamincha is shown.</string>
     <!-- Text in the dialog for a custom method, above its units and number field. -->
     <string name="settings_custom_method_dialog">How this zman is measured, and the value:</string>
 

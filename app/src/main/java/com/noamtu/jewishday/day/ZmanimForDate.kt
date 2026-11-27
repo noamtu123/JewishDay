@@ -91,7 +91,9 @@ private fun DayEvent.rows(settings: ZmanimCalculationSettings): List<ZmanItem> =
         ZmanItem(
             title = uiText(R.string.row_rosh_chodesh),
             time = null,
-            description = uiText(R.string.row_rosh_chodesh_description),
+            // No caption: the title and the value ("ראש חודש חשון") already say it all. A blank
+            // caption is left out of the row and of what TalkBack reads.
+            description = verbatim(""),
             value = name.asUiText(),
             kind = ZmanItemKind.RoshChodesh,
         ),
@@ -115,9 +117,9 @@ private fun DayEvent.rows(settings: ZmanimCalculationSettings): List<ZmanItem> =
     )
     is DayEvent.Chametz -> {
         val method = settings.chametzMethod.caption(settings)
-        listOf(
-            ZmanItem(uiText(R.string.row_eat_chametz), eatUntil, method),
-            ZmanItem(uiText(R.string.row_burn_chametz), burnUntil, method),
+        listOfNotNull(
+            ZmanItem(uiText(R.string.row_eat_chametz), eatUntil, method).takeIf { eats },
+            ZmanItem(uiText(R.string.row_burn_chametz), burnUntil, method).takeIf { burns },
         )
     }
 }

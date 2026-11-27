@@ -153,14 +153,14 @@ class ZmanimMethodCoverageTest {
 
     @Test
     fun everyCandleLightingOptionIsAWholeNumberOfMinutesBeforeSunset() {
-        CandleLightingMethod.entries.forEach { method ->
+        (CandleLightingMethod.entries - CandleLightingMethod.AtPlag).forEach { method ->
             val settings = defaults.copy(candleLightingMethod = method)
             val lighting = requireNotNull(comprehensiveZmanimCalendar(defaultJerusalemLocation, date, settings).candleLighting(settings)?.time) {
                 "Candle lighting $method resolved to null"
             }
             val minutesBefore = Duration.between(lighting, sunset).toMinutes()
             // The custom option takes its offset from the settings rather than from the enum.
-            val expected = settings.candleLightingOffsetMinutes.toLong()
+            val expected = requireNotNull(settings.candleLightingOffsetMinutes).toLong()
             assertTrue("$method reported $minutesBefore min before sunset", minutesBefore == expected)
         }
     }

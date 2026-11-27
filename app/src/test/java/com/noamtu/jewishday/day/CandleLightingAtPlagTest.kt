@@ -74,6 +74,49 @@ class CandleLightingAtPlagTest {
     }
 
     @Test
+    fun atPlagHaminchaLightsAtTheUsersOwnPlag() {
+        listOf(
+            ZmanimCalculationSettings(candleLightingMethod = CandleLightingMethod.AtPlag),
+            ZmanimCalculationSettings(candleLightingMethod = CandleLightingMethod.AtPlag, plagHaminchaMethod = PlagHaminchaMethod.CustomMinutes),
+        ).forEach { settings ->
+            listOf(defaultJerusalemLocation, newYork, stockholm).forEach { location ->
+                listOf(decemberFriday, summerFriday).forEach { friday ->
+                    val facts = facts(location, friday, settings)
+                    val plag = requireNotNull(facts.zman(ZmanimTimeOption.PlagHamincha))
+                    val lighting = requireNotNull(requireNotNull(facts.shabbat).candleLighting)
+                    assertTrue("${location.name} $friday", lighting.isPlag)
+                    assertEquals(plag, lighting.time)
+
+                    val row = day(location, friday, settings).candleRow()
+                    assertEquals(plag, row.time)
+                    assertEquals("Friday; Plag hamincha — the earliest time", row.description.en())
+                    assertEquals("יום שישי; פלג המנחה — הזמן המוקדם ביותר", row.description.he())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun anyLongOffsetIsHeldAtPlagEvenInJerusalem() {
+        // 120 minutes is earlier than plag (an hour and a quarter of a seasonal hour before sunset)
+        // all year round at ordinary latitudes, and there is no upper limit: any larger number,
+        // to the most an Int holds, is held there too.
+        listOf(120, 9_999_999, Int.MAX_VALUE).forEach { minutes ->
+            val settings = settingsFor(minutes)
+            listOf(defaultJerusalemLocation, newYork).forEach { location ->
+                listOf(decemberFriday, summerFriday).forEach { friday ->
+                    val facts = facts(location, friday, settings)
+                    val plag = requireNotNull(facts.zman(ZmanimTimeOption.PlagHamincha))
+                    val lighting = requireNotNull(requireNotNull(facts.shabbat).candleLighting)
+                    assertTrue("${location.name} $friday", lighting.isPlag)
+                    assertEquals(plag, lighting.time)
+                    assertEquals(plag, day(location, friday, settings).candleRow().time)
+                }
+            }
+        }
+    }
+
+    @Test
     fun ordinaryLatitudesAreUnchanged() {
         listOf(defaultJerusalemLocation, newYork).forEach { location ->
             listOf(18, 20, 30, 40).forEach { minutes -> assertMinutesBeforeSunset(location, decemberFriday, minutes) }

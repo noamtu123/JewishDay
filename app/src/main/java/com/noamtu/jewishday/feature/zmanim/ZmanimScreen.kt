@@ -209,6 +209,16 @@ private fun ZmanimContent(
                             }
                         }
                     }
+                    group.emptyNote?.let { note ->
+                        item(key = "${group.key}:empty", contentType = "empty-note") {
+                            Text(
+                                text = note.resolve(),
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 10.dp),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     items(
                         items = group.rows,
                         key = ZmanimRowUi::key,

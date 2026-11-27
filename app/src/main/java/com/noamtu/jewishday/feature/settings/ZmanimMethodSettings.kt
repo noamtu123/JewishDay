@@ -284,8 +284,8 @@ internal fun AdvancedZmanimChoices(
     }
     SettingsDivider()
     // Candle lighting is the one picker whose fixed options are minhagim rather than rungs of a
-    // calculation ladder — they are what the first-launch prompt offers — so all four stay, with a
-    // typed-in value beside them.
+    // calculation ladder — they are what the first-launch prompt offers — so they stay, with "at plag
+    // hamincha" for bringing Shabbat in early and a typed-in value beside them.
     MethodChoiceRow(text(R.string.settings_method_candle_lighting), text(R.string.settings_method_candle_lighting_description), settings.candleLightingMethod.caption(settings).text()) {
         activePicker = ZmanimMethodPicker(
             title = text(R.string.settings_method_candle_lighting),
@@ -296,13 +296,13 @@ internal fun AdvancedZmanimChoices(
                     label = when {
                         // Nothing to ask about the unit here — every option is a minute count — so
                         // the custom row leads straight to a number.
-                        option.offsetMinutes == null -> text(R.string.settings_method_custom)
+                        option == CandleLightingMethod.Custom -> text(R.string.settings_method_custom)
                         option == default -> text(R.string.settings_method_option_default, optionLabel)
                         else -> optionLabel
                     },
                     selected = option == settings.candleLightingMethod,
                     onSelect = {
-                        if (option.offsetMinutes == null) {
+                        if (option == CandleLightingMethod.Custom) {
                             showCandleLightingDialog = true
                         } else {
                             viewModel.setCandleLightingMethod(option)
@@ -381,6 +381,7 @@ internal fun AdvancedZmanimChoices(
             title = text(R.string.settings_method_tosefet),
             description = text(R.string.settings_tosefet_dialog),
             initialMinutes = settings.holyDayTosefetMinutes,
+            maxMinutes = 99,
             confirmLabel = text(R.string.settings_save),
             dismissLabel = text(R.string.settings_cancel),
             onDismiss = { showTosefetDialog = false },
@@ -396,6 +397,7 @@ internal fun AdvancedZmanimChoices(
             title = text(R.string.method_ateret_torah),
             description = text(R.string.settings_ateret_torah_dialog),
             initialMinutes = settings.ateretTorahSunsetOffsetMinutes,
+            maxMinutes = 99,
             confirmLabel = text(R.string.settings_save),
             dismissLabel = text(R.string.settings_cancel),
             onDismiss = { showAteretTorahDialog = false },
@@ -411,6 +413,9 @@ internal fun AdvancedZmanimChoices(
             title = text(R.string.settings_method_candle_lighting),
             description = text(R.string.settings_candle_lighting_dialog),
             initialMinutes = settings.candleLightingCustomMinutes,
+            // No cap: a number earlier than plag hamincha is held at plag, and the note says so.
+            maxMinutes = null,
+            note = text(R.string.settings_candle_lighting_plag_note),
             confirmLabel = text(R.string.settings_save),
             dismissLabel = text(R.string.settings_cancel),
             onDismiss = { showCandleLightingDialog = false },

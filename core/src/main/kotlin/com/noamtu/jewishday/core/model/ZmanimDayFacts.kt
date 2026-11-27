@@ -65,8 +65,17 @@ public sealed interface DayEvent {
 
     public data class Chanukah(val day: Int) : DayEvent
 
-    /** Erev Pesach: the last time to eat chametz, and to burn it. */
-    public data class Chametz(val eatUntil: Instant?, val burnUntil: Instant?) : DayEvent
+    /**
+     * Erev Pesach: the last time to eat chametz, and to burn it. When Erev Pesach falls on Shabbat
+     * the burning moves to Friday: Friday has only the burn ([eats] false), Shabbat only the eating
+     * ([burns] false).
+     */
+    public data class Chametz(
+        val eatUntil: Instant?,
+        val burnUntil: Instant?,
+        val eats: Boolean = true,
+        val burns: Boolean = true,
+    ) : DayEvent
 }
 
 /** The coming Shabbat: what names it, when it comes in, and when it goes out. */

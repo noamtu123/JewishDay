@@ -227,13 +227,16 @@ public enum class NoTzeitFallback(public val storageValue: String) {
  * Minutes before sunset, as a choice of minhag. The three fixed options are the practices common
  * enough to be worth a tap — they are communities' customs, not rungs of a calculation ladder — and
  * [Custom] covers any other number, 18 included, held in
- * [ZmanimCalculationSettings.candleLightingCustomMinutes]. [offsetMinutes] is null for [Custom]; read
- * the offset through [ZmanimCalculationSettings.candleLightingOffsetMinutes], which resolves both.
+ * [ZmanimCalculationSettings.candleLightingCustomMinutes]. [AtPlag] brings Shabbat in as early as it
+ * can be, at the user's own plag hamincha. [offsetMinutes] is null for both; read the offset through
+ * [ZmanimCalculationSettings.candleLightingOffsetMinutes], which resolves them (null for [AtPlag]).
  */
 public enum class CandleLightingMethod(public val storageValue: String, public val offsetMinutes: Int?) {
     Minutes20("minutes_20", 20),
     Minutes30("minutes_30", 30),
     Minutes40("minutes_40", 40),
+    // A storage value of its own, which no older build ever wrote.
+    AtPlag("plag_hamincha", null),
     Custom("custom_minutes", null),
     ;
 
