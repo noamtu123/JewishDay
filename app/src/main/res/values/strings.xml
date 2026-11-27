@@ -222,11 +222,11 @@
     <!-- Daily-learning track: Kitzur Shulchan Aruch. -->
     <string name="learning_kitzur">Kitzur Shulchan Aruch</string>
     <!-- Caption under the Daf Yomi row when it was calculated offline (KosherJava is the calendar library). -->
-    <string name="learning_daf_yomi_kosherjava_description">KosherJava Daf Yomi cycle</string>
+    <string name="learning_daf_yomi_kosherjava_description">Daf Yomi cycle</string>
     <!-- Caption under the Yerushalmi row when calculated offline. -->
-    <string name="learning_yerushalmi_kosherjava_description">KosherJava Yerushalmi cycle</string>
+    <string name="learning_yerushalmi_kosherjava_description">Yerushalmi cycle</string>
     <!-- Caption under the Tehillim row when calculated offline. -->
-    <string name="learning_tehillim_kosherjava_description">Monthly Tehillim division by Hebrew date</string>
+    <string name="learning_tehillim_kosherjava_description">Monthly cycle</string>
     <!-- Caption under the Mishnah Yomi row (two mishnayot a day, through the whole Mishnah). -->
     <string name="learning_mishnah_yomi_description">Mishnah Yomi cycle</string>
     <!-- Caption under the Tanakh Yomi row (a seder of Nach each weekday, once through each year). -->

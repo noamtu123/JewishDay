@@ -50,9 +50,14 @@ class CandleLightingStorageTest {
     }
 
     @Test
-    fun thePromptStillOffersOnlyTheThreeMinhagim() {
+    fun thePromptOffersTheThreeMinhagimAndPlag() {
         assertEquals(
-            listOf(CandleLightingMethod.Minutes20, CandleLightingMethod.Minutes30, CandleLightingMethod.Minutes40),
+            listOf(
+                CandleLightingMethod.Minutes20,
+                CandleLightingMethod.Minutes30,
+                CandleLightingMethod.Minutes40,
+                CandleLightingMethod.AtPlag,
+            ),
             CandleLightingMethod.PromptOptions,
         )
     }

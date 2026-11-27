@@ -263,8 +263,8 @@ public enum class CandleLightingMethod(public val storageValue: String, public v
         public fun fromStorageValue(value: String?): CandleLightingMethod? =
             entries.firstOrNull { it.storageValue == value }
 
-        /** The options the first-launch prompt offers: the common minhagim, not a typed-in value. */
-        public val PromptOptions: List<CandleLightingMethod> = entries.filter { it.offsetMinutes != null }
+        /** The options the first-launch prompt offers: the common minhagim and plag, not a typed-in value. */
+        public val PromptOptions: List<CandleLightingMethod> = entries.filter { it != Custom }
     }
 }
 

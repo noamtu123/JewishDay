@@ -115,9 +115,9 @@
     <string name="learning_tanakh_yomi">תנ״ך יומי</string>
     <string name="learning_shemirat_halashon">שמירת הלשון</string>
     <string name="learning_kitzur">קיצור שולחן ערוך</string>
-    <string name="learning_daf_yomi_kosherjava_description">מחזור דף יומי של KosherJava</string>
-    <string name="learning_yerushalmi_kosherjava_description">מחזור ירושלמי של KosherJava</string>
-    <string name="learning_tehillim_kosherjava_description">חלוקה חודשית לפי היום בחודש העברי</string>
+    <string name="learning_daf_yomi_kosherjava_description">מחזור דף יומי</string>
+    <string name="learning_yerushalmi_kosherjava_description">מחזור ירושלמי</string>
+    <string name="learning_tehillim_kosherjava_description">חלוקה חודשית</string>
     <string name="learning_mishnah_yomi_description">מחזור משנה יומית</string>
     <string name="learning_tanakh_yomi_description">מחזור תנ״ך יומי</string>
     <string name="learning_shemirat_halashon_description">שמירת הלשון יומית</string>

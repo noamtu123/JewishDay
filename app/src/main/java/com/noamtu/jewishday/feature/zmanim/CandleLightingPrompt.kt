@@ -83,8 +83,8 @@ internal fun CandleLightingPrompt(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.zmanim_candle_prompt_body))
                     Spacer(Modifier.height(4.dp))
-                    // The common minhagim only — the typed-in option belongs in Settings, not in a
-                    // first-launch question.
+                    // The common minhagim and plag hamincha, the earliest time Shabbat can come in.
+                    // A typed-in number has its own button below.
                     CandleLightingMethod.PromptOptions.forEach { method ->
                         TextButton(
                             modifier = Modifier.fillMaxWidth(),
@@ -93,9 +93,15 @@ internal fun CandleLightingPrompt(
                                 onSelected(method)
                             },
                         ) {
-                            // Non-null for every prompt option, by construction.
-                            val minutes = method.offsetMinutes ?: 18
-                            Text(pluralStringResource(R.plurals.method_minutes_value, minutes, minutes))
+                            // The minhagim are minutes before sunset; plag has no minutes of its own.
+                            val minutes = method.offsetMinutes
+                            Text(
+                                if (minutes != null) {
+                                    pluralStringResource(R.plurals.method_minutes_value, minutes, minutes)
+                                } else {
+                                    stringResource(R.string.method_candles_option_plag)
+                                },
+                            )
                         }
                     }
                     // The three numbers cover most practices but not all — 18 minutes among them —
