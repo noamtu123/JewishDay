@@ -192,7 +192,16 @@ private fun offlineLearning(jewishCalendar: JewishCalendar, date: LocalDate, inI
         if (hasYerushalmiDaf) {
             add(OfflineLearning(OfflineLearningTrack.DafYomiYerushalmi, CalendarText.DafYomiYerushalmi(date, inIsrael)))
         }
+        if (mishnahYomi(date) != null) add(OfflineLearning(OfflineLearningTrack.MishnahYomi, CalendarText.MishnahYomi(date)))
+        if (rambamYomi(date, 1) != null) add(OfflineLearning(OfflineLearningTrack.RambamYomi, CalendarText.RambamYomi(date, 1)))
+        if (rambamYomi(date, 3) != null) add(OfflineLearning(OfflineLearningTrack.RambamYomiThreeChapters, CalendarText.RambamYomi(date, 3)))
         add(OfflineLearning(OfflineLearningTrack.TehillimYomi, CalendarText.TehillimYomi(date, inIsrael)))
+        // Tanakh Yomi rests on Shabbat and Israel's festivals; the Kitzur has no 30th of Cheshvan or Adar I.
+        if (tanakhYomi(date) != null) add(OfflineLearning(OfflineLearningTrack.TanakhYomi, CalendarText.TanakhYomi(date)))
+        if (shemiratHaLashon(date) != null) add(OfflineLearning(OfflineLearningTrack.ShemiratHaLashon, CalendarText.ShemiratHaLashon(date)))
+        if (kitzurShulchanAruch(date) != null) {
+            add(OfflineLearning(OfflineLearningTrack.KitzurShulchanAruch, CalendarText.KitzurShulchanAruch(date)))
+        }
     }
 
 /**

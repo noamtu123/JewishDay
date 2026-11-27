@@ -6,11 +6,16 @@ import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
 import com.kosherjava.zmanim.hebrewcalendar.YerushalmiYomiCalculator
 import com.noamtu.jewishday.core.model.jewishCalendar
+import com.noamtu.jewishday.core.model.kitzurShulchanAruch
+import com.noamtu.jewishday.core.model.mishnahYomi
+import com.noamtu.jewishday.core.model.rambamYomi
+import com.noamtu.jewishday.core.model.shemiratHaLashon
+import com.noamtu.jewishday.core.model.tanakhYomi
 import com.noamtu.jewishday.core.model.tehillimRangeForDay
 
 /**
- * Hebrew: KosherJava's own Hebrew names and Hebrew numerals ("ה׳ תשרי תשפ״ז"), and Hebcal's readings
- * re-punctuated with geresh and gershayim so every track writes its numbers the same way.
+ * Hebrew: KosherJava's own Hebrew names and Hebrew numerals ("ה׳ תשרי תשפ״ז"), and the daily-learning
+ * references punctuated with geresh and gershayim so every track writes its numbers the same way.
  */
 public class HebrewLanguageFormatter : LanguageFormatter {
     private val formatter = HebrewDateFormatter().apply { isHebrewFormat = true }
@@ -39,6 +44,10 @@ public class HebrewLanguageFormatter : LanguageFormatter {
                 "תהילים ${number(range.chapterStart)}:${number(range.verseStart)}-${number(range.verseEnd ?: range.verseStart)}"
             }
         }
-        is CalendarText.Hebcal -> text.entry.hebrewText()
+        is CalendarText.MishnahYomi -> mishnahYomi(text.date)?.hebrew().orEmpty()
+        is CalendarText.RambamYomi -> rambamYomi(text.date, text.chaptersPerDay)?.hebrew().orEmpty()
+        is CalendarText.TanakhYomi -> tanakhYomi(text.date)?.hebrew().orEmpty()
+        is CalendarText.ShemiratHaLashon -> shemiratHaLashon(text.date)?.hebrew().orEmpty()
+        is CalendarText.KitzurShulchanAruch -> kitzurShulchanAruch(text.date)?.hebrew().orEmpty()
     }
 }

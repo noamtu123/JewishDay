@@ -7,10 +7,8 @@ import com.noamtu.jewishday.core.model.JewishLocation
 import com.noamtu.jewishday.core.model.defaultJerusalemLocation
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.CurrentLocationState
-import com.noamtu.jewishday.data.DailyLearningRepository
 import com.noamtu.jewishday.data.RootUiSettings
 import com.noamtu.jewishday.data.StartupSettingsCache
-import com.noamtu.jewishday.day.ZmanItem
 import com.noamtu.jewishday.i18n.PerAppLanguage
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import com.noamtu.jewishday.update.ApkInstaller
@@ -18,11 +16,8 @@ import com.noamtu.jewishday.update.AppRelease
 import com.noamtu.jewishday.update.AppUpdateRepository
 import com.noamtu.jewishday.update.UpdateCheckReport
 import java.io.File
-import java.time.LocalDate
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flowOf
 
 // Stand-ins for the Android-backed pieces the view models are built from. Settings and the
 // developer overrides are the real DataStore-backed repositories over a file (see TestStores.kt).
@@ -41,11 +36,6 @@ class FakeCurrentLocationRepository(location: JewishLocation = defaultJerusalemL
     override fun useJerusalemFallback() = Unit
 
     override fun currentLocationOrDefault(): JewishLocation = currentLocation.value ?: defaultJerusalemLocation
-}
-
-/** Hebcal never answers, so the offline daily learning stays. */
-class NoDailyLearning : DailyLearningRepository {
-    override fun learningItems(date: LocalDate, inIsrael: Boolean): Flow<List<ZmanItem>> = flowOf(emptyList())
 }
 
 /** Records what the date icon was asked to do. */

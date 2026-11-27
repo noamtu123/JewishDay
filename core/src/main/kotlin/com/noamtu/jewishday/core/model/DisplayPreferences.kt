@@ -38,9 +38,9 @@ public enum class ZmanimTimeOption(public val storageValue: String) {
 }
 
 /**
- * The daily-learning tracks the user can individually show or hide. [storageValue] matches
- * both the Hebcal API category and the offline KosherJava row id, so a single set filters
- * both sources. Default: Daf Yomi Bavli, Daf Yomi Yerushalmi, and Rambam Yomi (1 chapter).
+ * The daily-learning tracks the user can individually show or hide. [storageValue] is what the
+ * settings store and each row's id (once the names of Hebcal's categories, which the app read from
+ * before it worked every track out itself, so stored choices carry over). Default: Daf Yomi Bavli, Daf Yomi Yerushalmi, and Rambam Yomi (1 chapter).
  */
 public enum class DailyLearningType(public val storageValue: String) {
     DafYomiBavli("dafyomi"),

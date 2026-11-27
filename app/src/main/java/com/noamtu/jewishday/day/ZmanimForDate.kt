@@ -21,6 +21,7 @@ import com.noamtu.jewishday.i18n.description
 import com.noamtu.jewishday.i18n.label
 import com.noamtu.jewishday.i18n.methodCaption
 import com.noamtu.jewishday.i18n.nightfallCaption
+import com.noamtu.jewishday.i18n.title
 import com.noamtu.jewishday.i18n.uiText
 import com.noamtu.jewishday.i18n.verbatim
 import java.time.Instant
@@ -167,11 +168,11 @@ private fun ShabbatTimes.rows(parshaRow: ZmanItem?, settings: ZmanimCalculationS
     ),
 )
 
-/** The daily learning KosherJava can work out offline, shown until (or unless) Hebcal answers. */
+/** One daily-learning row: the track, what the day reads of it, and a word on where it comes from. */
 private fun OfflineLearning.row(): ZmanItem = ZmanItem(
-    title = uiText(track.type.label),
+    title = uiText(track.title),
     time = null,
-    description = uiText(track.description),
+    description = track.description,
     value = reading.asUiText(),
     id = track.type.storageValue,
 )

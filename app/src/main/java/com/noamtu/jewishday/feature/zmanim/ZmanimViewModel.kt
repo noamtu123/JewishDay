@@ -11,20 +11,15 @@ import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.core.model.ZmanimTimeOption
 import com.noamtu.jewishday.core.model.dayOffsetTo
 import com.noamtu.jewishday.core.model.defaultJerusalemLocation
-import com.noamtu.jewishday.core.model.isInIsrael
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
-import com.noamtu.jewishday.data.DailyLearningRepository
 import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.data.JewishDayRepository
-import com.noamtu.jewishday.day.ZmanItem
 import com.noamtu.jewishday.day.ZmanimDay
-import com.noamtu.jewishday.day.withDailyLearningItems
 import com.noamtu.jewishday.ui.ShowDayRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
-import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,7 +33,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -60,12 +54,8 @@ private data class ZmanimCalculationInput(
 /** A computed day and the step count it was computed for, which travel together to the screen. */
 private data class ShownDay(val zmanimDay: ZmanimDay, val dayOffset: Int)
 
-/** Hebcal's learning and the day it is for, so it is never shown on another one. */
-private data class DayLearning(val date: LocalDate, val items: List<ZmanItem>)
-
 private data class ZmanimDisplayInput(
     val zmanimDay: ZmanimDay,
-    val dailyLearningItems: List<ZmanItem>,
     val use24HourTime: Boolean,
     val enabledZmanimTimes: Set<ZmanimTimeOption>,
     val enabledDailyLearning: Set<DailyLearningType>,
@@ -81,18 +71,12 @@ private data class ZmanimTrigger(
     val dayOffset: Int,
 )
 
-private data class DailyLearningRequest(
-    val date: LocalDate,
-    val inIsrael: Boolean,
-)
-
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class ZmanimViewModel @Inject constructor(
     jewishDayRepository: JewishDayRepository,
     private val appSettingsRepository: AppSettingsRepository,
     currentLocationRepository: CurrentLocationRepository,
-    dailyLearningRepository: DailyLearningRepository,
     developerOverridesRepository: DeveloperOverridesRepository,
     private val clock: Clock,
 ) : ViewModel() {
@@ -172,36 +156,16 @@ class ZmanimViewModel @Inject constructor(
             replay = 1,
         )
 
-    private val dailyLearningItems = combine(
-        zmanimDay.map { shown -> shown.zmanimDay.date }.distinctUntilChanged(),
-        location.map { it.isInIsrael }.distinctUntilChanged(),
-        ::DailyLearningRequest,
-    )
-        .distinctUntilChanged()
-        .flatMapLatest { request ->
-            dailyLearningRepository.learningItems(
-                date = request.date,
-                inIsrael = request.inIsrael,
-            )
-                .onStart { emit(emptyList()) }
-                .map { items -> DayLearning(request.date, items) }
-        }
-        .distinctUntilChanged()
-        .flowOn(Dispatchers.Default)
-
     // The step count comes with the day computed for it, not from [_dayOffset]: read straight from
     // there it reached the screen ahead of its day, so for a moment after each step the screen counted
-    // the new day over the old day's times. Hebcal's rows likewise wait for their own day.
+    // the new day over the old day's times.
     val uiState: StateFlow<ZmanimUiState> = combine(
         zmanimDay,
-        dailyLearningItems,
         settings,
         developerOverrides,
-    ) { shown, learning, settings, overrides ->
-        val day = shown.zmanimDay
+    ) { shown, settings, overrides ->
         ZmanimDisplayInput(
-            zmanimDay = day,
-            dailyLearningItems = if (learning.date == day.date) learning.items else emptyList(),
+            zmanimDay = shown.zmanimDay,
             use24HourTime = settings.use24HourTime,
             enabledZmanimTimes = settings.enabledZmanimTimes,
             enabledDailyLearning = settings.enabledDailyLearning,
@@ -214,7 +178,6 @@ class ZmanimViewModel @Inject constructor(
         .conflate()
         .map { input ->
             input.zmanimDay
-                .withDailyLearningItems(input.dailyLearningItems)
                 .filterForDisplay(input.enabledZmanimTimes, input.enabledDailyLearning)
                 .mergeRambamRows()
                 .toUiState(

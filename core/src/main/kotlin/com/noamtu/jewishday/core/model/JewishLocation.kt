@@ -16,7 +16,7 @@ public data class JewishLocation(
 
 /**
  * Whether this location is within Israel, used to pick the Israel vs. diaspora calendar (one vs.
- * two days of Yom Tov, the parsha schedule, the Hebcal feed). Derived from the coordinates so the
+ * two days of Yom Tov, the parsha schedule). Derived from the coordinates so the
  * app follows where you actually are rather than a manual toggle.
  *
  * This used to be a latitude/longitude rectangle, which is cheap but cannot express a border: the

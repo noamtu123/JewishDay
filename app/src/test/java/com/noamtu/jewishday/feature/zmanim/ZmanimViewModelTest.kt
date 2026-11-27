@@ -6,18 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.core.i18n.CalendarText
 import com.noamtu.jewishday.core.model.CandleLightingMethod
-import com.noamtu.jewishday.core.model.DailyLearningType
 import com.noamtu.jewishday.core.model.ZmanimTimeOption
 import com.noamtu.jewishday.core.model.defaultJerusalemLocation
-import com.noamtu.jewishday.data.DailyLearningRepository
 import com.noamtu.jewishday.data.DefaultJewishDayRepository
-import com.noamtu.jewishday.day.ZmanItem
 import com.noamtu.jewishday.i18n.TestText
 import com.noamtu.jewishday.i18n.asUiText
-import com.noamtu.jewishday.i18n.verbatim
 import com.noamtu.jewishday.testing.FakeCurrentLocationRepository
 import com.noamtu.jewishday.testing.MainDispatcherRule
-import com.noamtu.jewishday.testing.NoDailyLearning
 import com.noamtu.jewishday.testing.TestStores
 import com.noamtu.jewishday.testing.awaitFirst
 import com.noamtu.jewishday.ui.ShowDayRequest
@@ -27,8 +22,6 @@ import java.util.Collections
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -51,7 +44,6 @@ class ZmanimViewModelTest {
     private val clock = Clock.fixed(wednesday.atTime(12, 0).atZone(defaultJerusalemLocation.zoneId).toInstant(), defaultJerusalemLocation.zoneId)
 
     private fun scenario(
-        dailyLearning: DailyLearningRepository = NoDailyLearning(),
         block: suspend (ZmanimViewModel, TestStores) -> Unit,
     ) = runBlocking {
         TestStores(folder).use { stores ->
@@ -59,7 +51,6 @@ class ZmanimViewModelTest {
                 jewishDayRepository = DefaultJewishDayRepository(clock),
                 appSettingsRepository = stores.settings,
                 currentLocationRepository = FakeCurrentLocationRepository(),
-                dailyLearningRepository = dailyLearning,
                 developerOverridesRepository = stores.developerOverrides,
                 clock = clock,
             )
@@ -128,33 +119,6 @@ class ZmanimViewModelTest {
             )
         }
     }
-
-    /** Hebcal's daf for each day, named after the day so a row shows whose it is. */
-    private class DafPerDay : DailyLearningRepository {
-        override fun learningItems(date: LocalDate, inIsrael: Boolean): Flow<List<ZmanItem>> = flowOf(
-            listOf(ZmanItem(title = verbatim("daf"), time = null, description = verbatim("$date"), id = DailyLearningType.DafYomiBavli.storageValue)),
-        )
-    }
-
-    @Test
-    fun aSteppedDayNeverShowsAnotherDaysLearning() = scenario(dailyLearning = DafPerDay()) { viewModel, _ ->
-        viewModel.uiState.awaitFirst { state -> state.header != null && dafOf(state) == "$wednesday" }
-        val states = viewModel.statesWhile {
-            stepDay(1)
-            uiState.awaitFirst { state -> state.dayOffset == 1 && dafOf(state) == "${wednesday.plusDays(1)}" }
-            stepDay(1)
-            uiState.awaitFirst { state -> state.dayOffset == 2 && dafOf(state) == "${wednesday.plusDays(2)}" }
-        }
-        for (state in states.filter { it.header != null }) {
-            val daf = dafOf(state) ?: continue
-            assertEquals("the daf shown on day ${state.dayOffset}", "${wednesday.plusDays(state.dayOffset.toLong())}", daf)
-        }
-    }
-
-    // The Hebcal daf's description, which [DafPerDay] sets to its day; null while the offline one shows.
-    private fun dafOf(state: ZmanimUiState): String? = state.groups.flatMap { it.rows }
-        .firstOrNull { TestText.english.resolve(it.title) == "daf" }
-        ?.let { TestText.english.resolve(it.description) }
 
     @Test
     fun aWidgetTapStepsToItsDayOnlyOnce() = scenario { viewModel, _ ->

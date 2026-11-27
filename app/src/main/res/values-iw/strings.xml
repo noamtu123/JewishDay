@@ -118,13 +118,10 @@
     <string name="learning_daf_yomi_kosherjava_description">מחזור דף יומי של KosherJava</string>
     <string name="learning_yerushalmi_kosherjava_description">מחזור ירושלמי של KosherJava</string>
     <string name="learning_tehillim_kosherjava_description">חלוקה חודשית לפי היום בחודש העברי</string>
-    <string name="learning_daf_yomi_hebcal_description">מחזור דף יומי של Hebcal</string>
-    <string name="learning_yerushalmi_hebcal_description">מחזור ירושלמי של Hebcal</string>
-    <string name="learning_mishnah_yomi_hebcal_description">מחזור משנה יומית של Hebcal</string>
-    <string name="learning_tehillim_hebcal_description">חלוקת תהילים יומית</string>
-    <string name="learning_tanakh_yomi_hebcal_description">מחזור תנ״ך יומי של Hebcal</string>
-    <string name="learning_shemirat_halashon_hebcal_description">שמירת הלשון יומית</string>
-    <string name="learning_kitzur_hebcal_description">הלכה יומית של Hebcal</string>
+    <string name="learning_mishnah_yomi_description">מחזור משנה יומית</string>
+    <string name="learning_tanakh_yomi_description">מחזור תנ״ך יומי</string>
+    <string name="learning_shemirat_halashon_description">שמירת הלשון יומית</string>
+    <string name="learning_kitzur_description">הלכה יומית</string>
     <string name="learning_rambam_merged_description">הרמב״ם היומי</string>
     <plurals name="learning_rambam_chapters">
         <item quantity="one">פרק אחד</item>

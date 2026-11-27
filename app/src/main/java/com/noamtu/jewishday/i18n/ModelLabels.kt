@@ -83,12 +83,27 @@ val DailyLearningType.label: Int get() = when (this) {
     DailyLearningType.KitzurShulchanAruch -> R.string.learning_kitzur
 }
 
-/** Where an offline daily-learning row says it came from. */
+/**
+ * A daily-learning row's name: the track's own, except that both Rambam tracks are "Rambam Yomi" and
+ * say which they are underneath, so shown together they read as one section.
+ */
 @get:StringRes
-val OfflineLearningTrack.description: Int get() = when (this) {
-    OfflineLearningTrack.DafYomiBavli -> R.string.learning_daf_yomi_kosherjava_description
-    OfflineLearningTrack.DafYomiYerushalmi -> R.string.learning_yerushalmi_kosherjava_description
-    OfflineLearningTrack.TehillimYomi -> R.string.learning_tehillim_kosherjava_description
+val OfflineLearningTrack.title: Int get() = when (this) {
+    OfflineLearningTrack.RambamYomi, OfflineLearningTrack.RambamYomiThreeChapters -> R.string.learning_rambam_yomi
+    else -> type.label
+}
+
+/** What a daily-learning row says under its name. */
+val OfflineLearningTrack.description: UiText get() = when (this) {
+    OfflineLearningTrack.DafYomiBavli -> uiText(R.string.learning_daf_yomi_kosherjava_description)
+    OfflineLearningTrack.DafYomiYerushalmi -> uiText(R.string.learning_yerushalmi_kosherjava_description)
+    OfflineLearningTrack.MishnahYomi -> uiText(R.string.learning_mishnah_yomi_description)
+    OfflineLearningTrack.RambamYomi -> pluralText(R.plurals.learning_rambam_chapters, 1)
+    OfflineLearningTrack.RambamYomiThreeChapters -> pluralText(R.plurals.learning_rambam_chapters, 3)
+    OfflineLearningTrack.TehillimYomi -> uiText(R.string.learning_tehillim_kosherjava_description)
+    OfflineLearningTrack.TanakhYomi -> uiText(R.string.learning_tanakh_yomi_description)
+    OfflineLearningTrack.ShemiratHaLashon -> uiText(R.string.learning_shemirat_halashon_description)
+    OfflineLearningTrack.KitzurShulchanAruch -> uiText(R.string.learning_kitzur_description)
 }
 
 @get:StringRes
