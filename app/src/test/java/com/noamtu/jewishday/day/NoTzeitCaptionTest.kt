@@ -25,24 +25,24 @@ class NoTzeitCaptionTest {
     @Test
     fun theTzeitRowNamesTheStandIn() {
         val minutes = zmanimForDate(reykjavik, midsummer, ZmanimCalculationSettings()).row(ZmanimTimeOption.Tzeit)
-        assertEquals("72 min after sunset (no tzeit tonight)", minutes.description.en())
-        assertEquals("72 דקות אחרי השקיעה (אין צאת הכוכבים הלילה)", minutes.description.he())
+        assertEquals("72 min after sunset (no tzeit)", minutes.description.en())
+        assertEquals("72 דקות אחרי השקיעה (אין צאת כוכבים)", minutes.description.he())
 
         val chatzotSettings = ZmanimCalculationSettings(noTzeitFallback = NoTzeitFallback.ChatzotHaLaila)
         val chatzot = zmanimForDate(reykjavik, midsummer, chatzotSettings).row(ZmanimTimeOption.Tzeit)
-        assertEquals("Chatzot HaLaila (no tzeit tonight)", chatzot.description.en())
-        assertEquals("חצות הלילה (אין צאת הכוכבים הלילה)", chatzot.description.he())
+        assertEquals("Chatzot HaLaila (no tzeit)", chatzot.description.en())
+        assertEquals("חצות הלילה (אין צאת כוכבים)", chatzot.description.he())
     }
 
     @Test
     fun theMorningRowsNameTheStandIn() {
         val helsinki = JewishLocation("Helsinki", 60.1699, 24.9384, 17.0, ZoneId.of("Europe/Helsinki"))
         val day = zmanimForDate(helsinki, midsummer, ZmanimCalculationSettings())
-        assertEquals("72 min before sunrise (night stays light)", day.row(ZmanimTimeOption.AlotHashachar).description.en())
-        assertEquals("72 דקות לפני הזריחה (הלילה אינו מחשיך)", day.row(ZmanimTimeOption.AlotHashachar).description.he())
-        assertEquals("50 min before sunrise (night stays light)", day.row(ZmanimTimeOption.TallitTefillin).description.en())
+        assertEquals("72 min before sunrise (no dawn)", day.row(ZmanimTimeOption.AlotHashachar).description.en())
+        assertEquals("72 דקות לפני הזריחה (אין עלות השחר)", day.row(ZmanimTimeOption.AlotHashachar).description.he())
+        assertEquals("50 min before sunrise (no misheyakir)", day.row(ZmanimTimeOption.TallitTefillin).description.en())
         assertEquals(
-            "Magen Avraham, 72 min (night stays light)",
+            "Magen Avraham, 72 min (no dawn)",
             day.row(ZmanimTimeOption.SofZmanShemaMagenAvraham).description.en(),
         )
         // Helsinki keeps its own 6.2° tzeit, so that row is not a stand-in.
@@ -52,8 +52,8 @@ class NoTzeitCaptionTest {
         )
 
         val chatzot = zmanimForDate(helsinki, midsummer, ZmanimCalculationSettings(noTzeitFallback = NoTzeitFallback.ChatzotHaLaila))
-        assertEquals("Chatzot HaLaila (night stays light)", chatzot.row(ZmanimTimeOption.TallitTefillin).description.en())
-        assertEquals("From chatzot HaLaila (night stays light)", chatzot.row(ZmanimTimeOption.SofZmanTefillahMagenAvraham).description.en())
+        assertEquals("Chatzot HaLaila (no dawn)", chatzot.row(ZmanimTimeOption.TallitTefillin).description.en())
+        assertEquals("From chatzot HaLaila (no dawn)", chatzot.row(ZmanimTimeOption.SofZmanTefillahMagenAvraham).description.en())
     }
 
     @Test
@@ -61,6 +61,6 @@ class NoTzeitCaptionTest {
         // The default's 72 minutes has no sunset to count from here, so the caption says chatzot.
         val day = zmanimForDate(tromso, midsummer.minusDays(2), ZmanimCalculationSettings())
         assertEquals("Friday; Chatzot HaLaila (no sunset)", day.row(ZmanimTimeOption.ShabbatCandleLighting).description.en())
-        assertEquals("Saturday; Chatzot HaLaila (no tzeit tonight) + 5m", day.row(ZmanimTimeOption.MotzeiShabbat).description.en())
+        assertEquals("Saturday; Chatzot HaLaila (no tzeit) + 5m", day.row(ZmanimTimeOption.MotzeiShabbat).description.en())
     }
 }

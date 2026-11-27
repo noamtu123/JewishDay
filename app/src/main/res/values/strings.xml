@@ -331,23 +331,23 @@
     <!-- Option for nights that never get dark enough (far north or south in summer): nightfall is 72 minutes after sunset, the custom of the northern countries cited by Peninei Halakha, and dawn 72 minutes before sunrise. -->
     <string name="method_no_tzeit_72">72 min from sunset and sunrise (Peninei Halakha)</string>
     <!-- Caption under a nightfall time (tzeit, motzei Shabbat) on a night the sun never sinks far enough for tzeit, so 72 minutes after sunset was used instead. -->
-    <string name="method_no_tzeit_caption_72">72 min after sunset (no tzeit tonight)</string>
+    <string name="method_no_tzeit_caption_72">72 min after sunset (no tzeit)</string>
     <!-- Option for nights with no tzeit hakochavim (far north or south in summer): solar midnight stands in for nightfall, after Rav Shlomo Goren. -->
     <string name="method_no_tzeit_chatzot">Chatzot HaLaila (Rav Goren)</string>
     <!-- Caption under a nightfall time (tzeit, motzei Shabbat) on a night the sun never sinks far enough for tzeit, so solar midnight was used instead. -->
-    <string name="method_no_tzeit_caption_chatzot">Chatzot HaLaila (no tzeit tonight)</string>
+    <string name="method_no_tzeit_caption_chatzot">Chatzot HaLaila (no tzeit)</string>
     <!-- Caption under candle lighting where the sun does not set at all (midnight sun), so Shabbat comes in at solar midnight. -->
     <string name="method_no_sunset_caption_chatzot">Chatzot HaLaila (no sunset)</string>
-    <!-- Caption under alot hashachar (dawn) on a morning the sun never sinks far enough for dawn by the user's method, so 72 minutes before sunrise was used instead. "Night stays light" = the night never gets dark enough. -->
-    <string name="method_no_dawn_caption_72">72 min before sunrise (night stays light)</string>
+    <!-- Caption under alot hashachar (dawn) on a morning the sun never sinks far enough for dawn by the user's method, so 72 minutes before sunrise was used instead. -->
+    <string name="method_no_dawn_caption_72">72 min before sunrise (no dawn)</string>
     <!-- Caption under misheyakir (earliest tallit and tefillin) on a morning the sun never sinks far enough for it by the user's method, so 50 minutes before sunrise was used instead. -->
-    <string name="method_no_dawn_caption_misheyakir_50">50 min before sunrise (night stays light)</string>
+    <string name="method_no_dawn_caption_misheyakir_50">50 min before sunrise (no misheyakir)</string>
     <!-- Caption under a Magen Avraham sof zman shema or tefillah on a morning with no dawn by the user's method, so the Magen Avraham's 72-minute day was used instead. -->
-    <string name="method_no_dawn_caption_mga_72">Magen Avraham, 72 min (night stays light)</string>
+    <string name="method_no_dawn_caption_mga_72">Magen Avraham, 72 min (no dawn)</string>
     <!-- Caption under alot hashachar or misheyakir on a morning with no dawn by the user's method, so the previous solar midnight was used instead. -->
-    <string name="method_no_dawn_caption_chatzot">Chatzot HaLaila (night stays light)</string>
+    <string name="method_no_dawn_caption_chatzot">Chatzot HaLaila (no dawn)</string>
     <!-- Caption under a Magen Avraham sof zman shema or tefillah on a morning with no dawn, counted on a day that runs from one solar midnight to the next. -->
-    <string name="method_no_dawn_caption_mga_chatzot">From chatzot HaLaila (night stays light)</string>
+    <string name="method_no_dawn_caption_mga_chatzot">From chatzot HaLaila (no dawn)</string>
 
     <!-- ==== Settings ==== -->
     <!-- Line at the top of the Settings screen. -->
@@ -437,9 +437,9 @@
     <!-- Description under the Tzeit Hakochavim method row. -->
     <string name="settings_method_tzeit_description">Nightfall used for the app\'s Hebrew-date rollover.</string>
     <!-- Settings row, shown only where some summer nights never get dark enough for tzeit hakochavim, dawn or misheyakir: what stands in for those times on such nights. -->
-    <string name="settings_method_no_tzeit">Nights That Stay Light</string>
-    <!-- Description under the "Nights That Stay Light" settings row. -->
-    <string name="settings_method_no_tzeit_description">Here the sun sometimes never sinks far enough for tzeit, dawn or misheyakir. What stands in for them then.</string>
+    <string name="settings_method_no_tzeit">When There\'s No Tzeit</string>
+    <!-- Description under the "When There's No Tzeit" settings row. -->
+    <string name="settings_method_no_tzeit_description">Here the sun sometimes never sinks far enough for tzeit, dawn or misheyakir. Choose what is shown instead.</string>
     <!-- Description under the Chatzot HaLaila method row. -->
     <string name="settings_method_chatzot_halaila_description">Solar or fixed local midnight.</string>
     <!-- Description under the Candle Lighting method row. -->

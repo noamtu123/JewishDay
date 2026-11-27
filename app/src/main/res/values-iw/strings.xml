@@ -177,15 +177,15 @@
     <string name="method_candles_at_plag">פלג המנחה — הזמן המוקדם ביותר</string>
     <string name="method_candles_option_plag">בפלג המנחה</string>
     <string name="method_no_tzeit_72">72 דקות מהשקיעה ומהזריחה (פניני הלכה)</string>
-    <string name="method_no_tzeit_caption_72">72 דקות אחרי השקיעה (אין צאת הכוכבים הלילה)</string>
+    <string name="method_no_tzeit_caption_72">72 דקות אחרי השקיעה (אין צאת כוכבים)</string>
     <string name="method_no_tzeit_chatzot">חצות הלילה (הרב גורן)</string>
-    <string name="method_no_tzeit_caption_chatzot">חצות הלילה (אין צאת הכוכבים הלילה)</string>
+    <string name="method_no_tzeit_caption_chatzot">חצות הלילה (אין צאת כוכבים)</string>
     <string name="method_no_sunset_caption_chatzot">חצות הלילה (אין שקיעה)</string>
-    <string name="method_no_dawn_caption_72">72 דקות לפני הזריחה (הלילה אינו מחשיך)</string>
-    <string name="method_no_dawn_caption_misheyakir_50">50 דקות לפני הזריחה (הלילה אינו מחשיך)</string>
-    <string name="method_no_dawn_caption_mga_72">מגן אברהם, 72 דקות (הלילה אינו מחשיך)</string>
-    <string name="method_no_dawn_caption_chatzot">חצות הלילה (הלילה אינו מחשיך)</string>
-    <string name="method_no_dawn_caption_mga_chatzot">מחצות הלילה (הלילה אינו מחשיך)</string>
+    <string name="method_no_dawn_caption_72">72 דקות לפני הזריחה (אין עלות השחר)</string>
+    <string name="method_no_dawn_caption_misheyakir_50">50 דקות לפני הזריחה (אין משיכיר)</string>
+    <string name="method_no_dawn_caption_mga_72">מגן אברהם, 72 דקות (אין עלות השחר)</string>
+    <string name="method_no_dawn_caption_chatzot">חצות הלילה (אין עלות השחר)</string>
+    <string name="method_no_dawn_caption_mga_chatzot">מחצות הלילה (אין עלות השחר)</string>
 
     <!-- Settings -->
     <string name="settings_summary">התאם את התצוגה היומית לצרכים שלך.</string>
@@ -231,8 +231,8 @@
     <string name="settings_method_plag_description">הזמן המוקדם ביותר לקבלת שבת או למעריב.</string>
     <string name="settings_method_sunset_description">שקיעה במישור או מתוקנת לפי גובה.</string>
     <string name="settings_method_tzeit_description">צאת הכוכבים שמשמש גם להחלפת תאריך עברי באפליקציה.</string>
-    <string name="settings_method_no_tzeit">לילות שאינם מחשיכים</string>
-    <string name="settings_method_no_tzeit_description">כאן יש לילות שבהם השמש אינה יורדת מספיק לצאת הכוכבים, לעלות השחר או למשיכיר. מה בא במקומם.</string>
+    <string name="settings_method_no_tzeit">כשאין צאת כוכבים</string>
+    <string name="settings_method_no_tzeit_description">כאן יש ימים שבהם השמש לא יורדת מספיק לצאת הכוכבים, לעלות השחר או למשיכיר. בחר מה יוצג במקומם.</string>
     <string name="settings_method_chatzot_halaila_description">חצות הלילה: שמשי או מקומי קבוע.</string>
     <string name="settings_method_candle_lighting_description">דקות לפני השקיעה להדלקת נרות.</string>
     <string name="settings_method_motzei_description">זמן צאת שבת הראשי.</string>
