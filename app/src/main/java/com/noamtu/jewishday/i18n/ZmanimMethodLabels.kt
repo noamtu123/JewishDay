@@ -23,6 +23,7 @@ import com.noamtu.jewishday.core.model.SunriseMethod
 import com.noamtu.jewishday.core.model.SunsetMethod
 import com.noamtu.jewishday.core.model.TzeitHakochavimMethod
 import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.ZmanimTimeOption
 import com.noamtu.jewishday.core.model.customUnit
 
 /**
@@ -149,14 +150,32 @@ val TzeitHakochavimMethod.label: UiText get() = when (this) {
 val NoTzeitFallback.label: UiText get() = when (this) {
     NoTzeitFallback.Minutes72AfterSunset -> uiText(R.string.method_no_tzeit_72)
     NoTzeitFallback.ChatzotHaLaila -> uiText(R.string.method_no_tzeit_chatzot)
-    NoTzeitFallback.EretzYisrael -> uiText(R.string.method_no_tzeit_eretz_yisrael)
 }
 
 /** What a nightfall row says under its time when this stand-in gave it, because the night had no tzeit. */
 val NoTzeitFallback.nightfallCaption: UiText get() = when (this) {
     NoTzeitFallback.Minutes72AfterSunset -> uiText(R.string.method_no_tzeit_caption_72)
     NoTzeitFallback.ChatzotHaLaila -> uiText(R.string.method_no_tzeit_caption_chatzot)
-    NoTzeitFallback.EretzYisrael -> uiText(R.string.method_no_tzeit_caption_eretz_yisrael)
+}
+
+/**
+ * What [option]'s row says under its time when this stand-in gave it: the night had no tzeit, or the
+ * morning no dawn, misheyakir or Magen Avraham day, by the user's own method.
+ */
+fun NoTzeitFallback.caption(option: ZmanimTimeOption): UiText = when (option) {
+    ZmanimTimeOption.AlotHashachar -> when (this) {
+        NoTzeitFallback.Minutes72AfterSunset -> uiText(R.string.method_no_dawn_caption_72)
+        NoTzeitFallback.ChatzotHaLaila -> uiText(R.string.method_no_dawn_caption_chatzot)
+    }
+    ZmanimTimeOption.TallitTefillin -> when (this) {
+        NoTzeitFallback.Minutes72AfterSunset -> uiText(R.string.method_no_dawn_caption_misheyakir_50)
+        NoTzeitFallback.ChatzotHaLaila -> uiText(R.string.method_no_dawn_caption_chatzot)
+    }
+    ZmanimTimeOption.SofZmanShemaMagenAvraham, ZmanimTimeOption.SofZmanTefillahMagenAvraham -> when (this) {
+        NoTzeitFallback.Minutes72AfterSunset -> uiText(R.string.method_no_dawn_caption_mga_72)
+        NoTzeitFallback.ChatzotHaLaila -> uiText(R.string.method_no_dawn_caption_mga_chatzot)
+    }
+    else -> nightfallCaption
 }
 
 val CandleLightingMethod.label: UiText get() = when (this) {
@@ -259,7 +278,6 @@ fun CandleLightingMethod.caption(settings: ZmanimCalculationSettings): UiText = 
 /** What a candle-lighting row says under its time: the method, or that it was held at plag. */
 fun CandleLighting?.caption(settings: ZmanimCalculationSettings): UiText = when {
     this?.fallback == NoTzeitFallback.ChatzotHaLaila -> uiText(R.string.method_no_sunset_caption_chatzot)
-    this?.fallback == NoTzeitFallback.EretzYisrael -> uiText(R.string.method_no_sunset_caption_eretz_yisrael)
     this?.isPlag == true -> uiText(R.string.method_candles_at_plag)
     else -> settings.candleLightingMethod.caption(settings)
 }

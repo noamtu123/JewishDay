@@ -19,6 +19,7 @@ import com.noamtu.jewishday.i18n.asUiText
 import com.noamtu.jewishday.i18n.caption
 import com.noamtu.jewishday.i18n.description
 import com.noamtu.jewishday.i18n.label
+import com.noamtu.jewishday.i18n.caption
 import com.noamtu.jewishday.i18n.methodCaption
 import com.noamtu.jewishday.i18n.nightfallCaption
 import com.noamtu.jewishday.i18n.title
@@ -81,8 +82,8 @@ private fun ZmanimDayFacts.toZmanimDay(settings: ZmanimCalculationSettings): Zma
 private fun ZmanTime.row(settings: ZmanimCalculationSettings): ZmanItem = ZmanItem(
     title = uiText(option.label),
     time = time,
-    // On a night with no tzeit the method did not give this time, so the caption names what did.
-    description = fallback?.nightfallCaption ?: option.methodCaption(settings),
+    // On a night that never gets dark enough the method did not give this time, so the caption names what did.
+    description = fallback?.caption(option) ?: option.methodCaption(settings),
     id = option.storageValue,
 )
 

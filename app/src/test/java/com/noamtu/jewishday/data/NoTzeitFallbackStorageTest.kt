@@ -31,6 +31,13 @@ class NoTzeitFallbackStorageTest {
     }
 
     @Test
+    fun theDroppedEretzYisraelChoiceReadsAs72MinutesAfterSunset() {
+        // Offered once, then dropped for want of a source on these nights (see NoTzeitFallback).
+        val stored = mutablePreferencesOf(stringPreferencesKey("zmanim_no_tzeit_fallback") to "eretz_yisrael")
+        assertEquals(NoTzeitFallback.Minutes72AfterSunset, stored.zmanimSettings().noTzeitFallback)
+    }
+
+    @Test
     fun anUnknownStoredValueFallsBackToTheDefault() {
         val stored = mutablePreferencesOf(stringPreferencesKey("zmanim_no_tzeit_fallback") to "civil_midnight")
         assertEquals(NoTzeitFallback.Minutes72AfterSunset, stored.zmanimSettings().noTzeitFallback)

@@ -103,15 +103,48 @@ private fun laterOf(first: Instant?, second: Instant?): Instant? = when {
     else -> maxOf(first, second)
 }
 
+/**
+ * Alot hashachar: the user's own method, or on a morning it never comes — far enough north in summer
+ * the sun never sinks to the dawn angle — its stand-in (see [NoTzeitFallback]). The dawn fasts begin
+ * here, and the Magen Avraham's day is counted from here, so the stand-in reaches all of them.
+ */
 internal fun ComprehensiveZmanimCalendar.alotHashachar(settings: ZmanimCalculationSettings): Instant? =
+    ownAlot(settings) ?: noDawnStandIn(settings, AlotStandInMinutes)
+
+/** Which stand-in gave [alotHashachar], or null when the morning has its own dawn. */
+internal fun ComprehensiveZmanimCalendar.alotFallback(settings: ZmanimCalculationSettings): NoTzeitFallback? =
+    noDawnSource(settings).takeIf { ownAlot(settings) == null && alotHashachar(settings) != null }
+
+/** Alot by the user's method alone — null on a morning the sun never sinks that far before it. */
+internal fun ComprehensiveZmanimCalendar.ownAlot(settings: ZmanimCalculationSettings): Instant? =
     when (settings.alotHashacharMethod) {
-        AlotHashacharMethod.Degrees16Point1 -> alos16Point1Degrees ?: alos72Minutes
+        AlotHashacharMethod.Degrees16Point1 -> alos16Point1Degrees
         AlotHashacharMethod.CustomDegrees -> sunriseByDegrees(settings.alotHashacharCustom.degrees)
         AlotHashacharMethod.CustomMinutes -> minutesBeforeSunrise(settings.alotHashacharCustom.minutes)
         AlotHashacharMethod.CustomZmaniyotMinutes -> zmaniyotBeforeSunrise(settings.alotHashacharCustom.zmaniyotMinutes)
     }
 
-internal fun ComprehensiveZmanimCalendar.misheyakir(settings: ZmanimCalculationSettings): Instant? {
+/**
+ * Misheyakir: the user's own method, or on a morning the sun never sinks to its angle, its stand-in.
+ * "6 minutes after alot" stays that, counted from whatever alot this morning has.
+ */
+internal fun ComprehensiveZmanimCalendar.misheyakir(settings: ZmanimCalculationSettings): Instant? =
+    ownMisheyakir(settings) ?: when (settings.misheyakirMethod) {
+        MisheyakirMethod.Minutes6AfterAlos -> alotHashachar(settings)?.plus(Duration.ofMinutes(6))
+        else -> noDawnStandIn(settings, MisheyakirStandInMinutes)
+    }
+
+/**
+ * Which stand-in gave [misheyakir], or null when the morning has its own — or when the method is
+ * "6 minutes after alot", which still says exactly what it is, counted from the alot row above it.
+ */
+internal fun ComprehensiveZmanimCalendar.misheyakirFallback(settings: ZmanimCalculationSettings): NoTzeitFallback? =
+    noDawnSource(settings).takeIf {
+        settings.misheyakirMethod != MisheyakirMethod.Minutes6AfterAlos &&
+            ownMisheyakir(settings) == null && misheyakir(settings) != null
+    }
+
+private fun ComprehensiveZmanimCalendar.ownMisheyakir(settings: ZmanimCalculationSettings): Instant? {
     val custom = settings.misheyakirCustom
     return when (settings.misheyakirMethod) {
         MisheyakirMethod.Degrees11 -> misheyakir11Degrees
@@ -121,7 +154,7 @@ internal fun ComprehensiveZmanimCalendar.misheyakir(settings: ZmanimCalculationS
         MisheyakirMethod.CustomMinutesBeforeSunrise -> sunrise(settings.sunriseMethod)
             ?.let { sunrise -> customOffset(Duration.ofMinutes(custom.minutes.toLong()))?.let { AstronomicalCalendar.getTimeOffset(sunrise, it.negated()) } }
         MisheyakirMethod.CustomZmaniyotMinutesBeforeSunrise -> zmaniyotBeforeSunrise(custom.zmaniyotMinutes)
-        MisheyakirMethod.Minutes6AfterAlos -> alotHashachar(settings)
+        MisheyakirMethod.Minutes6AfterAlos -> ownAlot(settings)
             ?.let { AstronomicalCalendar.getTimeOffset(it, Duration.ofMinutes(6)) }
     }
 }
@@ -136,7 +169,7 @@ internal fun ComprehensiveZmanimCalendar.sunset(method: SunsetMethod): Instant? 
     SunsetMethod.ElevationAdjusted -> sunset
 }
 
-internal fun ComprehensiveZmanimCalendar.sofZmanShema(
+private fun ComprehensiveZmanimCalendar.ownSofZmanShema(
     method: SofZmanShemaMethod,
     settings: ZmanimCalculationSettings,
 ): Instant? {
@@ -161,19 +194,19 @@ internal fun ComprehensiveZmanimCalendar.sofZmanShema(
         SofZmanShemaMethod.Gra -> graDay(settings) { start, end -> getSofZmanShma(start, end) }
         SofZmanShemaMethod.FixedLocalGra ->
             sunrise(settings.sunriseMethod)?.let { getHalfDayBasedZman(it, fixedLocalChatzosHayom, 3.0) }
-        SofZmanShemaMethod.Mga16Point1 -> sofZmanShmaMGA16Point1Degrees ?: sofZmanShmaMGA72Minutes
+        SofZmanShemaMethod.Mga16Point1 -> sofZmanShmaMGA16Point1Degrees
         SofZmanShemaMethod.CustomDegrees -> mga(CustomZmanUnit.Degrees)
         SofZmanShemaMethod.CustomMinutes -> mga(CustomZmanUnit.Minutes)
         SofZmanShemaMethod.CustomZmaniyotMinutes -> mga(CustomZmanUnit.ZmaniyotMinutes)
         SofZmanShemaMethod.CustomDegreesToFixedLocalChatzot -> toFixedLocalChatzot(CustomZmanUnit.Degrees)
         SofZmanShemaMethod.CustomMinutesToFixedLocalChatzot -> toFixedLocalChatzot(CustomZmanUnit.Minutes)
-        SofZmanShemaMethod.Alos16Point1ToSunset -> sofZmanShmaAlos16Point1ToSunset ?: sofZmanShmaMGA72Minutes
-        SofZmanShemaMethod.Alos16Point1ToTzeit7Point083 -> sofZmanShmaAlos16Point1DegreesToTzaisGeonim7Point083Degrees ?: sofZmanShmaMGA72Minutes
+        SofZmanShemaMethod.Alos16Point1ToSunset -> sofZmanShmaAlos16Point1ToSunset
+        SofZmanShemaMethod.Alos16Point1ToTzeit7Point083 -> sofZmanShmaAlos16Point1DegreesToTzaisGeonim7Point083Degrees
         SofZmanShemaMethod.AteretTorah -> sofZmanShmaAteretTorah
     }
 }
 
-internal fun ComprehensiveZmanimCalendar.sofZmanTefillah(
+private fun ComprehensiveZmanimCalendar.ownSofZmanTefillah(
     method: SofZmanTefillahMethod,
     settings: ZmanimCalculationSettings,
 ): Instant? {
@@ -192,13 +225,71 @@ internal fun ComprehensiveZmanimCalendar.sofZmanTefillah(
         SofZmanTefillahMethod.Gra -> graDay(settings) { start, end -> getSofZmanTfila(start, end) }
         SofZmanTefillahMethod.FixedLocalGra ->
             sunrise(settings.sunriseMethod)?.let { getHalfDayBasedZman(it, fixedLocalChatzosHayom, 4.0) }
-        SofZmanTefillahMethod.Mga16Point1 -> sofZmanTfilaMGA16Point1Degrees ?: sofZmanTfilaMGA72Minutes
+        SofZmanTefillahMethod.Mga16Point1 -> sofZmanTfilaMGA16Point1Degrees
         SofZmanTefillahMethod.CustomDegrees -> mga(CustomZmanUnit.Degrees)
         SofZmanTefillahMethod.CustomMinutes -> mga(CustomZmanUnit.Minutes)
         SofZmanTefillahMethod.CustomZmaniyotMinutes -> mga(CustomZmanUnit.ZmaniyotMinutes)
-        SofZmanTefillahMethod.Alos16Point1ToSunset -> mgaFrom(alos16Point1Degrees, seaLevelSunset) ?: sofZmanTfilaMGA72Minutes
-        SofZmanTefillahMethod.Alos16Point1ToTzeit7Point083 -> mgaFrom(alos16Point1Degrees, tzaisGeonim7Point083Degrees) ?: sofZmanTfilaMGA72Minutes
+        SofZmanTefillahMethod.Alos16Point1ToSunset -> mgaFrom(alos16Point1Degrees, seaLevelSunset)
+        SofZmanTefillahMethod.Alos16Point1ToTzeit7Point083 -> mgaFrom(alos16Point1Degrees, tzaisGeonim7Point083Degrees)
         SofZmanTefillahMethod.AteretTorah -> sofZmanTfilaAteretTorah
+    }
+}
+
+/**
+ * Sof zman shema by [method], or — for a Magen Avraham opinion on a morning whose dawn never comes —
+ * by the stand-in's own day (see [mgaStandIn]). A GRA opinion is never stood in for: its day is
+ * sunrise to sunset, and where those exist it has its time.
+ */
+internal fun ComprehensiveZmanimCalendar.sofZmanShema(
+    method: SofZmanShemaMethod,
+    settings: ZmanimCalculationSettings,
+): Instant? = ownSofZmanShema(method, settings)
+    ?: mgaStandIn(method.family, settings) { start, end -> getSofZmanShma(start, end) }
+
+/** Which stand-in gave [sofZmanShema], or null when the method gave its own time. */
+internal fun ComprehensiveZmanimCalendar.sofZmanShemaFallback(
+    method: SofZmanShemaMethod,
+    settings: ZmanimCalculationSettings,
+): NoTzeitFallback? = noDawnSource(settings)
+    .takeIf { ownSofZmanShema(method, settings) == null && sofZmanShema(method, settings) != null }
+
+/** Sof zman tefillah, stood in for exactly as [sofZmanShema] is. */
+internal fun ComprehensiveZmanimCalendar.sofZmanTefillah(
+    method: SofZmanTefillahMethod,
+    settings: ZmanimCalculationSettings,
+): Instant? = ownSofZmanTefillah(method, settings)
+    ?: mgaStandIn(method.family, settings) { start, end -> getSofZmanTfila(start, end) }
+
+/** Which stand-in gave [sofZmanTefillah], or null when the method gave its own time. */
+internal fun ComprehensiveZmanimCalendar.sofZmanTefillahFallback(
+    method: SofZmanTefillahMethod,
+    settings: ZmanimCalculationSettings,
+): NoTzeitFallback? = noDawnSource(settings)
+    .takeIf { ownSofZmanTefillah(method, settings) == null && sofZmanTefillah(method, settings) != null }
+
+/**
+ * A Magen Avraham zman on a morning with no dawn: the same hours into the stand-in's day. By the
+ * minutes, the day of 72 minutes before sunrise to 72 after sunset (the Magen Avraham's own 72-minute
+ * day); by chatzot halaila, the day from last night's chatzot to tonight's, so that sof zman shema
+ * falls six hours after chatzot (Moadim U'Zmanim 2:155).
+ */
+private inline fun ComprehensiveZmanimCalendar.mgaStandIn(
+    family: ZmanOpinionFamily,
+    settings: ZmanimCalculationSettings,
+    zman: (Instant, Instant) -> Instant?,
+): Instant? {
+    if (family != ZmanOpinionFamily.MagenAvraham) return null
+    return when (noDawnSource(settings)) {
+        NoTzeitFallback.Minutes72AfterSunset -> {
+            val start = sunrise(settings.sunriseMethod)?.minus(Duration.ofMinutes(72)) ?: return null
+            val end = sunset(settings.sunsetMethod)?.plus(Duration.ofMinutes(72)) ?: return null
+            zman(start, end)
+        }
+        NoTzeitFallback.ChatzotHaLaila -> {
+            val start = lastChatzotHaLaila() ?: return null
+            val end = chatzotHaLaila(ChatzotMethod.Solar) ?: return null
+            zman(start, end)
+        }
     }
 }
 
@@ -305,20 +396,15 @@ public data class CandleLighting(
  *
  * With no sunset and no tzeit either — the midnight sun, where day and night are not told apart —
  * Shabbat comes in by the stand-in for tzeit (see [NoTzeitFallback]): Rav Goren has it enter at
- * chatzot halaila as it leaves (the 72-minute custom has no sunset to count from, so it does too);
- * by Eretz Yisrael, Jerusalem's own candle lighting.
+ * chatzot halaila as it leaves, and the 72-minute custom, with no sunset to count from, does too.
  */
 internal fun ComprehensiveZmanimCalendar.candleLighting(settings: ZmanimCalculationSettings): CandleLighting? {
     val sunset = sunset(settings.sunsetMethod)
     if (sunset == null) {
         if (ownTzeit(settings) != null) return null
-        // With no sunset, the 72-minute custom has already given way to chatzot halaila here.
-        val source = noTzeitSource(settings)
-        val entry = when (source) {
-            NoTzeitFallback.EretzYisrael -> jerusalem(settings).candleLighting(settings)?.time
-            NoTzeitFallback.ChatzotHaLaila, NoTzeitFallback.Minutes72AfterSunset -> chatzotHaLaila(ChatzotMethod.Solar)
-        } ?: return null
-        return CandleLighting(entry, isPlag = false, fallback = source)
+        // With no sunset, either choice comes to chatzot halaila (see noTzeitSource).
+        val entry = chatzotHaLaila(ChatzotMethod.Solar) ?: return null
+        return CandleLighting(entry, isPlag = false, fallback = noTzeitSource(settings))
     }
     val plag = plagHamincha(settings)
     // At plag by choice. Should plag itself not come out (it needs a sunrise), the usual 20 minutes.
@@ -339,10 +425,6 @@ internal fun ComprehensiveZmanimCalendar.candleLighting(settings: ZmanimCalculat
     }
 }
 
-/** This calendar's civil date in Jerusalem, for [NoTzeitFallback.EretzYisrael]. */
-private fun ComprehensiveZmanimCalendar.jerusalem(settings: ZmanimCalculationSettings): ComprehensiveZmanimCalendar =
-    comprehensiveZmanimCalendar(defaultJerusalemLocation, localDate, settings)
-
 /**
  * Which stand-in a night with no tzeit actually takes: the chosen one, except that 72 minutes after
  * sunset needs a sunset, and on a day without one gives way to chatzot halaila.
@@ -351,24 +433,56 @@ private fun ComprehensiveZmanimCalendar.noTzeitSource(settings: ZmanimCalculatio
     when (settings.noTzeitFallback) {
         NoTzeitFallback.Minutes72AfterSunset ->
             if (sunset(settings.sunsetMethod) == null) NoTzeitFallback.ChatzotHaLaila else NoTzeitFallback.Minutes72AfterSunset
-        else -> settings.noTzeitFallback
+        NoTzeitFallback.ChatzotHaLaila -> NoTzeitFallback.ChatzotHaLaila
     }
 
 /**
  * What stands in for a nightfall that never comes tonight (see [noTzeitSource]): 72 minutes after the
- * user's sunset, chatzot halaila, or [inJerusalem] — the same zman by the same method, for Jerusalem
- * on this civil date.
+ * user's sunset, or chatzot halaila.
  */
-private inline fun ComprehensiveZmanimCalendar.noTzeitStandIn(
-    settings: ZmanimCalculationSettings,
-    inJerusalem: ComprehensiveZmanimCalendar.() -> Instant?,
-): Instant? = when (noTzeitSource(settings)) {
-    NoTzeitFallback.Minutes72AfterSunset ->
-        sunset(settings.sunsetMethod)?.let { AstronomicalCalendar.getTimeOffset(it, Duration.ofMinutes(72)) }
-    // Solar, whatever the chatzot halaila row is set to: the darkest moment of the night is the point.
-    NoTzeitFallback.ChatzotHaLaila -> chatzotHaLaila(ChatzotMethod.Solar)
-    NoTzeitFallback.EretzYisrael -> jerusalem(settings).inJerusalem()
-}
+private fun ComprehensiveZmanimCalendar.noTzeitStandIn(settings: ZmanimCalculationSettings): Instant? =
+    when (noTzeitSource(settings)) {
+        NoTzeitFallback.Minutes72AfterSunset ->
+            sunset(settings.sunsetMethod)?.let { AstronomicalCalendar.getTimeOffset(it, Duration.ofMinutes(72)) }
+        // Solar, whatever the chatzot halaila row is set to: the darkest moment of the night is the point.
+        NoTzeitFallback.ChatzotHaLaila -> chatzotHaLaila(ChatzotMethod.Solar)
+    }
+
+/**
+ * Which stand-in a morning with no dawn takes: the same choice as for the night before it (see
+ * [NoTzeitFallback]), except that the fixed minutes need a sunrise to count back from, and on a day
+ * without one give way to chatzot halaila.
+ */
+private fun ComprehensiveZmanimCalendar.noDawnSource(settings: ZmanimCalculationSettings): NoTzeitFallback =
+    when (settings.noTzeitFallback) {
+        NoTzeitFallback.Minutes72AfterSunset ->
+            if (sunrise(settings.sunriseMethod) == null) NoTzeitFallback.ChatzotHaLaila else NoTzeitFallback.Minutes72AfterSunset
+        NoTzeitFallback.ChatzotHaLaila -> NoTzeitFallback.ChatzotHaLaila
+    }
+
+/**
+ * What stands in for a dawn-side zman that never comes this morning (see [noDawnSource]): [minutes]
+ * before the user's sunrise, or last night's chatzot halaila.
+ */
+private fun ComprehensiveZmanimCalendar.noDawnStandIn(settings: ZmanimCalculationSettings, minutes: Long): Instant? =
+    when (noDawnSource(settings)) {
+        NoTzeitFallback.Minutes72AfterSunset ->
+            sunrise(settings.sunriseMethod)?.let { AstronomicalCalendar.getTimeOffset(it, Duration.ofMinutes(-minutes)) }
+        NoTzeitFallback.ChatzotHaLaila -> lastChatzotHaLaila()
+    }
+
+/**
+ * Solar midnight of the night that ends this calendar's morning — the previous civil date's, since
+ * [chatzotHaLaila] is the one after this date's midday.
+ */
+internal fun ComprehensiveZmanimCalendar.lastChatzotHaLaila(): Instant? =
+    (clone() as ComprehensiveZmanimCalendar).also { it.localDate = localDate.minusDays(1) }.solarMidnight
+
+/** Alot by the fixed minutes: Peninei Halakha, Tefillah 11:2 n. 1 — four mil of 18 minutes. */
+private const val AlotStandInMinutes = 72L
+
+/** Misheyakir by the fixed minutes: Peninei Halakha, Tefillah 11:2 — "around 50 minutes" before sunrise. */
+private const val MisheyakirStandInMinutes = 50L
 
 /**
  * Tzeit hakochavim: the user's own method, or on a night where that never comes, its stand-in (see
@@ -376,7 +490,7 @@ private inline fun ComprehensiveZmanimCalendar.noTzeitStandIn(
  * the end of a fast — so the stand-in reaches all of them at once.
  */
 internal fun ComprehensiveZmanimCalendar.tzeit(settings: ZmanimCalculationSettings): Instant? =
-    ownTzeit(settings) ?: noTzeitStandIn(settings) { ownTzeit(settings) }
+    ownTzeit(settings) ?: noTzeitStandIn(settings)
 
 /** Which stand-in gave [tzeit], or null when the night has its own (or no time could be given). */
 internal fun ComprehensiveZmanimCalendar.tzeitFallback(settings: ZmanimCalculationSettings): NoTzeitFallback? =
@@ -408,7 +522,7 @@ internal fun ComprehensiveZmanimCalendar.holyDayExitFallback(settings: ZmanimCal
 
 /** Motzei by the user's method, or on a night where that never comes, the same stand-in as tzeit. */
 internal fun ComprehensiveZmanimCalendar.motzeiShabbat(settings: ZmanimCalculationSettings): Instant? =
-    ownMotzeiShabbat(settings) ?: noTzeitStandIn(settings) { ownMotzeiShabbat(settings) }
+    ownMotzeiShabbat(settings) ?: noTzeitStandIn(settings)
 
 private fun ComprehensiveZmanimCalendar.ownMotzeiShabbat(settings: ZmanimCalculationSettings): Instant? {
     val custom = settings.motzeiShabbatCustom

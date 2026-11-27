@@ -27,11 +27,13 @@ public fun skyDayFor(
 ): SkyDay {
     val calendar = comprehensiveZmanimCalendar(location, date, settings)
     return SkyDay(
-        alot = calendar.alotHashachar(settings),
+        // The same for dawn: the darkness ends at last night's solar midnight.
+        alot = calendar.ownAlot(settings)
+            ?: calendar.lastChatzotHaLaila().takeIf { calendar.sunrise(settings.sunriseMethod) != null },
         sunrise = calendar.sunrise(settings.sunriseMethod),
         sunset = calendar.sunset(settings.sunsetMethod),
-        // The sky keys to the dark itself, never to a stand-in from Jerusalem's clock: on a night the
-        // sun never sinks to the user's angle that is solar midnight, the darkest it gets.
+        // The sky keys to the dark itself, never to a fixed-minute stand-in: on a night the sun never
+        // sinks to the user's angle that is solar midnight, the darkest it gets.
         tzeit = calendar.ownTzeit(settings)
             ?: calendar.chatzotHaLaila(ChatzotMethod.Solar).takeIf { calendar.sunset(settings.sunsetMethod) != null },
     )

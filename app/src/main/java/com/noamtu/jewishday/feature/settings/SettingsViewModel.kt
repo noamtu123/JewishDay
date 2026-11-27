@@ -26,7 +26,8 @@ import com.noamtu.jewishday.core.model.TzeitHakochavimMethod
 import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.core.model.ZmanimTimeOption
 import com.noamtu.jewishday.core.model.defaultJerusalemLocation
-import com.noamtu.jewishday.core.model.hasNightWithoutTzeit
+import com.noamtu.jewishday.core.model.hasNightThatStaysLight
+import com.noamtu.jewishday.core.model.lightNightMethods
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.AppThemeOption
 import com.noamtu.jewishday.data.CurrentLocationRepository
@@ -79,18 +80,16 @@ class SettingsViewModel @Inject constructor(
     currentLocationRepository: CurrentLocationRepository,
     clock: Clock,
 ) : ViewModel() {
-    // A year of sun positions, so worked out off the main thread, and only when the place or the
-    // tzeit method changes (hasNightWithoutTzeit remembers its answers too).
+    // A year of sun positions, so worked out off the main thread, and only when the place or one of
+    // the opinions it asks about changes (hasNightThatStaysLight remembers its answers too).
     private val offersNoTzeitFallback = combine(
         currentLocationRepository.currentLocation,
         appSettingsRepository.settings.map { it.zmanimSettings },
     ) { location, zmanim -> (location ?: defaultJerusalemLocation) to zmanim }
         .distinctUntilChanged { old, new ->
-            old.first == new.first &&
-                old.second.tzeitHakochavimMethod == new.second.tzeitHakochavimMethod &&
-                old.second.tzeitHakochavimCustom == new.second.tzeitHakochavimCustom
+            old.first == new.first && old.second.lightNightMethods() == new.second.lightNightMethods()
         }
-        .map { (location, zmanim) -> hasNightWithoutTzeit(location, zmanim, LocalDate.now(clock.withZone(location.zoneId))) }
+        .map { (location, zmanim) -> hasNightThatStaysLight(location, zmanim, LocalDate.now(clock.withZone(location.zoneId))) }
         .flowOn(Dispatchers.Default)
 
     val uiState: StateFlow<SettingsUiState> =

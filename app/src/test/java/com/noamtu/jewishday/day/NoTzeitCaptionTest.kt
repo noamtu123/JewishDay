@@ -32,10 +32,28 @@ class NoTzeitCaptionTest {
         val chatzot = zmanimForDate(reykjavik, midsummer, chatzotSettings).row(ZmanimTimeOption.Tzeit)
         assertEquals("Chatzot HaLaila (no tzeit tonight)", chatzot.description.en())
         assertEquals("חצות הלילה (אין צאת הכוכבים הלילה)", chatzot.description.he())
+    }
 
-        val settings = ZmanimCalculationSettings(noTzeitFallback = NoTzeitFallback.EretzYisrael)
-        val jerusalem = zmanimForDate(reykjavik, midsummer, settings).row(ZmanimTimeOption.Tzeit)
-        assertEquals("As in Jerusalem (no tzeit tonight)", jerusalem.description.en())
+    @Test
+    fun theMorningRowsNameTheStandIn() {
+        val helsinki = JewishLocation("Helsinki", 60.1699, 24.9384, 17.0, ZoneId.of("Europe/Helsinki"))
+        val day = zmanimForDate(helsinki, midsummer, ZmanimCalculationSettings())
+        assertEquals("72 min before sunrise (night stays light)", day.row(ZmanimTimeOption.AlotHashachar).description.en())
+        assertEquals("72 דקות לפני הזריחה (הלילה אינו מחשיך)", day.row(ZmanimTimeOption.AlotHashachar).description.he())
+        assertEquals("50 min before sunrise (night stays light)", day.row(ZmanimTimeOption.TallitTefillin).description.en())
+        assertEquals(
+            "Magen Avraham, 72 min (night stays light)",
+            day.row(ZmanimTimeOption.SofZmanShemaMagenAvraham).description.en(),
+        )
+        // Helsinki keeps its own 6.2° tzeit, so that row is not a stand-in.
+        assertEquals(
+            zmanimForDate(helsinki, LocalDate.of(2026, 3, 20), ZmanimCalculationSettings()).row(ZmanimTimeOption.Tzeit).description.en(),
+            day.row(ZmanimTimeOption.Tzeit).description.en(),
+        )
+
+        val chatzot = zmanimForDate(helsinki, midsummer, ZmanimCalculationSettings(noTzeitFallback = NoTzeitFallback.ChatzotHaLaila))
+        assertEquals("Chatzot HaLaila (night stays light)", chatzot.row(ZmanimTimeOption.TallitTefillin).description.en())
+        assertEquals("From chatzot HaLaila (night stays light)", chatzot.row(ZmanimTimeOption.SofZmanTefillahMagenAvraham).description.en())
     }
 
     @Test

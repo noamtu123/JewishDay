@@ -172,8 +172,9 @@ class HugeCustomValuesTest {
         // Int.MAX_VALUE minutes is about 4,000 years: past what a halachic hour can be measured in.
         for (unit in listOf(CustomZmanUnit.Minutes, CustomZmanUnit.ZmaniyotMinutes)) {
             val facts = zmanimDayFacts(defaultJerusalemLocation, days[0], everyCustom(unit, largest))
+            // Nothing crashes; the dawn zmanim the value can't give take the light-night stand-in instead.
             for (option in listOf(ZmanimTimeOption.AlotHashachar, ZmanimTimeOption.TallitTefillin, ZmanimTimeOption.SofZmanShemaMagenAvraham)) {
-                assertNull("$unit $option", facts.zmanim.single { it.option == option }.time)
+                assertNotNull("$unit $option", facts.zmanim.single { it.option == option }.fallback)
             }
         }
         // 9,999,999 minutes (about 19 years) is still worked out.
@@ -187,7 +188,8 @@ class HugeCustomValuesTest {
         val settings = everyCustom(CustomZmanUnit.Degrees, huge)
         val facts = zmanimDayFacts(defaultJerusalemLocation, days[0], settings)
         val empty = listOf(ZmanimTimeOption.AlotHashachar, ZmanimTimeOption.TallitTefillin, ZmanimTimeOption.SofZmanShemaMagenAvraham)
-        for (option in empty) assertNull(option.name, facts.zmanim.single { it.option == option }.time)
+        // Like a far-north morning the sun never gets that dark: the light-night stand-in fills them.
+        for (option in empty) assertNotNull(option.name, facts.zmanim.single { it.option == option }.fallback)
         // Nightfall takes its stand-in, exactly as on a far-north night the sun never gets that dark.
         assertNotNull(facts.zmanim.single { it.option == ZmanimTimeOption.Tzeit }.fallback)
     }
