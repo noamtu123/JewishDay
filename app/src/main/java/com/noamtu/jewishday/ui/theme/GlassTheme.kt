@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noamtu.jewishday.ui.HoldFirstDraw
 import kotlin.math.PI
 import kotlin.math.pow
 import kotlin.math.sin
@@ -180,8 +181,11 @@ fun GlassBackdrop(modifier: Modifier = Modifier, content: @Composable () -> Unit
     val viewModel: GlassSkyViewModel = hiltViewModel()
     val frame by viewModel.frame.collectAsStateWithLifecycle()
     val sky = frame
+    // The app's first frame waits for the sky, so an opening app never shows the night glass by day.
+    HoldFirstDraw(ready = sky != null)
     if (sky == null) {
-        // The first frame is a moment away; the static Glass scheme covers it.
+        // The first frame is a moment away and is not drawn before it (see FirstDrawGate); after
+        // that, the static Glass scheme would cover only a sky that is slow to come.
         Box(modifier) { content() }
         return
     }

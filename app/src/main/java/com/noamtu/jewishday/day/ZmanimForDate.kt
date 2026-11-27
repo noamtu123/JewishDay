@@ -92,10 +92,10 @@ private fun DayEvent.rows(settings: ZmanimCalculationSettings): List<ZmanItem> =
         ZmanItem(
             title = uiText(R.string.row_rosh_chodesh),
             time = null,
-            // No caption: the title and the value ("ראש חודש חשון") already say it all. A blank
-            // caption is left out of the row and of what TalkBack reads.
+            // No caption: the title and the month ("ראש חודש" … "חשון") already say it all. A blank
+            // caption is left out of the row and of what TalkBack reads, which says "ראש חודש, חשון".
             description = verbatim(""),
-            value = name.asUiText(),
+            value = CalendarText.RoshChodeshMonth(name.date).asUiText(),
             kind = ZmanItemKind.RoshChodesh,
         ),
     )

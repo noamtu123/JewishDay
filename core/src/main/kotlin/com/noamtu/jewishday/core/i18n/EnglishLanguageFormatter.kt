@@ -28,6 +28,7 @@ public class EnglishLanguageFormatter : LanguageFormatter {
         is CalendarText.Parsha -> formatter.formatParshah(jewishCalendar(text.date, text.inIsrael))
         is CalendarText.YomTov -> formatter.formatYomTov(jewishCalendar(text.date, text.inIsrael))
         is CalendarText.RoshChodesh -> formatter.formatRoshChodesh(jewishCalendar(text.date, text.inIsrael))
+        is CalendarText.RoshChodeshMonth -> formatter.formatMonth(roshChodeshMonthCalendar(text.date))
         is CalendarText.Omer -> formatter.formatOmer(jewishCalendar(text.date, text.inIsrael))
         is CalendarText.DafYomiBavli -> formatter.formatDafYomiBavli(jewishCalendar(text.date, text.inIsrael).dafYomiBavli)
         is CalendarText.DafYomiYerushalmi -> formatter.formatDafYomiYerushalmi(

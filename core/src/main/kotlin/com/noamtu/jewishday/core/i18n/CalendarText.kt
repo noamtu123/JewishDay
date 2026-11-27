@@ -3,6 +3,7 @@
 package com.noamtu.jewishday.core.i18n
 
 import androidx.compose.runtime.Immutable
+import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
 import java.time.LocalDate
 
 /**
@@ -27,6 +28,12 @@ public sealed interface CalendarText {
 
     /** "ראש חודש חשון", "Rosh Chodesh Cheshvan". */
     public data class RoshChodesh(val date: LocalDate, val inIsrael: Boolean) : CalendarText
+
+    /**
+     * Just the month a Rosh Chodesh day begins — "חשון", "Cheshvan", "אדר ב׳" — for a row whose title
+     * already says Rosh Chodesh. The 30th of the old month counts toward the new one.
+     */
+    public data class RoshChodeshMonth(val date: LocalDate) : CalendarText
 
     /** That day's count of the Omer. */
     public data class Omer(val date: LocalDate, val inIsrael: Boolean) : CalendarText
@@ -54,4 +61,10 @@ public sealed interface CalendarText {
 
     /** The day's Kitzur Shulchan Aruch; only asked for on days the calendar has one. */
     public data class KitzurShulchanAruch(val date: LocalDate) : CalendarText
+}
+
+/** The calendar of the month a Rosh Chodesh on [date] begins: the 30th belongs to the next month. */
+internal fun roshChodeshMonthCalendar(date: LocalDate): JewishCalendar {
+    val calendar = JewishCalendar(date)
+    return if (calendar.jewishDayOfMonth == 30) JewishCalendar(date.plusDays(1)) else calendar
 }

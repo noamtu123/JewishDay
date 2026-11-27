@@ -6,9 +6,13 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -28,7 +32,9 @@ import com.noamtu.jewishday.data.StartupSettingsCache
 import com.noamtu.jewishday.data.hasLocationPermission
 import com.noamtu.jewishday.i18n.AppLanguageController
 import com.noamtu.jewishday.i18n.AppLocales
+import com.noamtu.jewishday.ui.FirstDrawGate
 import com.noamtu.jewishday.ui.JewishDayApp
+import com.noamtu.jewishday.ui.LocalFirstDrawGate
 import com.noamtu.jewishday.ui.ShowDayRequest
 import com.noamtu.jewishday.ui.theme.JewishDayTheme
 import com.noamtu.jewishday.ui.theme.appThemeBackgroundColor
@@ -118,6 +124,21 @@ class MainActivity : ComponentActivity() {
         val fromRecents = (intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0
         if (savedInstanceState == null && !fromRecents) showDayRequest = intent.showDayRequest()
 
+        // Keep the system splash (or, before Android 12, the launch window) up until the first
+        // frame is the real screen: the sky and the day's zmanim are a few frames away, and drawing
+        // before them flashed the night glass and "Calculating zmanim…" between the splash and the day.
+        val firstDrawGate = FirstDrawGate(startedAt = SystemClock.uptimeMillis())
+        val content = findViewById<View>(android.R.id.content)
+        content.viewTreeObserver.addOnPreDrawListener(
+            object : ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    if (!firstDrawGate.mayDraw(SystemClock.uptimeMillis())) return false
+                    content.viewTreeObserver.removeOnPreDrawListener(this)
+                    return true
+                }
+            },
+        )
+
         setContent {
             val rootSettings by appSettingsRepository.rootUiSettings.collectAsStateWithLifecycle(
                 initialValue = initialRootSettings,
@@ -134,8 +155,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            JewishDayTheme(themeOption = rootSettings.themeOption) {
-                JewishDayApp(showDayRequest = showDayRequest)
+            CompositionLocalProvider(LocalFirstDrawGate provides firstDrawGate) {
+                JewishDayTheme(themeOption = rootSettings.themeOption) {
+                    JewishDayApp(showDayRequest = showDayRequest)
+                }
             }
         }
     }
@@ -183,6 +206,8 @@ class MainActivity : ComponentActivity() {
     // the system dark-mode flag, so the flag is not consulted here either: a light theme on a
     // dark-mode phone needs dark icons, or the white system icons vanish on the white background.
     private fun applySystemBarIconAppearance(themeOption: AppThemeOption) {
+        // Under Glass the icons follow the sky, day or night (GlassBackdrop), not the fixed scheme.
+        if (themeOption == AppThemeOption.Glass) return
         val backgroundColor = appThemeBackgroundColor(themeOption)
         val lightBackground = ColorUtils.calculateLuminance(backgroundColor) > 0.5
         val controller = WindowCompat.getInsetsController(window, window.decorView)
