@@ -20,6 +20,7 @@ import com.noamtu.jewishday.i18n.caption
 import com.noamtu.jewishday.i18n.description
 import com.noamtu.jewishday.i18n.label
 import com.noamtu.jewishday.i18n.methodCaption
+import com.noamtu.jewishday.i18n.nightfallCaption
 import com.noamtu.jewishday.i18n.uiText
 import com.noamtu.jewishday.i18n.verbatim
 import java.time.Instant
@@ -79,7 +80,8 @@ private fun ZmanimDayFacts.toZmanimDay(settings: ZmanimCalculationSettings): Zma
 private fun ZmanTime.row(settings: ZmanimCalculationSettings): ZmanItem = ZmanItem(
     title = uiText(option.label),
     time = time,
-    description = option.methodCaption(settings),
+    // On a night with no tzeit the method did not give this time, so the caption names what did.
+    description = fallback?.nightfallCaption ?: option.methodCaption(settings),
     id = option.storageValue,
 )
 
@@ -152,7 +154,7 @@ private fun ShabbatTimes.rows(parshaRow: ZmanItem?, settings: ZmanimCalculationS
         time = exit,
         description = uiText(
             R.string.shabbat_caption_motzei,
-            ZmanimTimeOption.MotzeiShabbat.methodCaption(settings),
+            exitFallback?.nightfallCaption ?: ZmanimTimeOption.MotzeiShabbat.methodCaption(settings),
             UiText.Number(settings.holyDayTosefetMinutes),
         ),
         id = ZmanimTimeOption.MotzeiShabbat.storageValue,

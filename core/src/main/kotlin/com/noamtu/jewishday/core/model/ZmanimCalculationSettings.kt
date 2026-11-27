@@ -73,6 +73,8 @@ public data class ZmanimCalculationSettings(
     val sunsetMethod: SunsetMethod = SunsetMethod.SeaLevel,
     val tzeitHakochavimMethod: TzeitHakochavimMethod = TzeitHakochavimMethod.Degrees6Point2,
     val tzeitHakochavimCustom: CustomZmanValue = customValuesAround(degrees = 6.2, minutes = 50),
+    // What stands in for tzeit on a night that has none (see NoTzeitFallback). Only ever read there.
+    val noTzeitFallback: NoTzeitFallback = NoTzeitFallback.Minutes72AfterSunset,
     val candleLightingMethod: CandleLightingMethod = CandleLightingMethod.Minutes20,
     // Where the custom field starts: 18 minutes, the common practice that is not one of the three
     // fixed options, so the most likely reason to reach for it is one edit away.

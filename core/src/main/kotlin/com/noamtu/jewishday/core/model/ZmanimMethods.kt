@@ -189,6 +189,41 @@ public enum class TzeitHakochavimMethod(public val storageValue: String) {
 }
 
 /**
+ * What stands in for tzeit hakochavim on a night it never comes: far enough north or south in summer
+ * the sun sets but never sinks to the user's nightfall angle, or does not set at all. Used only on
+ * such a night; wherever the user's own tzeit exists it is never consulted.
+ *
+ * Plain civil midnight is deliberately absent: no posek gives it.
+ */
+public enum class NoTzeitFallback(public val storageValue: String) {
+    /**
+     * 72 minutes after the user's own sunset (sea level or observed). Peninei Halakha (1:3, expanded,
+     * א,כה): in the northern countries the custom is to set tzeit all year at 72 minutes after sunset,
+     * and people relied on it for melacha on motzei Shabbat — he names the "white nights" outright.
+     * On a day with no sunset at all there is nothing to count from, and chatzot halaila is used.
+     */
+    Minutes72AfterSunset("minutes_72_after_sunset"),
+
+    /**
+     * Solar midnight of that night, the darkest moment it has. Rav Shlomo Goren: where there is no
+     * nightfall, Shabbat comes in and goes out at chatzot halaila.
+     */
+    ChatzotHaLaila("chatzot_halaila"),
+
+    /**
+     * The moment tzeit comes in Jerusalem that civil date, by the user's own method, shown in local
+     * time. Divrei Yatziv: in such places Eretz Yisrael decides.
+     */
+    EretzYisrael("eretz_yisrael"),
+    ;
+
+    public companion object {
+        public fun fromStorageValue(value: String?): NoTzeitFallback? =
+            entries.firstOrNull { it.storageValue == value }
+    }
+}
+
+/**
  * Minutes before sunset, as a choice of minhag. The three fixed options are the practices common
  * enough to be worth a tap — they are communities' customs, not rungs of a calculation ladder — and
  * [Custom] covers any other number, 18 included, held in

@@ -14,6 +14,7 @@ import com.noamtu.jewishday.core.model.MinchaGedolaMethod
 import com.noamtu.jewishday.core.model.MinchaKetanaMethod
 import com.noamtu.jewishday.core.model.MisheyakirMethod
 import com.noamtu.jewishday.core.model.MotzeiShabbatMethod
+import com.noamtu.jewishday.core.model.NoTzeitFallback
 import com.noamtu.jewishday.core.model.PlagHaminchaMethod
 import com.noamtu.jewishday.core.model.RabbeinuTamMethod
 import com.noamtu.jewishday.core.model.SofZmanShemaMethod
@@ -145,6 +146,19 @@ val TzeitHakochavimMethod.label: UiText get() = when (this) {
     TzeitHakochavimMethod.CustomZmaniyotMinutes -> uiText(R.string.method_zmaniyot_minutes)
 }
 
+val NoTzeitFallback.label: UiText get() = when (this) {
+    NoTzeitFallback.Minutes72AfterSunset -> uiText(R.string.method_no_tzeit_72)
+    NoTzeitFallback.ChatzotHaLaila -> uiText(R.string.method_no_tzeit_chatzot)
+    NoTzeitFallback.EretzYisrael -> uiText(R.string.method_no_tzeit_eretz_yisrael)
+}
+
+/** What a nightfall row says under its time when this stand-in gave it, because the night had no tzeit. */
+val NoTzeitFallback.nightfallCaption: UiText get() = when (this) {
+    NoTzeitFallback.Minutes72AfterSunset -> uiText(R.string.method_no_tzeit_caption_72)
+    NoTzeitFallback.ChatzotHaLaila -> uiText(R.string.method_no_tzeit_caption_chatzot)
+    NoTzeitFallback.EretzYisrael -> uiText(R.string.method_no_tzeit_caption_eretz_yisrael)
+}
+
 val CandleLightingMethod.label: UiText get() = offsetMinutes?.let(::minutes) ?: uiText(R.string.method_minutes)
 
 val MotzeiShabbatMethod.label: UiText get() = when (this) {
@@ -239,6 +253,8 @@ fun CandleLightingMethod.caption(settings: ZmanimCalculationSettings): UiText =
 
 /** What a candle-lighting row says under its time: the method, or that it was held at plag. */
 fun CandleLighting?.caption(settings: ZmanimCalculationSettings): UiText = when {
+    this?.fallback == NoTzeitFallback.ChatzotHaLaila -> uiText(R.string.method_no_sunset_caption_chatzot)
+    this?.fallback == NoTzeitFallback.EretzYisrael -> uiText(R.string.method_no_sunset_caption_eretz_yisrael)
     this?.isPlag == true -> uiText(R.string.method_candles_at_plag)
     else -> settings.candleLightingMethod.caption(settings)
 }

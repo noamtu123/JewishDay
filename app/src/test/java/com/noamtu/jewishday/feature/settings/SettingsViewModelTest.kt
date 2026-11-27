@@ -10,6 +10,7 @@ import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.core.model.ZmanimTimeOption
 import com.noamtu.jewishday.i18n.AppLanguageController
 import com.noamtu.jewishday.testing.FakeAppUpdateRepository
+import com.noamtu.jewishday.testing.FakeCurrentLocationRepository
 import com.noamtu.jewishday.testing.FakePerAppLanguage
 import com.noamtu.jewishday.testing.MainDispatcherRule
 import com.noamtu.jewishday.testing.RecordingDateStatusIconScheduler
@@ -20,6 +21,7 @@ import com.noamtu.jewishday.update.AppRelease
 import com.noamtu.jewishday.update.AppVersion
 import com.noamtu.jewishday.update.PendingUpdateStore
 import com.noamtu.jewishday.update.UpdateCheckReport
+import java.time.Clock
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -70,6 +72,8 @@ class SettingsViewModelTest {
                 dateStatusIconScheduler = icon,
                 appUpdateRepository = updates,
                 pendingUpdates = pending,
+                currentLocationRepository = FakeCurrentLocationRepository(),
+                clock = Clock.systemUTC(),
             )
             try {
                 Scenario(viewModel, stores, language, icon, updates, pending).block()

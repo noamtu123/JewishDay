@@ -198,6 +198,7 @@ fun SettingsScreen(
                         AdvancedZmanimChoices(
                             settings = uiState.zmanimSettings,
                             candleLightingDefault = uiState.candleLightingDefault,
+                            offersNoTzeitFallback = uiState.offersNoTzeitFallback,
                             viewModel = viewModel,
                         )
                     }

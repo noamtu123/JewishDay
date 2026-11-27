@@ -128,6 +128,7 @@ public fun zmanimDayFacts(
                 sunset = shabbatStartCalendar.sunset(settings.sunsetMethod),
                 exit = shabbatExit,
                 rabbeinuTam = shabbatEndCalendar.rabbeinuTam(settings),
+                exitFallback = shabbatEndCalendar.holyDayExitFallback(settings),
             )
         },
         offlineLearning = offlineLearning(jewishCalendar, date, inIsrael),
@@ -156,7 +157,7 @@ private fun dayZmanim(
     ZmanTime(ZmanimTimeOption.MinchaKetana, calendar.minchaKetana(settings)),
     ZmanTime(ZmanimTimeOption.PlagHamincha, calendar.plagHamincha(settings)),
     ZmanTime(ZmanimTimeOption.Sunset, calendar.sunset(settings.sunsetMethod)),
-    ZmanTime(ZmanimTimeOption.Tzeit, calendar.tzeit(settings)),
+    ZmanTime(ZmanimTimeOption.Tzeit, calendar.tzeit(settings), calendar.tzeitFallback(settings)),
     ZmanTime(ZmanimTimeOption.RabbeinuTam, calendar.rabbeinuTam(settings)).takeIf { includeRabbeinuTam },
     ZmanTime(ZmanimTimeOption.ChatzotHaLaila, chatzotHaLaila),
 )
@@ -234,6 +235,7 @@ private fun shabbatDatesFor(
 private fun daysUntil(current: DayOfWeek, target: DayOfWeek): Int =
     (target.value - current.value + 7) % 7
 
+/** Tzeit for [date] — or, on a night that has none, its stand-in (see [NoTzeitFallback]). */
 public fun tzeitForDate(
     location: JewishLocation = defaultJerusalemLocation,
     date: LocalDate,

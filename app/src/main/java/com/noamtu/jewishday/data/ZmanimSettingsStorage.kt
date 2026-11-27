@@ -20,6 +20,7 @@ import com.noamtu.jewishday.core.model.MinchaGedolaMethod
 import com.noamtu.jewishday.core.model.MinchaKetanaMethod
 import com.noamtu.jewishday.core.model.MisheyakirMethod
 import com.noamtu.jewishday.core.model.MotzeiShabbatMethod
+import com.noamtu.jewishday.core.model.NoTzeitFallback
 import com.noamtu.jewishday.core.model.PlagHaminchaMethod
 import com.noamtu.jewishday.core.model.RabbeinuTamMethod
 import com.noamtu.jewishday.core.model.SofZmanShemaMethod
@@ -135,6 +136,7 @@ internal fun Preferences.zmanimSettings(): ZmanimCalculationSettings {
             ?: tzeitLadder?.let { tzeitCustomMethodFor(it.unit) }
             ?: defaults.tzeitHakochavimMethod,
         tzeitHakochavimCustom = customValues(TzeitZman, defaults.tzeitHakochavimCustom, tzeitLadder),
+        noTzeitFallback = NoTzeitFallback.fromStorageValue(this[NoTzeitFallbackKey]) ?: defaults.noTzeitFallback,
         candleLightingMethod = storedCandle
             ?: legacyCandleMethod(candleLadderMinutes, defaults.candleLightingMethod),
         candleLightingCustomMinutes = candleLadderMinutes
@@ -173,6 +175,7 @@ internal fun MutablePreferences.putZmanimSettings(settings: ZmanimCalculationSet
     this[PlagHaminchaMethodKey] = settings.plagHaminchaMethod.storageValue
     this[SunsetMethodKey] = settings.sunsetMethod.storageValue
     this[TzeitHakochavimMethodKey] = settings.tzeitHakochavimMethod.storageValue
+    this[NoTzeitFallbackKey] = settings.noTzeitFallback.storageValue
     this[CandleLightingMethodKey] = settings.candleLightingMethod.storageValue
     this[MotzeiShabbatMethodKey] = settings.motzeiShabbatMethod.storageValue
     this[RabbeinuTamMethodKey] = settings.rabbeinuTamMethod.storageValue
@@ -243,6 +246,7 @@ private val MinchaKetanaMethodKey = stringPreferencesKey("zmanim_mincha_ketana_m
 private val PlagHaminchaMethodKey = stringPreferencesKey("zmanim_plag_method")
 private val SunsetMethodKey = stringPreferencesKey("zmanim_sunset_method")
 private val TzeitHakochavimMethodKey = stringPreferencesKey("zmanim_tzeit_method")
+private val NoTzeitFallbackKey = stringPreferencesKey("zmanim_no_tzeit_fallback")
 private val CandleLightingMethodKey = stringPreferencesKey("zmanim_candle_method")
 private val MotzeiShabbatMethodKey = stringPreferencesKey("zmanim_motzei_method")
 private val RabbeinuTamMethodKey = stringPreferencesKey("zmanim_rabbeinu_tam_method")

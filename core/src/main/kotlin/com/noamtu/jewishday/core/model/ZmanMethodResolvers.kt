@@ -272,17 +272,36 @@ internal fun ComprehensiveZmanimCalendar.plagHamincha(settings: ZmanimCalculatio
  * winter day far north — since candles lit earlier than plag do not bring the day in.
  */
 @Immutable
-public data class CandleLighting(val time: Instant, val isPlag: Boolean)
+public data class CandleLighting(
+    val time: Instant,
+    val isPlag: Boolean,
+    // Set when there is no sunset to light by (see [NoTzeitFallback]): which stand-in gave [time].
+    val fallback: NoTzeitFallback? = null,
+)
 
 /**
  * The chosen minutes before the chosen sunset, but never earlier than the plag the user picked: the
  * same plag their own plag row shows, not KosherJava's built-in GRA one. Computed here rather than
  * through the library's getCandleLighting, whose answer on such a day is its own (null in 3.1).
+ *
+ * With no sunset and no tzeit either — the midnight sun, where day and night are not told apart —
+ * Shabbat comes in by the stand-in for tzeit (see [NoTzeitFallback]): Rav Goren has it enter at
+ * chatzot halaila as it leaves (the 72-minute custom has no sunset to count from, so it does too);
+ * by Eretz Yisrael, Jerusalem's own candle lighting.
  */
 internal fun ComprehensiveZmanimCalendar.candleLighting(settings: ZmanimCalculationSettings): CandleLighting? {
-    val lighting = sunset(settings.sunsetMethod)
-        ?.minus(Duration.ofMinutes(settings.candleLightingOffsetMinutes.toLong()))
-        ?: return null
+    val sunset = sunset(settings.sunsetMethod)
+    if (sunset == null) {
+        if (ownTzeit(settings) != null) return null
+        // With no sunset, the 72-minute custom has already given way to chatzot halaila here.
+        val source = noTzeitSource(settings)
+        val entry = when (source) {
+            NoTzeitFallback.EretzYisrael -> jerusalem(settings).candleLighting(settings)?.time
+            NoTzeitFallback.ChatzotHaLaila, NoTzeitFallback.Minutes72AfterSunset -> chatzotHaLaila(ChatzotMethod.Solar)
+        } ?: return null
+        return CandleLighting(entry, isPlag = false, fallback = source)
+    }
+    val lighting = sunset.minus(Duration.ofMinutes(settings.candleLightingOffsetMinutes.toLong()))
     val plag = plagHamincha(settings)
     return if (plag != null && lighting.isBefore(plag)) {
         CandleLighting(plag, isPlag = true)
@@ -291,17 +310,58 @@ internal fun ComprehensiveZmanimCalendar.candleLighting(settings: ZmanimCalculat
     }
 }
 
-internal fun ComprehensiveZmanimCalendar.tzeit(settings: ZmanimCalculationSettings): Instant? =
-    tzeit(settings.tzeitHakochavimMethod, settings.tzeitHakochavimCustom)
+/** This calendar's civil date in Jerusalem, for [NoTzeitFallback.EretzYisrael]. */
+private fun ComprehensiveZmanimCalendar.jerusalem(settings: ZmanimCalculationSettings): ComprehensiveZmanimCalendar =
+    comprehensiveZmanimCalendar(defaultJerusalemLocation, localDate, settings)
 
-internal fun ComprehensiveZmanimCalendar.tzeit(
-    method: TzeitHakochavimMethod,
-    custom: CustomZmanValue,
-): Instant? = when (method) {
-    TzeitHakochavimMethod.Degrees6Point2 -> sunsetByDegrees(6.2) ?: tzais50Minutes
-    TzeitHakochavimMethod.CustomDegrees -> sunsetByDegrees(custom.degrees)
-    TzeitHakochavimMethod.CustomMinutes -> minutesAfterSunset(custom.minutes)
-    TzeitHakochavimMethod.CustomZmaniyotMinutes -> zmaniyotAfterSunset(custom.zmaniyotMinutes)
+/**
+ * Which stand-in a night with no tzeit actually takes: the chosen one, except that 72 minutes after
+ * sunset needs a sunset, and on a day without one gives way to chatzot halaila.
+ */
+private fun ComprehensiveZmanimCalendar.noTzeitSource(settings: ZmanimCalculationSettings): NoTzeitFallback =
+    when (settings.noTzeitFallback) {
+        NoTzeitFallback.Minutes72AfterSunset ->
+            if (sunset(settings.sunsetMethod) == null) NoTzeitFallback.ChatzotHaLaila else NoTzeitFallback.Minutes72AfterSunset
+        else -> settings.noTzeitFallback
+    }
+
+/**
+ * What stands in for a nightfall that never comes tonight (see [noTzeitSource]): 72 minutes after the
+ * user's sunset, chatzot halaila, or [inJerusalem] — the same zman by the same method, for Jerusalem
+ * on this civil date.
+ */
+private inline fun ComprehensiveZmanimCalendar.noTzeitStandIn(
+    settings: ZmanimCalculationSettings,
+    inJerusalem: ComprehensiveZmanimCalendar.() -> Instant?,
+): Instant? = when (noTzeitSource(settings)) {
+    NoTzeitFallback.Minutes72AfterSunset ->
+        sunset(settings.sunsetMethod)?.let { AstronomicalCalendar.getTimeOffset(it, Duration.ofMinutes(72)) }
+    // Solar, whatever the chatzot halaila row is set to: the darkest moment of the night is the point.
+    NoTzeitFallback.ChatzotHaLaila -> chatzotHaLaila(ChatzotMethod.Solar)
+    NoTzeitFallback.EretzYisrael -> jerusalem(settings).inJerusalem()
+}
+
+/**
+ * Tzeit hakochavim: the user's own method, or on a night where that never comes, its stand-in (see
+ * [NoTzeitFallback]). Everything that waits for nightfall reads it here — the Hebrew date, the icon,
+ * the end of a fast — so the stand-in reaches all of them at once.
+ */
+internal fun ComprehensiveZmanimCalendar.tzeit(settings: ZmanimCalculationSettings): Instant? =
+    ownTzeit(settings) ?: noTzeitStandIn(settings) { ownTzeit(settings) }
+
+/** Which stand-in gave [tzeit], or null when the night has its own (or no time could be given). */
+internal fun ComprehensiveZmanimCalendar.tzeitFallback(settings: ZmanimCalculationSettings): NoTzeitFallback? =
+    noTzeitSource(settings).takeIf { ownTzeit(settings) == null && tzeit(settings) != null }
+
+/** Tzeit by the user's method alone — null on a night the sun never sinks that far. */
+internal fun ComprehensiveZmanimCalendar.ownTzeit(settings: ZmanimCalculationSettings): Instant? {
+    val custom = settings.tzeitHakochavimCustom
+    return when (settings.tzeitHakochavimMethod) {
+        TzeitHakochavimMethod.Degrees6Point2 -> sunsetByDegrees(6.2)
+        TzeitHakochavimMethod.CustomDegrees -> sunsetByDegrees(custom.degrees)
+        TzeitHakochavimMethod.CustomMinutes -> minutesAfterSunset(custom.minutes)
+        TzeitHakochavimMethod.CustomZmaniyotMinutes -> zmaniyotAfterSunset(custom.zmaniyotMinutes)
+    }
 }
 
 /**
@@ -313,10 +373,18 @@ internal fun ComprehensiveZmanimCalendar.holyDayExit(settings: ZmanimCalculation
         AstronomicalCalendar.getTimeOffset(it, Duration.ofMinutes(settings.holyDayTosefetMinutes.toLong()))
     }
 
-internal fun ComprehensiveZmanimCalendar.motzeiShabbat(settings: ZmanimCalculationSettings): Instant? {
+/** Which stand-in gave [holyDayExit], or null when the night has its own motzei. */
+internal fun ComprehensiveZmanimCalendar.holyDayExitFallback(settings: ZmanimCalculationSettings): NoTzeitFallback? =
+    noTzeitSource(settings).takeIf { ownMotzeiShabbat(settings) == null && motzeiShabbat(settings) != null }
+
+/** Motzei by the user's method, or on a night where that never comes, the same stand-in as tzeit. */
+internal fun ComprehensiveZmanimCalendar.motzeiShabbat(settings: ZmanimCalculationSettings): Instant? =
+    ownMotzeiShabbat(settings) ?: noTzeitStandIn(settings) { ownMotzeiShabbat(settings) }
+
+private fun ComprehensiveZmanimCalendar.ownMotzeiShabbat(settings: ZmanimCalculationSettings): Instant? {
     val custom = settings.motzeiShabbatCustom
     return when (settings.motzeiShabbatMethod) {
-        MotzeiShabbatMethod.Degrees6Point2 -> sunsetByDegrees(6.2) ?: tzais50Minutes
+        MotzeiShabbatMethod.Degrees6Point2 -> sunsetByDegrees(6.2)
         MotzeiShabbatMethod.CustomDegrees -> sunsetByDegrees(custom.degrees)
         MotzeiShabbatMethod.CustomMinutes -> minutesAfterSunset(custom.minutes)
         MotzeiShabbatMethod.CustomZmaniyotMinutes -> zmaniyotAfterSunset(custom.zmaniyotMinutes)

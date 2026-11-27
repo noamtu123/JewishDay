@@ -45,9 +45,16 @@ public data class ZmanimDayFacts(
     val offlineLearning: List<OfflineLearning>,
 )
 
-/** One zman of the day's list: which it is, and when (null when it does not occur that day). */
+/**
+ * One zman of the day's list: which it is, and when (null when it does not occur that day).
+ * [fallback] says which stand-in gave [time] on a night with no tzeit of its own (see [NoTzeitFallback]).
+ */
 @Immutable
-public data class ZmanTime(val option: ZmanimTimeOption, val time: Instant?)
+public data class ZmanTime(
+    val option: ZmanimTimeOption,
+    val time: Instant?,
+    val fallback: NoTzeitFallback? = null,
+)
 
 /** An occasional event of the day, shown above its zmanim. */
 @Immutable
@@ -72,6 +79,8 @@ public data class ShabbatTimes(
     val sunset: Instant?,
     val exit: Instant?,
     val rabbeinuTam: Instant?,
+    // Which stand-in gave [exit], on a Saturday night with no nightfall of its own.
+    val exitFallback: NoTzeitFallback? = null,
 )
 
 /** The daily-learning tracks KosherJava can work out offline, in the order they are listed. */
