@@ -250,6 +250,8 @@ class DeveloperViewModel @Inject constructor(
     fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()
         skyPreview.clear()
+        // A check still running asked about the fake version; its answer must not land after this.
+        updateCheck?.cancel()
         _updateCheckResult.value = null
         pendingUpdates.clear()
     }
@@ -258,6 +260,7 @@ class DeveloperViewModel @Inject constructor(
     fun disableDeveloperMode() = launchOverride {
         developerOverridesRepository.disableDeveloperMode()
         skyPreview.clear()
+        updateCheck?.cancel()
         _updateCheckResult.value = null
         pendingUpdates.clear()
     }
