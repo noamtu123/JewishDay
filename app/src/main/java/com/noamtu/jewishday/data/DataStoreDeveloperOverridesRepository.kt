@@ -134,7 +134,9 @@ class DataStoreDeveloperOverridesRepository @Inject constructor(
         preferences[AnchorVirtualKey] = overrides.anchorVirtualEpochMs
         preferences[TimeFrozenKey] = overrides.timeFrozen
         preferences[LocationEnabledKey] = overrides.locationOverrideEnabled
-        overrides.locationPresetId?.let { preferences[LocationPresetKey] = it }
+        // Removed when cleared, or a reset would leave the old preset behind in storage.
+        val presetId = overrides.locationPresetId
+        if (presetId != null) preferences[LocationPresetKey] = presetId else preferences.remove(LocationPresetKey)
         preferences[AboutEnglishKey] = overrides.aboutInEnglish
         preferences[UpdateNotesEnglishKey] = overrides.updateNotesInEnglish
         preferences[CompassMonitoringKey] = overrides.compassMonitoringEnabled

@@ -55,12 +55,8 @@ class DataStoreAppSettingsRepository @Inject constructor(
                 hebrewDateStatusIconEnabled = preferences[HebrewDateStatusIconEnabled] ?: true,
                 language = decodeLanguage(preferences),
                 use24HourTime = preferences[Use24HourTime] ?: true,
-                enabledDailyLearning = preferences[EnabledDailyLearningKey]
-                    ?.mapNotNull(DailyLearningType::fromStorageValue)?.toSet()
-                    ?: DailyLearningType.Default,
-                enabledZmanimTimes = preferences[EnabledZmanimTimesKey]
-                    ?.mapNotNull(ZmanimTimeOption::fromStorageValue)?.toSet()
-                    ?: ZmanimTimeOption.Default,
+                enabledDailyLearning = decodeEnabledDailyLearning(preferences),
+                enabledZmanimTimes = decodeEnabledZmanimTimes(preferences),
                 themeOption = rootUiSettings.themeOption,
                 zmanimSettings = preferences.zmanimSettings(),
                 candleLightingPromptHandled = preferences[CandleLightingPromptHandled] ?: false,
@@ -147,6 +143,26 @@ class DataStoreAppSettingsRepository @Inject constructor(
         }
     }
 
+    override suspend fun updateEnabledDailyLearning(transform: (Set<DailyLearningType>) -> Set<DailyLearningType>) {
+        dataStore.edit { preferences ->
+            preferences[EnabledDailyLearningKey] =
+                transform(decodeEnabledDailyLearning(preferences)).map(DailyLearningType::storageValue).toSet()
+        }
+    }
+
+    override suspend fun updateEnabledZmanimTimes(transform: (Set<ZmanimTimeOption>) -> Set<ZmanimTimeOption>) {
+        dataStore.edit { preferences ->
+            preferences[EnabledZmanimTimesKey] =
+                transform(decodeEnabledZmanimTimes(preferences)).map(ZmanimTimeOption::storageValue).toSet()
+        }
+    }
+
+    override suspend fun updateZmanimSettings(transform: (ZmanimCalculationSettings) -> ZmanimCalculationSettings) {
+        dataStore.edit { preferences ->
+            preferences.putZmanimSettings(transform(preferences.zmanimSettings()))
+        }
+    }
+
     override suspend fun setCandleLightingPromptHandled(handled: Boolean) {
         dataStore.edit { preferences ->
             preferences[CandleLightingPromptHandled] = handled
@@ -170,6 +186,14 @@ class DataStoreAppSettingsRepository @Inject constructor(
             preferences[IncludePreReleases] = enabled
         }
     }
+
+    private fun decodeEnabledDailyLearning(preferences: Preferences): Set<DailyLearningType> =
+        preferences[EnabledDailyLearningKey]?.mapNotNull(DailyLearningType::fromStorageValue)?.toSet()
+            ?: DailyLearningType.Default
+
+    private fun decodeEnabledZmanimTimes(preferences: Preferences): Set<ZmanimTimeOption> =
+        preferences[EnabledZmanimTimesKey]?.mapNotNull(ZmanimTimeOption::fromStorageValue)?.toSet()
+            ?: ZmanimTimeOption.Default
 
     private fun decodeRootUiSettings(preferences: Preferences): RootUiSettings = RootUiSettings(
         themeOption = decodeThemeOption(preferences),
