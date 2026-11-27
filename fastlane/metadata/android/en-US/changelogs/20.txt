@@ -1,0 +1,5 @@
+- Home-screen widgets: Hebrew date, next zman, today's zmanim, and Shabbat & chag, each in a Glassy sky and a minimal version
+- Glassy sky is now the app's theme. The others are still in Settings → Theme
+- The compass suggests waving the phone in a figure-eight for better accuracy
+- After a restart, the date icon and widgets keep your last known location instead of falling back to Jerusalem
+- Fixed: Hoshana Rabba and the last day of Chol Hamoed Pesach appeared without their name
