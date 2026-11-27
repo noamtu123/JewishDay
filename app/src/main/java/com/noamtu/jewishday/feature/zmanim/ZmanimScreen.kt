@@ -30,6 +30,7 @@ import com.noamtu.jewishday.core.model.CandleLightingMethod
 import com.noamtu.jewishday.data.LocationSource
 import com.noamtu.jewishday.data.locationSourceForName
 import com.noamtu.jewishday.i18n.resolve
+import com.noamtu.jewishday.ui.HoldFirstDraw
 import com.noamtu.jewishday.ui.ShowDayRequest
 import com.noamtu.jewishday.ui.components.InfoCard
 import com.noamtu.jewishday.ui.components.ScreenHorizontalPadding
@@ -46,6 +47,8 @@ fun ZmanimScreen(
     viewModel: ZmanimViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    // The app's first frame waits for the day's times, so "Calculating zmanim…" never flashes by.
+    HoldFirstDraw(ready = uiState.header != null)
     // A widget tap opens the screen on the day the widget shows.
     LaunchedEffect(showDayRequest) { showDayRequest?.let(viewModel::showDay) }
 
