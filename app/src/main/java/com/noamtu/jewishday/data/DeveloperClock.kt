@@ -23,4 +23,8 @@ class DeveloperClock(
     override fun instant(): Instant = overrides.snapshot().effectiveInstant(base.instant())
 
     override fun millis(): Long = instant().toEpochMilli()
+
+    /** Whether the developer tools hold the time still, so it never moves on to anything. */
+    val isFrozen: Boolean
+        get() = overrides.snapshot().let { it.timeOverrideEnabled && it.timeFrozen }
 }

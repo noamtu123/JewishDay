@@ -6,12 +6,20 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
+import com.noamtu.jewishday.testing.TestStores
+import com.noamtu.jewishday.testing.awaitFirst
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 
 /** The widget and date-icon alarms, set on the real clock whatever time the developer tools pin. */
 class AlarmTimeTest {
+    @get:Rule
+    val folder = TemporaryFolder()
+
     private val realNow = Instant.parse("2026-11-27T10:00:00Z")
 
     private fun overrides(virtual: Instant, frozen: Boolean) = DeveloperOverrides(
@@ -56,6 +64,26 @@ class AlarmTimeTest {
         val clock = Clock.fixed(realNow, ZoneOffset.UTC)
         for (at in listOf(realNow, realNow.minusSeconds(5))) {
             assertEquals(realNow.plus(MinimumAlarmWait).toEpochMilli(), alarmTriggerMillis(clock, at, realNow.toEpochMilli()))
+        }
+    }
+
+    @Test
+    fun aFrozenClockArmsOnlyAnHourlyFallback() = runBlocking {
+        TestStores(folder).use { stores ->
+            val overrides = stores.developerOverrides
+            overrides.setVirtualTime(Instant.parse("2026-11-27T14:00:00Z").toEpochMilli())
+            overrides.setTimeFrozen(true)
+            overrides.state.awaitFirst { it.timeOverrideEnabled && it.timeFrozen }
+            val clock = DeveloperClock(Clock.fixed(realNow, ZoneOffset.UTC), overrides)
+            // Frozen 20 seconds short of tzeit, which it can never reach: this used to wake the phone
+            // every 30 seconds.
+            val tzeit = clock.instant().plusSeconds(20)
+            assertEquals(realNow.plus(FrozenClockAlarmWait).toEpochMilli(), alarmTriggerMillis(clock, tzeit, realNow.toEpochMilli()))
+            // Flowing again, the boundary is waited for as usual.
+            overrides.setTimeFrozen(false)
+            overrides.state.awaitFirst { !it.timeFrozen }
+            val flowing = alarmTriggerMillis(clock, clock.instant().plus(Duration.ofMinutes(10)), realNow.toEpochMilli())
+            assertEquals(realNow.plus(Duration.ofMinutes(10)).toEpochMilli(), flowing)
         }
     }
 }

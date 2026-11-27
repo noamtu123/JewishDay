@@ -16,8 +16,16 @@ import java.time.Instant
  * The wait is at least [MinimumAlarmWait], so nothing that computes a boundary at or before now can
  * turn the alarm into a loop either.
  */
-fun alarmTriggerMillis(clock: Clock, at: Instant, realNowMillis: Long = System.currentTimeMillis()): Long =
-    realNowMillis + Duration.between(clock.instant(), at).coerceAtLeast(MinimumAlarmWait).toMillis()
+fun alarmTriggerMillis(clock: Clock, at: Instant, realNowMillis: Long = System.currentTimeMillis()): Long {
+    // A frozen developer clock never reaches [at]: the wait would be re-armed at the same length
+    // forever (every 30 s, frozen just short of a boundary, for an alarm that wakes the phone). Any
+    // change to the override refreshes everything by itself, so an hourly fallback is all it needs.
+    if ((clock as? DeveloperClock)?.isFrozen == true) return realNowMillis + FrozenClockAlarmWait.toMillis()
+    return realNowMillis + Duration.between(clock.instant(), at).coerceAtLeast(MinimumAlarmWait).toMillis()
+}
+
+/** The wait while the developer tools hold the clock still: no boundary can come, so only a fallback. */
+val FrozenClockAlarmWait: Duration = Duration.ofHours(1)
 
 /** The shortest wait an alarm is set for. Every boundary the app wakes for is minutes apart at least. */
 val MinimumAlarmWait: Duration = Duration.ofSeconds(30)
