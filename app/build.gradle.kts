@@ -125,13 +125,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.hilt.work)
-    implementation(libs.androidx.work.runtime.ktx)
+    // Named here because the manifest configures its InitializationProvider (for ProfileInstaller).
+    implementation(libs.androidx.startup.runtime)
     implementation(libs.hilt.android)
     implementation(project(":core"))
 
     ksp(libs.hilt.compiler)
-    ksp(libs.androidx.hilt.compiler)
 
     testImplementation(libs.junit)
     // android.jar's org.json is a stub in unit tests; the real one lets release parsing be tested.
