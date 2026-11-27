@@ -15,7 +15,7 @@ JewishDay shows the Hebrew date, the day's zmanim and your daily learning. It do
 
 <b>What it doesn't do</b>
 <ul>
-<li>Everything is calculated on the phone and works offline. The one exception is daily learning: Daf Yomi and Tehillim are calculated offline too, while the other tracks come from Hebcal (hebcal.com). That request carries only the dates and whether you are in Israel.</li>
+<li>Everything, daily learning included, is calculated on the phone and works without internet.</li>
 <li>Your location is used on the phone only, to work out the times and the compass direction. It is never sent anywhere.</li>
 <li>No ads, no tracking, no account.</li>
 <li>Each time you open it, the app checks the project's GitHub releases for a newer version. It downloads an update only when you tap to install it.</li>
