@@ -44,6 +44,40 @@ class DeveloperOverridesReadTest {
         scope.cancel()
     }
 
+    // A cleared preset was never written back (only a non-null one was), so turning developer mode
+    // off left the old location preset in storage.
+    @Test
+    fun turningDeveloperModeOffForgetsTheLocationPreset() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = scope,
+            produceFile = { File(temporaryFolder.newFolder(), "preset.preferences_pb") },
+        )
+        val repository = DataStoreDeveloperOverridesRepository(dataStore, scope)
+        repository.setLocationPreset(DeveloperLocationPresets.last().id)
+
+        repository.disableDeveloperMode()
+
+        assertEquals(null, DataStoreDeveloperOverridesRepository(dataStore, scope).current().locationPresetId)
+        scope.cancel()
+    }
+
+    @Test
+    fun resettingTheOverridesForgetsTheLocationPreset() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = scope,
+            produceFile = { File(temporaryFolder.newFolder(), "reset.preferences_pb") },
+        )
+        val repository = DataStoreDeveloperOverridesRepository(dataStore, scope)
+        repository.setLocationPreset(DeveloperLocationPresets.last().id)
+
+        repository.clearOverrides()
+
+        assertEquals(null, repository.current().locationPresetId)
+        scope.cancel()
+    }
+
     @Test
     fun anEmptySpoofMeansUseTheRealVersion() = runBlocking {
         val file = File(temporaryFolder.newFolder(), "empty.preferences_pb")

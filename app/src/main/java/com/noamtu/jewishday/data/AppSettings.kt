@@ -96,6 +96,12 @@ interface AppSettingsRepository {
     suspend fun setEnabledZmanimTimes(options: Set<ZmanimTimeOption>)
     suspend fun setThemeOption(themeOption: AppThemeOption)
     suspend fun setZmanimSettings(settings: ZmanimCalculationSettings)
+
+    // Changes made from what is stored: [transform] is applied to the stored value inside the same
+    // write, so two changes made at once both land instead of the second overwriting the first.
+    suspend fun updateEnabledDailyLearning(transform: (Set<DailyLearningType>) -> Set<DailyLearningType>)
+    suspend fun updateEnabledZmanimTimes(transform: (Set<ZmanimTimeOption>) -> Set<ZmanimTimeOption>)
+    suspend fun updateZmanimSettings(transform: (ZmanimCalculationSettings) -> ZmanimCalculationSettings)
     suspend fun setCandleLightingPromptHandled(handled: Boolean)
     suspend fun setCandleLightingDefault(method: CandleLightingMethod)
     suspend fun setAlwaysUseJerusalem(enabled: Boolean)

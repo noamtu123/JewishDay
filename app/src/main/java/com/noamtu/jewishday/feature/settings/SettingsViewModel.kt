@@ -135,15 +135,14 @@ class SettingsViewModel @Inject constructor(
      */
     fun resetZmanimMethods() {
         viewModelScope.launch {
-            val current = appSettingsRepository.settings.first()
-            val candle = current.candleLightingDefault ?: current.zmanimSettings.candleLightingMethod
-            appSettingsRepository.setZmanimSettings(
+            val candleDefault = appSettingsRepository.settings.first().candleLightingDefault
+            appSettingsRepository.updateZmanimSettings { current ->
                 ZmanimCalculationSettings(
-                    candleLightingMethod = candle,
+                    candleLightingMethod = candleDefault ?: current.candleLightingMethod,
                     // Kept with it: if their choice is a typed-in offset, the number is the choice.
-                    candleLightingCustomMinutes = current.zmanimSettings.candleLightingCustomMinutes,
-                ),
-            )
+                    candleLightingCustomMinutes = current.candleLightingCustomMinutes,
+                )
+            }
         }
     }
 
@@ -169,15 +168,13 @@ class SettingsViewModel @Inject constructor(
 
     fun setDailyLearningEnabled(type: DailyLearningType, enabled: Boolean) {
         viewModelScope.launch {
-            val current = appSettingsRepository.settings.first().enabledDailyLearning
-            appSettingsRepository.setEnabledDailyLearning(if (enabled) current + type else current - type)
+            appSettingsRepository.updateEnabledDailyLearning { current -> if (enabled) current + type else current - type }
         }
     }
 
     fun setZmanimTimeEnabled(option: ZmanimTimeOption, enabled: Boolean) {
         viewModelScope.launch {
-            val current = appSettingsRepository.settings.first().enabledZmanimTimes
-            appSettingsRepository.setEnabledZmanimTimes(if (enabled) current + option else current - option)
+            appSettingsRepository.updateEnabledZmanimTimes { current -> if (enabled) current + option else current - option }
         }
     }
 
@@ -381,13 +378,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun updateZmanimSettings(transform: (ZmanimCalculationSettings) -> ZmanimCalculationSettings) {
-        viewModelScope.launch {
-            // Read the latest persisted value rather than uiState.value: the StateFlow
-            // updates asynchronously, so rapid consecutive edits could otherwise be
-            // applied to a stale snapshot and silently drop the earlier change.
-            val current = appSettingsRepository.settings.first().zmanimSettings
-            appSettingsRepository.setZmanimSettings(transform(current))
-        }
+        // Applied to the stored value inside the write itself: reading it first and writing back
+        // later let a second quick change start from the same old value and undo the first.
+        viewModelScope.launch { appSettingsRepository.updateZmanimSettings(transform) }
     }
 
 }

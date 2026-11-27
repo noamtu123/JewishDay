@@ -247,12 +247,7 @@ class ZmanimViewModel @Inject constructor(
 
     fun selectCandleLightingMethod(method: CandleLightingMethod) {
         viewModelScope.launch {
-            val current = appSettingsRepository.settings.first()
-            appSettingsRepository.setZmanimSettings(
-                current.zmanimSettings.copy(
-                    candleLightingMethod = method,
-                ),
-            )
+            appSettingsRepository.updateZmanimSettings { it.copy(candleLightingMethod = method) }
             appSettingsRepository.setCandleLightingPromptHandled(true)
             // Remember the first-launch choice as the candle-lighting default (shown in the
             // picker and restored by Reset).
@@ -266,13 +261,12 @@ class ZmanimViewModel @Inject constructor(
      */
     fun selectCandleLightingMinutes(minutes: Int) {
         viewModelScope.launch {
-            val current = appSettingsRepository.settings.first()
-            appSettingsRepository.setZmanimSettings(
-                current.zmanimSettings.copy(
+            appSettingsRepository.updateZmanimSettings {
+                it.copy(
                     candleLightingMethod = CandleLightingMethod.Custom,
                     candleLightingCustomMinutes = minutes.coerceIn(0, 120),
-                ),
-            )
+                )
+            }
             appSettingsRepository.setCandleLightingPromptHandled(true)
             appSettingsRepository.setCandleLightingDefault(CandleLightingMethod.Custom)
         }

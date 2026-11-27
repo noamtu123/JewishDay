@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.noamtu.jewishday.core.model.AlotHashacharMethod
 import com.noamtu.jewishday.core.model.CandleLightingMethod
 import com.noamtu.jewishday.core.model.CustomZmanUnit
+import com.noamtu.jewishday.core.model.DailyLearningType
+import com.noamtu.jewishday.core.model.SunriseMethod
 import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
 import com.noamtu.jewishday.core.model.ZmanimTimeOption
 import com.noamtu.jewishday.i18n.AppLanguageController
@@ -139,6 +141,39 @@ class SettingsViewModelTest {
         stores.settings.setEnabledZmanimTimes(setOf(ZmanimTimeOption.Sunrise))
         viewModel.resetZmanimTimes()
         stores.settings.settings.awaitFirst { it.enabledZmanimTimes == ZmanimTimeOption.Default }
+    }
+
+    // Each change used to read the stored settings and write back a whole new copy as two separate
+    // steps, so a second tap landing before the first had been written started from the old copy
+    // and wrote it back, losing the first change.
+
+    @Test
+    fun twoQuickZmanimToggles_bothStick() = scenario {
+        viewModel.setZmanimTimeEnabled(ZmanimTimeOption.Sunrise, false)
+        viewModel.setZmanimTimeEnabled(ZmanimTimeOption.Sunset, false)
+        stores.settings.settings.awaitFirst {
+            ZmanimTimeOption.Sunrise !in it.enabledZmanimTimes && ZmanimTimeOption.Sunset !in it.enabledZmanimTimes
+        }
+    }
+
+    @Test
+    fun twoQuickDailyLearningToggles_bothStick() = scenario {
+        viewModel.setDailyLearningEnabled(DailyLearningType.MishnahYomi, true)
+        viewModel.setDailyLearningEnabled(DailyLearningType.KitzurShulchanAruch, true)
+        stores.settings.settings.awaitFirst {
+            DailyLearningType.MishnahYomi in it.enabledDailyLearning &&
+                DailyLearningType.KitzurShulchanAruch in it.enabledDailyLearning
+        }
+    }
+
+    @Test
+    fun twoQuickMethodChanges_bothStick() = scenario {
+        viewModel.setAlotHashacharMethod(AlotHashacharMethod.CustomMinutes)
+        viewModel.setSunriseMethod(SunriseMethod.ElevationAdjusted)
+        stores.settings.settings.awaitFirst {
+            it.zmanimSettings.alotHashacharMethod == AlotHashacharMethod.CustomMinutes &&
+                it.zmanimSettings.sunriseMethod == SunriseMethod.ElevationAdjusted
+        }
     }
 
     @Test
