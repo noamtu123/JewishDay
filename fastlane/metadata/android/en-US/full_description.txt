@@ -1,0 +1,24 @@
+JewishDay shows the Hebrew date, the day's zmanim and your daily learning. It does that and little else.
+
+<b>What it has</b>
+<ul>
+<li>The Hebrew date, the week's parsha, Yom Tov, fast days, the Omer and Rosh Chodesh. The date turns over at nightfall (tzeit).</li>
+<li>Zmanim for where you are. Every time has its own choice of opinion: a sensible default, named opinions such as the GRA, Baal HaTanya and Ateret Torah, or your own value in degrees, minutes or zmaniyot minutes.</li>
+<li>Shabbat and chag times: candle lighting, Motzei Shabbat and Rabbeinu Tam.</li>
+<li>Daily learning: Daf Yomi (Bavli and Yerushalmi), Mishnah Yomi, the daily Rambam (one or three chapters), Tehillim, Tanakh Yomi, Shemirat HaLashon and Kitzur Shulchan Aruch. Show only the ones you learn.</li>
+<li>A prayer compass that points to Jerusalem, to the Kodesh HaKodashim.</li>
+<li>Home-screen widgets: the Hebrew date, the next zman, today's zmanim, and Shabbat and chag times, each in a Glassy sky style or a minimal one.</li>
+<li>An optional status-bar icon with today's Hebrew day, so the date is a glance away without opening the app.</li>
+<li>Full English and Hebrew interfaces, a Glassy sky theme that follows the real sky through the day, and a few plain themes.</li>
+<li>Works with TalkBack and large fonts.</li>
+</ul>
+
+<b>What it doesn't do</b>
+<ul>
+<li>Everything, daily learning included, is calculated on the phone and works without internet.</li>
+<li>Your location is used on the phone only, to work out the times and the compass direction. It is never sent anywhere.</li>
+<li>No ads, no tracking, no account.</li>
+<li>Each time you open it, the app checks the project's GitHub releases for a newer version. It downloads an update only when you tap to install it.</li>
+</ul>
+
+JewishDay is free and open source under the GNU GPL v3.0.

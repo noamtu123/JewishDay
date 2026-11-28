@@ -7,7 +7,9 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import com.noamtu.jewishday.data.alarmTriggerMillis
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,13 +25,16 @@ import javax.inject.Singleton
 @Singleton
 class DateStatusIconAlarmScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val clock: Clock,
 ) {
     private val alarmManager: AlarmManager
         get() = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     fun scheduleNext(triggerAt: Instant) {
         val pendingIntent = alarmPendingIntent()
-        val triggerMillis = triggerAt.toEpochMilli()
+        // [triggerAt] is on the app's clock, which the developer tools may pin elsewhere (see
+        // alarmTriggerMillis): set straight from it, a pinned past time woke the phone in a loop.
+        val triggerMillis = alarmTriggerMillis(clock, triggerAt)
         try {
             if (canScheduleExact()) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMillis, pendingIntent)

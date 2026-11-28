@@ -3,25 +3,10 @@
 package com.noamtu.jewishday.data
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.longPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import com.noamtu.jewishday.di.ApplicationScope
-import com.noamtu.jewishday.model.JewishLocation
-import java.io.IOException
+import com.noamtu.jewishday.core.model.JewishLocation
 import java.time.Instant
 import java.time.ZoneId
-import javax.inject.Inject
-import javax.inject.Singleton
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -99,82 +84,45 @@ data class DeveloperOverrides(
         get() = if (locationOverrideEnabled) developerLocationPreset(locationPresetId)?.location else null
 }
 
-@Singleton
-class DeveloperOverridesRepository @Inject constructor(
-    private val dataStore: DataStore<Preferences>,
-    @ApplicationScope private val scope: CoroutineScope,
-) {
-    private val _state = MutableStateFlow(DeveloperOverrides())
-    val state: StateFlow<DeveloperOverrides> = _state.asStateFlow()
-
-    init {
-        scope.launch {
-            dataStore.data
-                .catch { exception -> if (exception is IOException) emit(emptyPreferences()) else throw exception }
-                .collect { preferences -> _state.value = decode(preferences) }
-        }
-    }
+/**
+ * The hidden developer tools' overrides (see [DeveloperOverrides]): read synchronously by the clock
+ * and location seams, observed by the screens, and changed only from the developer screen.
+ */
+interface DeveloperOverridesRepository {
+    val state: StateFlow<DeveloperOverrides>
 
     /** Synchronous snapshot for the clock and location seams (read on hot paths). */
-    fun snapshot(): DeveloperOverrides = _state.value
+    fun snapshot(): DeveloperOverrides
 
+    /** The pinned location, when the location override is on. */
     val overrideLocation: JewishLocation? get() = snapshot().overrideLocation
 
-    suspend fun setUnlocked(unlocked: Boolean) = update { it.copy(unlocked = unlocked) }
+    suspend fun setUnlocked(unlocked: Boolean)
 
     /** Turns the virtual clock on/off. On first enable, it anchors to the real current time. */
-    suspend fun setTimeOverrideEnabled(enabled: Boolean) = update { current ->
-        if (enabled && !current.timeOverrideEnabled) {
-            val now = System.currentTimeMillis()
-            current.copy(timeOverrideEnabled = true, anchorRealEpochMs = now, anchorVirtualEpochMs = now)
-        } else {
-            current.copy(timeOverrideEnabled = enabled)
-        }
-    }
+    suspend fun setTimeOverrideEnabled(enabled: Boolean)
 
-    suspend fun setTimeFrozen(frozen: Boolean) = update { current ->
-        // Re-anchor at the moment of toggling so the visible time doesn't jump.
-        val virtualNow = current.effectiveInstant(Instant.now()).toEpochMilli()
-        current.copy(timeFrozen = frozen, anchorRealEpochMs = System.currentTimeMillis(), anchorVirtualEpochMs = virtualNow)
-    }
+    suspend fun setTimeFrozen(frozen: Boolean)
 
     /** Sets the virtual clock to [virtualEpochMs], enabling the override if needed. */
-    suspend fun setVirtualTime(virtualEpochMs: Long) = update { current ->
-        current.copy(
-            timeOverrideEnabled = true,
-            anchorRealEpochMs = System.currentTimeMillis(),
-            anchorVirtualEpochMs = virtualEpochMs,
-        )
-    }
+    suspend fun setVirtualTime(virtualEpochMs: Long)
 
     /** Shifts the virtual clock by [deltaMs] (e.g. +/- a day or hour). */
-    suspend fun shiftVirtualTime(deltaMs: Long) = update { current ->
-        val virtualNow = current.effectiveInstant(Instant.now()).toEpochMilli()
-        current.copy(
-            timeOverrideEnabled = true,
-            anchorRealEpochMs = System.currentTimeMillis(),
-            anchorVirtualEpochMs = virtualNow + deltaMs,
-        )
-    }
+    suspend fun shiftVirtualTime(deltaMs: Long)
 
-    suspend fun setLocationOverrideEnabled(enabled: Boolean) = update { current ->
-        val presetId = current.locationPresetId ?: DeveloperLocationPresets.first().id
-        current.copy(locationOverrideEnabled = enabled, locationPresetId = presetId)
-    }
+    suspend fun setLocationOverrideEnabled(enabled: Boolean)
 
-    suspend fun setLocationPreset(id: String) = update { it.copy(locationOverrideEnabled = true, locationPresetId = id) }
+    suspend fun setLocationPreset(id: String)
 
-    suspend fun setAboutInEnglish(enabled: Boolean) = update { it.copy(aboutInEnglish = enabled) }
+    suspend fun setAboutInEnglish(enabled: Boolean)
 
-    suspend fun setUpdateNotesInEnglish(enabled: Boolean) = update { it.copy(updateNotesInEnglish = enabled) }
+    suspend fun setUpdateNotesInEnglish(enabled: Boolean)
 
-    suspend fun setCompassMonitoringEnabled(enabled: Boolean) = update { it.copy(compassMonitoringEnabled = enabled) }
+    suspend fun setCompassMonitoringEnabled(enabled: Boolean)
 
-    suspend fun setHideTimeOverrideBanner(hidden: Boolean) = update { it.copy(hideTimeOverrideBanner = hidden) }
+    suspend fun setHideTimeOverrideBanner(hidden: Boolean)
 
-
-    suspend fun setSpoofedVersionName(versionName: String) =
-        update { it.copy(spoofedVersionName = versionName.trim()) }
+    suspend fun setSpoofedVersionName(versionName: String)
 
     /**
      * The stored overrides, waiting for the first read rather than using [snapshot].
@@ -182,73 +130,15 @@ class DeveloperOverridesRepository @Inject constructor(
      * [snapshot] starts life at the defaults and is filled in once DataStore emits, so anything
      * running at launch — the update check does — would otherwise read "off" for every override.
      */
-    suspend fun current(): DeveloperOverrides = dataStore.data
-        .catch { exception -> if (exception is IOException) emit(emptyPreferences()) else throw exception }
-        .map(::decode)
-        .first()
+    suspend fun current(): DeveloperOverrides
 
     /** Clears every override but keeps the tools unlocked. */
-    suspend fun clearOverrides() = update {
-        DeveloperOverrides(unlocked = it.unlocked)
-    }
+    suspend fun clearOverrides()
 
     /**
      * Turns the tools off altogether: every override cleared *and* the feature locked again, so the
      * section disappears and only another 7 taps on the version brings it back. Leaving an override
      * behind would keep a spoofed clock or location running with nothing on screen admitting to it.
      */
-    suspend fun disableDeveloperMode() = update { DeveloperOverrides() }
-
-    private suspend fun update(transform: (DeveloperOverrides) -> DeveloperOverrides) {
-        val next = transform(_state.value)
-        // Update in-memory first so the clock/location seams see the change immediately,
-        // then persist (the DataStore collector will converge to the same value).
-        _state.value = next
-        dataStore.edit { preferences -> encode(preferences, next) }
-    }
-
-    private fun decode(preferences: Preferences): DeveloperOverrides = DeveloperOverrides(
-        unlocked = preferences[UnlockedKey] ?: false,
-        timeOverrideEnabled = preferences[TimeEnabledKey] ?: false,
-        anchorRealEpochMs = preferences[AnchorRealKey] ?: 0L,
-        anchorVirtualEpochMs = preferences[AnchorVirtualKey] ?: 0L,
-        timeFrozen = preferences[TimeFrozenKey] ?: true,
-        locationOverrideEnabled = preferences[LocationEnabledKey] ?: false,
-        locationPresetId = preferences[LocationPresetKey],
-        aboutInEnglish = preferences[AboutEnglishKey] ?: false,
-        updateNotesInEnglish = preferences[UpdateNotesEnglishKey] ?: false,
-        compassMonitoringEnabled = preferences[CompassMonitoringKey] ?: false,
-        hideTimeOverrideBanner = preferences[HideTimeBannerKey] ?: false,
-        spoofedVersionName = preferences[SpoofedVersionKey].orEmpty(),
-    )
-
-    private fun encode(preferences: androidx.datastore.preferences.core.MutablePreferences, overrides: DeveloperOverrides) {
-        preferences[UnlockedKey] = overrides.unlocked
-        preferences[TimeEnabledKey] = overrides.timeOverrideEnabled
-        preferences[AnchorRealKey] = overrides.anchorRealEpochMs
-        preferences[AnchorVirtualKey] = overrides.anchorVirtualEpochMs
-        preferences[TimeFrozenKey] = overrides.timeFrozen
-        preferences[LocationEnabledKey] = overrides.locationOverrideEnabled
-        overrides.locationPresetId?.let { preferences[LocationPresetKey] = it }
-        preferences[AboutEnglishKey] = overrides.aboutInEnglish
-        preferences[UpdateNotesEnglishKey] = overrides.updateNotesInEnglish
-        preferences[CompassMonitoringKey] = overrides.compassMonitoringEnabled
-        preferences[HideTimeBannerKey] = overrides.hideTimeOverrideBanner
-        preferences[SpoofedVersionKey] = overrides.spoofedVersionName
-    }
-
-    private companion object {
-        val UnlockedKey = booleanPreferencesKey("dev_unlocked")
-        val TimeEnabledKey = booleanPreferencesKey("dev_time_enabled")
-        val AnchorRealKey = longPreferencesKey("dev_anchor_real")
-        val AnchorVirtualKey = longPreferencesKey("dev_anchor_virtual")
-        val TimeFrozenKey = booleanPreferencesKey("dev_time_frozen")
-        val LocationEnabledKey = booleanPreferencesKey("dev_loc_enabled")
-        val LocationPresetKey = stringPreferencesKey("dev_loc_preset")
-        val AboutEnglishKey = booleanPreferencesKey("dev_about_english")
-        val UpdateNotesEnglishKey = booleanPreferencesKey("dev_update_notes_english")
-        val CompassMonitoringKey = booleanPreferencesKey("dev_compass_monitoring")
-        val HideTimeBannerKey = booleanPreferencesKey("dev_hide_time_banner")
-        val SpoofedVersionKey = stringPreferencesKey("dev_spoofed_version")
-    }
+    suspend fun disableDeveloperMode()
 }

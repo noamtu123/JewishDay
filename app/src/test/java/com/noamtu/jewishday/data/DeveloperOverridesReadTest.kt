@@ -33,14 +33,48 @@ class DeveloperOverridesReadTest {
             produceFile = { File(temporaryFolder.newFolder(), "developer.preferences_pb") },
         )
 
-        DeveloperOverridesRepository(dataStore, scope).setSpoofedVersionName("0.5.0")
+        DataStoreDeveloperOverridesRepository(dataStore, scope).setSpoofedVersionName("0.5.0")
 
         // A repository built fresh, exactly as a cold launch builds one. Its cached snapshot may or
         // may not have caught up yet — the collector races this line, so the test does not assert
         // on it — but current() must see the stored override either way.
-        val reader = DeveloperOverridesRepository(dataStore, scope)
+        val reader = DataStoreDeveloperOverridesRepository(dataStore, scope)
         assertEquals("0.5.0", reader.current().spoofedVersionName)
 
+        scope.cancel()
+    }
+
+    // A cleared preset was never written back (only a non-null one was), so turning developer mode
+    // off left the old location preset in storage.
+    @Test
+    fun turningDeveloperModeOffForgetsTheLocationPreset() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = scope,
+            produceFile = { File(temporaryFolder.newFolder(), "preset.preferences_pb") },
+        )
+        val repository = DataStoreDeveloperOverridesRepository(dataStore, scope)
+        repository.setLocationPreset(DeveloperLocationPresets.last().id)
+
+        repository.disableDeveloperMode()
+
+        assertEquals(null, DataStoreDeveloperOverridesRepository(dataStore, scope).current().locationPresetId)
+        scope.cancel()
+    }
+
+    @Test
+    fun resettingTheOverridesForgetsTheLocationPreset() = runBlocking {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = scope,
+            produceFile = { File(temporaryFolder.newFolder(), "reset.preferences_pb") },
+        )
+        val repository = DataStoreDeveloperOverridesRepository(dataStore, scope)
+        repository.setLocationPreset(DeveloperLocationPresets.last().id)
+
+        repository.clearOverrides()
+
+        assertEquals(null, repository.current().locationPresetId)
         scope.cancel()
     }
 
@@ -48,7 +82,7 @@ class DeveloperOverridesReadTest {
     fun anEmptySpoofMeansUseTheRealVersion() = runBlocking {
         val file = File(temporaryFolder.newFolder(), "empty.preferences_pb")
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        val repository = DeveloperOverridesRepository(
+        val repository = DataStoreDeveloperOverridesRepository(
             PreferenceDataStoreFactory.create(scope = scope, produceFile = { file }),
             scope,
         )

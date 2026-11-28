@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     style="@style/Widget.JewishDay.Root"
+    android:orientation="vertical"
     android:gravity="center_vertical">
 
     <TextView

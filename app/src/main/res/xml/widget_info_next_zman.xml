@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Refreshed by WidgetUpdater at each change; the periodic update is only a safety net. -->
+<!-- previewLayout and the target cells are Android 12+; older launchers size the widget by minWidth/minHeight. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:targetApi="31"
     android:description="@string/widget_next_zman_description"
     android:initialLayout="@layout/widget_next_zman"
     android:previewLayout="@layout/widget_preview_next_zman"

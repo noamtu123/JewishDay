@@ -7,19 +7,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kosherjava.zmanim.hebrewcalendar.HebrewDateFormatter
 import com.kosherjava.zmanim.hebrewcalendar.JewishCalendar
+import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.englishHebrewDateFormatter
+import com.noamtu.jewishday.core.model.isInIsrael
+import com.noamtu.jewishday.core.model.jewishCalendar
+import com.noamtu.jewishday.core.model.jewishDayCivilDate
+import com.noamtu.jewishday.core.model.skyDayFor
 import com.noamtu.jewishday.data.AppSettingsRepository
-import com.noamtu.jewishday.data.SkyPreview
-import com.noamtu.jewishday.model.skyDayFor
-import com.noamtu.jewishday.ui.theme.SkyPhase
-import com.noamtu.jewishday.ui.theme.skyPhases
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.DeveloperOverrides
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
-import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.englishHebrewDateFormatter
-import com.noamtu.jewishday.model.isInIsrael
-import com.noamtu.jewishday.model.jewishDayCivilDate
+import com.noamtu.jewishday.data.SkyPreview
 import com.noamtu.jewishday.notification.DateStatusIconScheduler
+import com.noamtu.jewishday.ui.theme.SkyPhase
+import com.noamtu.jewishday.ui.theme.skyPhases
 import com.noamtu.jewishday.update.AppUpdateRepository
 import com.noamtu.jewishday.update.PendingUpdateStore
 import com.noamtu.jewishday.update.UpdateCheckReport
@@ -32,9 +33,10 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -173,6 +175,9 @@ class DeveloperViewModel @Inject constructor(
         // banner raised for the old spoof is the same lie in a louder place.
         _updateCheckResult.value = null
         pendingUpdates.clear()
+        // A new version is exactly what the check answers for, so ask straight away instead of
+        // waiting for a manual check or the next launch.
+        runUpdateCheck(restart = true)
     }
 
     /**
@@ -185,9 +190,11 @@ class DeveloperViewModel @Inject constructor(
      * finds nothing clears any offer a previous check left, so the banner never outlives the
      * spoofed version that produced it.
      */
-    fun runUpdateCheck() {
-        if (_updateCheckResult.value == CheckingLabel) return
-        viewModelScope.launch {
+    fun runUpdateCheck(restart: Boolean = false) {
+        // [restart]: a check still running was asked for the previous version, and its answer would
+        // land after this one's, so it is cancelled rather than waited for.
+        if (restart) updateCheck?.cancel() else if (updateCheck?.isActive == true) return
+        updateCheck = viewModelScope.launch {
             _updateCheckResult.value = CheckingLabel
             _updateCheckResult.value = when (val report = appUpdateRepository.check()) {
                 is UpdateCheckReport.Available -> {
@@ -218,18 +225,33 @@ class DeveloperViewModel @Inject constructor(
         developerOverridesRepository.setHideTimeOverrideBanner(hidden)
     }
 
+    /** The update check under way, if any. */
+    private var updateCheck: Job? = null
+
     /** The Sky theme's time of day, for the backdrop alone — see [SkyPreview]. */
     val skyPreviewTime: StateFlow<LocalTime?> = skyPreview.time
     val skyPreviewPlaying: StateFlow<Boolean> = skyPreview.playing
 
     fun showSkyAt(time: LocalTime) = skyPreview.show(time)
-    fun playSkyDay() = skyPreview.play()
+    fun playSkyDay() = skyPreview.play(now = skyNow())
+
+    /** Plays the day for the Zmanim screen: the play goes on once the developer tools are left. */
+    fun playSkyDayOnZmanim() = skyPreview.play(now = skyNow(), outlivesTools = true)
+
     fun stopSkyDay() = skyPreview.stop()
     fun followClockWithSky() = skyPreview.clear()
+
+    /** The developer screen left composition — see [SkyPreview.developerToolsLeft]. */
+    fun leftDeveloperScreen() = skyPreview.developerToolsLeft()
+
+    // The sky reads the clock in the location's zone, so a play starts from the time it shows now.
+    private fun skyNow(): LocalTime = clock.instant().atZone(uiState.value.skyZone).toLocalTime()
 
     fun resetOverrides() = launchOverride {
         developerOverridesRepository.clearOverrides()
         skyPreview.clear()
+        // A check still running asked about the fake version; its answer must not land after this.
+        updateCheck?.cancel()
         _updateCheckResult.value = null
         pendingUpdates.clear()
     }
@@ -238,6 +260,7 @@ class DeveloperViewModel @Inject constructor(
     fun disableDeveloperMode() = launchOverride {
         developerOverridesRepository.disableDeveloperMode()
         skyPreview.clear()
+        updateCheck?.cancel()
         _updateCheckResult.value = null
         pendingUpdates.clear()
     }
@@ -263,10 +286,7 @@ class DeveloperViewModel @Inject constructor(
 
         // The readout names the Hebrew date the app is showing, which rolls at tzeit like the main
         // screen's header — shifting the clock past nightfall must move it to the next date.
-        val jewishCalendar = JewishCalendar(jewishDayCivilDate(location, zmanimSettings, instant)).apply {
-            isUseModernHolidays = true
-            setInIsrael(inIsrael)
-        }
+        val jewishCalendar = jewishCalendar(jewishDayCivilDate(location, zmanimSettings, instant), inIsrael)
         val hebrewFormatter = HebrewDateFormatter().apply { isHebrewFormat = true }
 
         return DeveloperUiState(
@@ -295,10 +315,7 @@ class DeveloperViewModel @Inject constructor(
     }
 
     private fun matches(target: DeveloperJumpTarget, date: LocalDate, inIsrael: Boolean): Boolean {
-        val jc = JewishCalendar(date).apply {
-            isUseModernHolidays = true
-            setInIsrael(inIsrael)
-        }
+        val jc = jewishCalendar(date, inIsrael)
         return when (target) {
             DeveloperJumpTarget.RoshHashana -> jc.yomTovIndex == JewishCalendar.ROSH_HASHANA
             DeveloperJumpTarget.YomKippur -> jc.yomTovIndex == JewishCalendar.YOM_KIPPUR

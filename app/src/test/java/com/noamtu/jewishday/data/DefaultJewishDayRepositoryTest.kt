@@ -2,13 +2,16 @@
 
 package com.noamtu.jewishday.data
 
-import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.defaultJerusalemLocation
-import com.noamtu.jewishday.model.nextDateBoundary
-import com.noamtu.jewishday.model.nextGregorianMidnight
-import com.noamtu.jewishday.model.nextStatusIconBoundary
-import com.noamtu.jewishday.model.sunsetForDate
-import com.noamtu.jewishday.model.tzeitForDate
+import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.defaultJerusalemLocation
+import com.noamtu.jewishday.core.model.nextDateBoundary
+import com.noamtu.jewishday.core.model.nextGregorianMidnight
+import com.noamtu.jewishday.core.model.nextStatusIconBoundary
+import com.noamtu.jewishday.core.model.sunsetForDate
+import com.noamtu.jewishday.core.model.tzeitForDate
+import com.noamtu.jewishday.i18n.en
+import com.noamtu.jewishday.i18n.hebrewDate
+import com.noamtu.jewishday.i18n.weekday
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.Duration
@@ -53,9 +56,9 @@ class DefaultJewishDayRepositoryTest {
         val afterTzeit = DefaultJewishDayRepository(Clock.fixed(tzeit.plusSeconds(60), zone))
             .getToday(defaultJerusalemLocation)
 
-        assertTrue(beforeSunset.hebrewDateEnglish, beforeSunset.hebrewDateEnglish.contains("17 Tammuz"))
-        assertTrue(beinHashmashot.hebrewDateEnglish, beinHashmashot.hebrewDateEnglish.contains("17 Tammuz"))
-        assertTrue(afterTzeit.hebrewDateEnglish, afterTzeit.hebrewDateEnglish.contains("18 Tammuz"))
+        assertTrue(beforeSunset.hebrewDate.en(), beforeSunset.hebrewDate.en().contains("17 Tammuz"))
+        assertTrue(beinHashmashot.hebrewDate.en(), beinHashmashot.hebrewDate.en().contains("17 Tammuz"))
+        assertTrue(afterTzeit.hebrewDate.en(), afterTzeit.hebrewDate.en().contains("18 Tammuz"))
     }
 
     @Test
@@ -70,14 +73,14 @@ class DefaultJewishDayRepositoryTest {
         val dayInfo = repository.getToday(defaultJerusalemLocation)
         val zmanim = repository.getZmanim(defaultJerusalemLocation)
 
-        assertEquals("Thursday", dayInfo.dayOfWeekEnglish)
+        assertEquals("Thursday", dayInfo.weekday.en())
         assertEquals(LocalDate.of(2026, 7, 2), dayInfo.gregorianDate)
         // The app's header weekday is formatted from this, and has rolled.
         assertEquals(DayOfWeek.FRIDAY, zmanim.displayedDate.dayOfWeek)
         // While the times, and the day-of-month beside the weekday, are still Thursday's.
         assertEquals(LocalDate.of(2026, 7, 2), zmanim.date)
         // Both sides still agree on the Hebrew date itself, which is what the icon prints below it.
-        assertEquals(zmanim.hebrewDateEnglish, dayInfo.hebrewDateEnglish)
+        assertEquals(zmanim.hebrewDate.en(), dayInfo.hebrewDate.en())
     }
 
     @Test
@@ -87,14 +90,14 @@ class DefaultJewishDayRepositoryTest {
 
         fun weekdayAt(time: LocalTime): String = DefaultJewishDayRepository(
             Clock.fixed(july2.atTime(time).atZone(zone).toInstant(), zone),
-        ).getToday(defaultJerusalemLocation).dayOfWeekEnglish
+        ).getToday(defaultJerusalemLocation).weekday.en()
 
         assertEquals("Thursday", weekdayAt(LocalTime.of(23, 59)))
         // One minute later the icon's weekday moves on. The zmanim below it moved hours ago, at
         // tzeit, so by now both are on 3 July — midnight is not a boundary for them.
         val justAfterMidnight = july2.plusDays(1).atTime(0, 1).atZone(zone).toInstant()
         val repository = DefaultJewishDayRepository(Clock.fixed(justAfterMidnight, zone))
-        assertEquals("Friday", repository.getToday(defaultJerusalemLocation).dayOfWeekEnglish)
+        assertEquals("Friday", repository.getToday(defaultJerusalemLocation).weekday.en())
         assertEquals(july2.plusDays(1), repository.getZmanim(defaultJerusalemLocation).date)
     }
 
@@ -134,8 +137,8 @@ class DefaultJewishDayRepositoryTest {
         // The Hebrew date does, in the app and on the icon alike.
         assertEquals(july2, beforeTzeit.getZmanim(defaultJerusalemLocation).displayedDate)
         assertEquals(july2.plusDays(1), afterTzeit.getZmanim(defaultJerusalemLocation).displayedDate)
-        assertTrue(beforeTzeit.getToday(defaultJerusalemLocation).hebrewDateEnglish.contains("17 Tammuz"))
-        assertTrue(afterTzeit.getToday(defaultJerusalemLocation).hebrewDateEnglish.contains("18 Tammuz"))
+        assertTrue(beforeTzeit.getToday(defaultJerusalemLocation).hebrewDate.en().contains("17 Tammuz"))
+        assertTrue(afterTzeit.getToday(defaultJerusalemLocation).hebrewDate.en().contains("18 Tammuz"))
     }
 
     @Test

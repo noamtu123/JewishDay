@@ -2,8 +2,8 @@
 
 package com.noamtu.jewishday.di
 
+import com.noamtu.jewishday.data.DeveloperClock
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
-import com.noamtu.jewishday.model.DeveloperClock
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

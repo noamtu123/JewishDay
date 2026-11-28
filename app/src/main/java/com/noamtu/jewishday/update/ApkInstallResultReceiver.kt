@@ -20,7 +20,6 @@ class ApkInstallResultReceiver : BroadcastReceiver() {
     @Inject
     lateinit var installResults: InstallResults
 
-
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ActionInstallResult) return
         when (intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {

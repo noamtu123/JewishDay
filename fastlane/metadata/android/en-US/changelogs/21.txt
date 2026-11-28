@@ -1,0 +1,7 @@
+- Daily learning works fully offline: every track is now calculated on the phone
+- Candle lighting can be set to plag hamincha, and any number of minutes can be typed
+- Far north, where tzeit or dawn never comes, a new setting gives a sourced time instead. It shows only where it's needed
+- Works with TalkBack and large fonts
+- After tzeit, the Omer and Chanukah rows show tonight's count and candle
+- The app opens straight into the sky and the times, and is smaller
+…

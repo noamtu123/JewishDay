@@ -2,9 +2,11 @@
 <!-- What the widget picker shows on Android 12-14: the layout with sample content, by day.
      Android 15+ shows the widget itself instead (WidgetUpdater.publishPreviews). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@android:id/background"
     android:layoutDirection="rtl"
-    style="@style/Widget.JewishDay.Root">
+    style="@style/Widget.JewishDay.Root"
+    android:orientation="vertical">
 
     <TextView
         android:text="@string/widget_preview_hebrew_date"
@@ -14,7 +16,9 @@
         android:text="@string/widget_preview_special_day"
         style="@style/Widget.JewishDay.Text.Accent" />
 
+    <!-- The rows share the list's height like the real widget's (rowSlots); a static picker sketch. -->
     <LinearLayout
+        tools:ignore="NestedWeights"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"

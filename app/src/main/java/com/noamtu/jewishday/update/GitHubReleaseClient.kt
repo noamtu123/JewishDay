@@ -5,10 +5,10 @@ package com.noamtu.jewishday.update
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
-import javax.inject.Inject
-import javax.inject.Singleton
 import java.time.Instant
 import java.time.format.DateTimeParseException
+import javax.inject.Inject
+import javax.inject.Singleton
 import org.json.JSONArray
 
 /**
@@ -64,8 +64,9 @@ internal fun parseReleases(json: String): List<AppRelease> {
         val release = releases.optJSONObject(index) ?: return@mapNotNull null
         if (release.optBoolean("draft", false)) return@mapNotNull null
 
-        val version = AppVersion.parse(release.optString("tag_name", null))
-            ?: AppVersion.parse(release.optString("name", null))
+        // A missing field reads as "", which parses to null just as the absent value would.
+        val version = AppVersion.parse(release.optString("tag_name"))
+            ?: AppVersion.parse(release.optString("name"))
             ?: return@mapNotNull null
 
         val assets = release.optJSONArray("assets") ?: return@mapNotNull null

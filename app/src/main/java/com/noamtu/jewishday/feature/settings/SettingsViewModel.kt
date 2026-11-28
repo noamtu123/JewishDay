@@ -4,38 +4,49 @@ package com.noamtu.jewishday.feature.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.noamtu.jewishday.data.AppLanguage
-import com.noamtu.jewishday.data.AppThemeOption
-import com.noamtu.jewishday.data.AppSettingsRepository
-import com.noamtu.jewishday.model.AlotHashacharMethod
-import com.noamtu.jewishday.model.CandleLightingMethod
-import com.noamtu.jewishday.model.ChametzMethod
-import com.noamtu.jewishday.model.ChatzotMethod
-import com.noamtu.jewishday.model.CustomZmanUnit
-import com.noamtu.jewishday.model.DailyLearningType
-import com.noamtu.jewishday.model.MinchaGedolaMethod
-import com.noamtu.jewishday.model.MinchaKetanaMethod
-import com.noamtu.jewishday.model.MisheyakirMethod
-import com.noamtu.jewishday.model.MotzeiShabbatMethod
-import com.noamtu.jewishday.model.PlagHaminchaMethod
-import com.noamtu.jewishday.model.RabbeinuTamMethod
-import com.noamtu.jewishday.model.SofZmanShemaMethod
-import com.noamtu.jewishday.model.SofZmanTefillahMethod
-import com.noamtu.jewishday.model.SunriseMethod
-import com.noamtu.jewishday.model.SunsetMethod
-import com.noamtu.jewishday.model.TzeitHakochavimMethod
-import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.ZmanimTimeOption
-import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import com.noamtu.jewishday.BuildConfig
+import com.noamtu.jewishday.core.model.AlotHashacharMethod
+import com.noamtu.jewishday.core.model.CandleLightingMethod
+import com.noamtu.jewishday.core.model.ChametzMethod
+import com.noamtu.jewishday.core.model.ChatzotMethod
+import com.noamtu.jewishday.core.model.CustomZmanUnit
+import com.noamtu.jewishday.core.model.DailyLearningType
+import com.noamtu.jewishday.core.model.MinchaGedolaMethod
+import com.noamtu.jewishday.core.model.MinchaKetanaMethod
+import com.noamtu.jewishday.core.model.MisheyakirMethod
+import com.noamtu.jewishday.core.model.MotzeiShabbatMethod
+import com.noamtu.jewishday.core.model.NoTzeitFallback
+import com.noamtu.jewishday.core.model.PlagHaminchaMethod
+import com.noamtu.jewishday.core.model.RabbeinuTamMethod
+import com.noamtu.jewishday.core.model.SofZmanShemaMethod
+import com.noamtu.jewishday.core.model.SofZmanTefillahMethod
+import com.noamtu.jewishday.core.model.SunriseMethod
+import com.noamtu.jewishday.core.model.SunsetMethod
+import com.noamtu.jewishday.core.model.TzeitHakochavimMethod
+import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.ZmanimTimeOption
+import com.noamtu.jewishday.core.model.defaultJerusalemLocation
+import com.noamtu.jewishday.core.model.hasNightThatStaysLight
+import com.noamtu.jewishday.core.model.lightNightMethods
+import com.noamtu.jewishday.data.AppSettingsRepository
+import com.noamtu.jewishday.data.AppThemeOption
+import com.noamtu.jewishday.data.CurrentLocationRepository
+import com.noamtu.jewishday.i18n.AppLanguageController
+import com.noamtu.jewishday.notification.DateStatusIconScheduler
 import com.noamtu.jewishday.update.AppUpdateRepository
 import com.noamtu.jewishday.update.AppVersion
 import com.noamtu.jewishday.update.PendingUpdateStore
 import com.noamtu.jewishday.update.UpdateCheckReport
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Clock
+import java.time.LocalDate
 import javax.inject.Inject
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -43,13 +54,17 @@ import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val hebrewDateStatusIconEnabled: Boolean = false,
-    val language: AppLanguage = AppLanguage.English,
     val use24HourTime: Boolean = true,
     val enabledDailyLearning: Set<DailyLearningType> = DailyLearningType.Default,
     val enabledZmanimTimes: Set<ZmanimTimeOption> = ZmanimTimeOption.Default,
     val themeOption: AppThemeOption = AppThemeOption.Default,
     val zmanimSettings: ZmanimCalculationSettings = ZmanimCalculationSettings(),
     val candleLightingDefault: CandleLightingMethod? = null,
+    /**
+     * Whether to offer the "no tzeit" choice: only where some night in the coming year has no tzeit
+     * by the user's method. Everyone else never sees it.
+     */
+    val offersNoTzeitFallback: Boolean = false,
     val includePreReleases: Boolean = false,
     /** This build is itself a pre-release, which changes what turning the switch off can do. */
     val installedPreReleaseName: String? = null,
@@ -58,21 +73,36 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val appSettingsRepository: AppSettingsRepository,
+    private val appLanguageController: AppLanguageController,
     private val dateStatusIconScheduler: DateStatusIconScheduler,
     private val appUpdateRepository: AppUpdateRepository,
     private val pendingUpdates: PendingUpdateStore,
+    currentLocationRepository: CurrentLocationRepository,
+    clock: Clock,
 ) : ViewModel() {
-    val uiState: StateFlow<SettingsUiState> = appSettingsRepository.settings
-        .map { settings ->
+    // A year of sun positions, so worked out off the main thread, and only when the place or one of
+    // the opinions it asks about changes (hasNightThatStaysLight remembers its answers too).
+    private val offersNoTzeitFallback = combine(
+        currentLocationRepository.currentLocation,
+        appSettingsRepository.settings.map { it.zmanimSettings },
+    ) { location, zmanim -> (location ?: defaultJerusalemLocation) to zmanim }
+        .distinctUntilChanged { old, new ->
+            old.first == new.first && old.second.lightNightMethods() == new.second.lightNightMethods()
+        }
+        .map { (location, zmanim) -> hasNightThatStaysLight(location, zmanim, LocalDate.now(clock.withZone(location.zoneId))) }
+        .flowOn(Dispatchers.Default)
+
+    val uiState: StateFlow<SettingsUiState> =
+        combine(appSettingsRepository.settings, offersNoTzeitFallback) { settings, offersFallback ->
             SettingsUiState(
                 hebrewDateStatusIconEnabled = settings.hebrewDateStatusIconEnabled,
-                language = settings.language,
                 use24HourTime = settings.use24HourTime,
                 enabledDailyLearning = settings.enabledDailyLearning,
                 enabledZmanimTimes = settings.enabledZmanimTimes,
                 themeOption = settings.themeOption,
                 zmanimSettings = settings.zmanimSettings,
                 candleLightingDefault = settings.candleLightingDefault,
+                offersNoTzeitFallback = offersFallback,
                 includePreReleases = settings.includePreReleases,
                 installedPreReleaseName = InstalledPreReleaseName,
             )
@@ -90,11 +120,11 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-
-    fun setAppLanguage(language: AppLanguage) {
-        viewModelScope.launch {
-            appSettingsRepository.setAppLanguage(language)
-        }
+    /** Makes [tag] the app's language; see [AppLanguageController.select]. */
+    fun setAppLanguage(tag: String) {
+        appLanguageController.select(tag)
+        // The view model outlives the activity being recreated for the new language.
+        viewModelScope.launch { appLanguageController.record(tag) }
     }
 
     fun setUse24HourTime(enabled: Boolean) {
@@ -136,15 +166,14 @@ class SettingsViewModel @Inject constructor(
      */
     fun resetZmanimMethods() {
         viewModelScope.launch {
-            val current = appSettingsRepository.settings.first()
-            val candle = current.candleLightingDefault ?: current.zmanimSettings.candleLightingMethod
-            appSettingsRepository.setZmanimSettings(
+            val candleDefault = appSettingsRepository.settings.first().candleLightingDefault
+            appSettingsRepository.updateZmanimSettings { current ->
                 ZmanimCalculationSettings(
-                    candleLightingMethod = candle,
+                    candleLightingMethod = candleDefault ?: current.candleLightingMethod,
                     // Kept with it: if their choice is a typed-in offset, the number is the choice.
-                    candleLightingCustomMinutes = current.zmanimSettings.candleLightingCustomMinutes,
-                ),
-            )
+                    candleLightingCustomMinutes = current.candleLightingCustomMinutes,
+                )
+            }
         }
     }
 
@@ -170,15 +199,13 @@ class SettingsViewModel @Inject constructor(
 
     fun setDailyLearningEnabled(type: DailyLearningType, enabled: Boolean) {
         viewModelScope.launch {
-            val current = appSettingsRepository.settings.first().enabledDailyLearning
-            appSettingsRepository.setEnabledDailyLearning(if (enabled) current + type else current - type)
+            appSettingsRepository.updateEnabledDailyLearning { current -> if (enabled) current + type else current - type }
         }
     }
 
     fun setZmanimTimeEnabled(option: ZmanimTimeOption, enabled: Boolean) {
         viewModelScope.launch {
-            val current = appSettingsRepository.settings.first().enabledZmanimTimes
-            appSettingsRepository.setEnabledZmanimTimes(if (enabled) current + option else current - option)
+            appSettingsRepository.updateEnabledZmanimTimes { current -> if (enabled) current + option else current - option }
         }
     }
 
@@ -236,6 +263,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setTzeitHakochavimMethod(method: TzeitHakochavimMethod) {
         updateZmanimSettings { it.copy(tzeitHakochavimMethod = method) }
+    }
+
+    fun setNoTzeitFallback(fallback: NoTzeitFallback) {
+        updateZmanimSettings { it.copy(noTzeitFallback = fallback) }
     }
 
     fun setCandleLightingMethod(method: CandleLightingMethod) {
@@ -372,7 +403,7 @@ class SettingsViewModel @Inject constructor(
 
     /** A typed-in candle-lighting offset, which also selects the custom option that uses it. */
     fun setCandleLightingCustomMinutes(minutes: Int) {
-        val clamped = minutes.coerceIn(0, 120)
+        val clamped = minutes.coerceAtLeast(0)
         updateZmanimSettings {
             it.copy(
                 candleLightingMethod = CandleLightingMethod.Custom,
@@ -382,13 +413,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     private fun updateZmanimSettings(transform: (ZmanimCalculationSettings) -> ZmanimCalculationSettings) {
-        viewModelScope.launch {
-            // Read the latest persisted value rather than uiState.value: the StateFlow
-            // updates asynchronously, so rapid consecutive edits could otherwise be
-            // applied to a stale snapshot and silently drop the earlier change.
-            val current = appSettingsRepository.settings.first().zmanimSettings
-            appSettingsRepository.setZmanimSettings(transform(current))
-        }
+        // Applied to the stored value inside the write itself: reading it first and writing back
+        // later let a second quick change start from the same old value and undo the first.
+        viewModelScope.launch { appSettingsRepository.updateZmanimSettings(transform) }
     }
 
 }

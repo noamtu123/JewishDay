@@ -16,7 +16,3 @@ fun Context.hasNotificationPermission(): Boolean =
     Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
         PackageManager.PERMISSION_GRANTED
-
-/** True when a runtime prompt for POST_NOTIFICATIONS is possible on this OS version. */
-val notificationPermissionIsRuntime: Boolean
-    get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU

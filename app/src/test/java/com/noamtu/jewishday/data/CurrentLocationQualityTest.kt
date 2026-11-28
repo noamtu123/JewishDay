@@ -2,7 +2,7 @@
 
 package com.noamtu.jewishday.data
 
-import com.noamtu.jewishday.model.defaultJerusalemLocation
+import com.noamtu.jewishday.core.model.defaultJerusalemLocation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

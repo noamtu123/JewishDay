@@ -2,19 +2,17 @@
 
 package com.noamtu.jewishday.data
 
-import com.noamtu.jewishday.model.JewishDayInfo
-import com.noamtu.jewishday.model.JewishLocation
-import com.noamtu.jewishday.model.MizrachInfo
-import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.ZmanimDay
-import com.noamtu.jewishday.model.defaultJerusalemLocation
-import com.noamtu.jewishday.model.jewishDayInfo
-import com.noamtu.jewishday.model.mizrachInfo
-import com.noamtu.jewishday.model.jewishDayCivilDate
-import com.noamtu.jewishday.model.zmanimForDate
+import com.noamtu.jewishday.core.model.JewishDayInfo
+import com.noamtu.jewishday.core.model.JewishLocation
+import com.noamtu.jewishday.core.model.MizrachInfo
+import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.defaultJerusalemLocation
+import com.noamtu.jewishday.core.model.jewishDayCivilDate
+import com.noamtu.jewishday.core.model.jewishDayInfo
+import com.noamtu.jewishday.core.model.mizrachInfo
+import com.noamtu.jewishday.day.ZmanimDay
+import com.noamtu.jewishday.day.zmanimForDate
 import java.time.Clock
-import java.time.Instant
-import java.time.LocalDate
 import javax.inject.Inject
 
 interface JewishDayRepository {

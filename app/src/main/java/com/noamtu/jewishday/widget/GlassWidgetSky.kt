@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.core.graphics.createBitmap
 import com.noamtu.jewishday.R
 import com.noamtu.jewishday.ui.theme.SkyFrame
 import com.noamtu.jewishday.ui.theme.drawBloom
@@ -57,9 +58,8 @@ internal fun paintGlassSky(
     heightDp: Int,
     rtl: Boolean,
 ): Bitmap {
-    val scale = bitmapScale(context, widthDp, heightDp)
-    val width = (widthDp * scale).toInt().coerceAtLeast(1)
-    val height = (heightDp * scale).toInt().coerceAtLeast(1)
+    val metrics = context.resources.displayMetrics
+    val (width, height, scale) = skyBitmapSize(widthDp, heightDp, metrics.density, metrics.widthPixels.toLong() * metrics.heightPixels)
 
     val image = ImageBitmap(width, height)
     CanvasDrawScope().draw(Density(scale), LayoutDirection.Ltr, Canvas(image), Size(width.toFloat(), height.toFloat())) {
@@ -69,15 +69,41 @@ internal fun paintGlassSky(
 }
 
 /**
+ * The sky bitmap's size in pixels for a widget [widthDp] x [heightDp] on a screen of [density] with
+ * [screenPixels] pixels in all.
+ *
  * The sky is soft gradients, so it is drawn at a lower resolution than the screen and stretched: a
  * bitmap goes to the launcher in every update, and a full-resolution one for a large widget would be
- * megabytes each time.
+ * megabytes each time. Usually that keeps it to [MaxSkyPixels]; a very large widget keeps at least a
+ * pixel per dp, so its stars and the sun's rim stay sharp.
+ *
+ * Whatever that comes to, it never passes half of what Android 17 accepts in one widget update
+ * ([widgetBitmapLimitBytes]): past that the launcher refuses the update and the widget is left as it
+ * was. Half, because the screen can change under a widget — a foldable closed onto its smaller outer
+ * screen — between its size being reported and its picture being sent. On a phone the ceiling never
+ * comes into play; it only catches a huge widget on a low-density screen.
  */
-private fun bitmapScale(context: Context, widthDp: Int, heightDp: Int): Float {
-    val density = context.resources.displayMetrics.density
-    val fitsBudget = sqrt(MaxSkyPixels / (widthDp.toFloat() * heightDp).coerceAtLeast(1f))
-    return min(density, fitsBudget).coerceAtLeast(1f)
+internal fun skyBitmapSize(widthDp: Int, heightDp: Int, density: Float, screenPixels: Long): SkyBitmapSize {
+    val areaDp = (widthDp.toFloat() * heightDp).coerceAtLeast(1f)
+    val fitsBudget = sqrt(MaxSkyPixels / areaDp)
+    val ceiling = sqrt(widgetBitmapLimitBytes(screenPixels) / 2f / SkyBytesPerPixel / areaDp)
+    val scale = minOf(min(density, fitsBudget).coerceAtLeast(1f), ceiling)
+    return SkyBitmapSize((widthDp * scale).toInt().coerceAtLeast(1), (heightDp * scale).toInt().coerceAtLeast(1), scale)
 }
+
+/** A sky bitmap's [width] and [height] in pixels, and the pixels per dp it is drawn at. */
+internal data class SkyBitmapSize(val width: Int, val height: Int, val scale: Float) {
+    val bytes: Long get() = width.toLong() * height * SkyBytesPerPixel
+}
+
+/**
+ * The most bitmap memory, in bytes, Android 17 accepts in one widget update from an app targeting
+ * it: 1.5 times a full-screen ARGB_8888 buffer of the screen it is shown on.
+ */
+internal fun widgetBitmapLimitBytes(screenPixels: Long): Long = 6L * screenPixels
+
+/** The sky keeps its alpha (its corners are rounded), so it is ARGB_8888: four bytes a pixel. */
+internal const val SkyBytesPerPixel = 4
 
 private fun DrawScope.drawSky(sky: SkyFrame, layout: SkyLayout, rtl: Boolean) {
     val w = size.width
@@ -127,7 +153,7 @@ private fun DrawScope.drawSky(sky: SkyFrame, layout: SkyLayout, rtl: Boolean) {
 
 /** Clips [source] to a rounded rectangle, anti-aliased (a clip path on a bitmap canvas is not). */
 private fun roundCorners(source: Bitmap, radius: Float): Bitmap {
-    val output = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+    val output = createBitmap(source.width, source.height)
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         shader = BitmapShader(source, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
     }

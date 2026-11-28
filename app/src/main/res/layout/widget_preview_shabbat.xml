@@ -2,6 +2,7 @@
 <!-- What the widget picker shows on Android 12-14: the 3x1 layout with sample content, by day.
      Android 15+ shows the widget itself instead (WidgetUpdater.publishPreviews). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:baselineAligned="false"
     android:id="@android:id/background"
     android:layoutDirection="rtl"
     style="@style/Widget.JewishDay.Root"

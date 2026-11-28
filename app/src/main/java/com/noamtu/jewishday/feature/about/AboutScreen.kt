@@ -16,24 +16,21 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.noamtu.jewishday.ui.LocalUseHebrewInterface
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.noamtu.jewishday.R
+import com.noamtu.jewishday.i18n.ProvideLanguage
 import com.noamtu.jewishday.ui.components.InfoCard
 import com.noamtu.jewishday.ui.components.ScreenPaddingValues
 import com.noamtu.jewishday.ui.components.ScreenSurface
 import com.noamtu.jewishday.ui.components.readableWidth
-import com.noamtu.jewishday.ui.localizedString
 
 private const val GithubUrl = "https://github.com/noamtu123/JewishDay"
 private const val ContactEmail = "jewishdayapp@gmail.com"
@@ -55,12 +52,8 @@ fun AboutScreen(
     val tapState = remember { VersionTapState() }
 
     // Developer override: force this page (and its layout direction) to English even when the rest
-    // of the app is in Hebrew. Off, it renders in the current interface language as usual.
-    val showHebrew = LocalUseHebrewInterface.current && !aboutInEnglish
-    CompositionLocalProvider(
-        LocalUseHebrewInterface provides showHebrew,
-        LocalLayoutDirection provides if (showHebrew) LayoutDirection.Rtl else LayoutDirection.Ltr,
-    ) {
+    // of the app is in another language. Off, it renders in the app's language as usual.
+    InEnglishIf(aboutInEnglish) {
     ScreenSurface(modifier = modifier) {
         LazyColumn(
             modifier = Modifier
@@ -83,7 +76,7 @@ fun AboutScreen(
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = localizedString(R.string.about_body, R.string.about_body_hebrew),
+                        text = stringResource(R.string.about_body),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -92,13 +85,13 @@ fun AboutScreen(
             item {
                 InfoCard(modifier = Modifier.fillMaxWidth()) {
                     AboutLinkRow(
-                        label = localizedString(R.string.about_github, R.string.about_github_hebrew),
+                        label = stringResource(R.string.about_github),
                         value = "github.com/noamtu123/JewishDay",
                         onClick = { uriHandler.openUri(GithubUrl) },
                     )
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     AboutLinkRow(
-                        label = localizedString(R.string.about_email, R.string.about_email_hebrew),
+                        label = stringResource(R.string.about_email),
                         value = ContactEmail,
                         onClick = { uriHandler.openUri("mailto:$ContactEmail") },
                     )
@@ -146,14 +139,14 @@ private fun AboutHeader(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = localizedString(R.string.about_tagline, R.string.about_tagline_hebrew),
+            text = stringResource(R.string.about_tagline),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(4.dp))
         Text(
             modifier = Modifier.clickable(onClick = onVersionTap),
-            text = localizedString(R.string.about_version, R.string.about_version_hebrew, version),
+            text = stringResource(R.string.about_version, version),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -185,4 +178,9 @@ private fun AboutLinkRow(
             color = MaterialTheme.colorScheme.primary,
         )
     }
+}
+
+@Composable
+private fun InEnglishIf(english: Boolean, content: @Composable () -> Unit) {
+    if (english) ProvideLanguage("en", content) else content()
 }

@@ -2,9 +2,9 @@
 
 package com.noamtu.jewishday.ui.theme
 
-import com.noamtu.jewishday.model.ZmanimCalculationSettings
-import com.noamtu.jewishday.model.defaultJerusalemLocation
-import com.noamtu.jewishday.model.skyDayFor
+import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.defaultJerusalemLocation
+import com.noamtu.jewishday.core.model.skyDayFor
 import java.time.Duration
 import java.time.LocalDate
 import org.junit.Assert.assertEquals

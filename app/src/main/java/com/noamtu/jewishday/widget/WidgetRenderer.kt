@@ -5,13 +5,13 @@ package com.noamtu.jewishday.widget
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.View
 import android.widget.RemoteViews
 import com.noamtu.jewishday.MainActivity
 import com.noamtu.jewishday.R
+import java.time.LocalDate
 
 internal fun renderWidget(
     context: Context,
@@ -36,8 +36,18 @@ internal fun renderWidget(
         "setLayoutDirection",
         if (content.rtl) View.LAYOUT_DIRECTION_RTL else View.LAYOUT_DIRECTION_LTR,
     )
-    views.setOnClickPendingIntent(android.R.id.background, openAppIntent(context))
+    views.setOnClickPendingIntent(android.R.id.background, openAppIntent(context, kind, content.opensOn(kind)))
+    // The zmanim lists say what they show, which only their builders know (see WidgetSpokenText.kt).
+    spokenText(kind, content)?.let { views.setContentDescription(android.R.id.background, it) }
     return views
+}
+
+/** What TalkBack reads for a widget that shows the same things at every size. */
+private fun spokenText(kind: WidgetKind, content: WidgetContent): String? = when (kind) {
+    WidgetKind.HebrewDate -> hebrewDateSpoken(content)
+    WidgetKind.NextZman, WidgetKind.GlassNextZman -> nextZmanSpoken(content)
+    WidgetKind.Shabbat, WidgetKind.GlassShabbat -> shabbatSpoken(content)
+    WidgetKind.Zmanim, WidgetKind.GlassZmanim, WidgetKind.GlassDate -> null
 }
 
 /**
@@ -88,6 +98,7 @@ private fun zmanimViews(context: Context, content: WidgetContent, options: Bundl
         removeAllViews(R.id.widget_rows)
         val capacity = rowsThatFit(options, ZmanimChromeDp)
         val rows = visibleRows(content, capacity)
+        setContentDescription(android.R.id.background, zmanimSpoken(content, rows))
         rows.forEach { (index, zman) ->
             val layout = when {
                 index == content.nextIndex -> R.layout.widget_zman_row_next
@@ -203,14 +214,25 @@ internal fun RemoteViews.setOptionalText(viewId: Int, text: String?) {
     }
 }
 
-private fun openAppIntent(context: Context): PendingIntent = PendingIntent.getActivity(
+/**
+ * Opens the app on [date]'s zmanim. Each kind has its own request code: intents that differ only in
+ * their extras are one PendingIntent to Android, so a shared code would let the last widget drawn
+ * decide which day every widget opens on.
+ */
+private fun openAppIntent(context: Context, kind: WidgetKind, date: LocalDate): PendingIntent = PendingIntent.getActivity(
     context,
-    0,
-    Intent(context, MainActivity::class.java).apply {
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-    },
+    kind.ordinal,
+    MainActivity.showDayIntent(context, date),
     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
 )
+
+/** The day a tap opens the app on: the Shabbat or chag a Shabbat widget shows, else the widget's own day. */
+private fun WidgetContent.opensOn(kind: WidgetKind): LocalDate = when (kind) {
+    WidgetKind.Shabbat, WidgetKind.GlassShabbat -> shabbat?.day ?: date
+    WidgetKind.HebrewDate, WidgetKind.NextZman, WidgetKind.Zmanim,
+    WidgetKind.GlassDate, WidgetKind.GlassNextZman, WidgetKind.GlassZmanim,
+    -> date
+}
 
 // One cell's height is 90-140dp in portrait depending on the phone, two cells 180-280dp.
 private const val StripBelowDp = 150

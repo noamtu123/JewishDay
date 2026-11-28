@@ -3,10 +3,10 @@
 package com.noamtu.jewishday.ui.theme
 
 import android.app.Activity
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,18 +24,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.noamtu.jewishday.ui.HoldFirstDraw
 import kotlin.math.PI
 import kotlin.math.pow
 import kotlin.math.sin
@@ -180,8 +181,11 @@ fun GlassBackdrop(modifier: Modifier = Modifier, content: @Composable () -> Unit
     val viewModel: GlassSkyViewModel = hiltViewModel()
     val frame by viewModel.frame.collectAsStateWithLifecycle()
     val sky = frame
+    // The app's first frame waits for the sky, so an opening app never shows the night glass by day.
+    HoldFirstDraw(ready = sky != null)
     if (sky == null) {
-        // The first frame is a moment away; the static Glass scheme covers it.
+        // The first frame is a moment away and is not drawn before it (see FirstDrawGate); after
+        // that, the static Glass scheme would cover only a sky that is slow to come.
         Box(modifier) { content() }
         return
     }

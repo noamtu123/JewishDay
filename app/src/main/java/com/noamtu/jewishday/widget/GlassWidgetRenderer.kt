@@ -69,6 +69,7 @@ internal fun glassDateViews(context: Context, content: WidgetContent, sky: SkyFr
     val skyLayout = if (shape == WidgetShape.Tall) openBandSky(headerDp / heightDp, paneTopDp / heightDp) else DateSky
 
     return glassViews(context, R.layout.widget_glass_date, sky, skyLayout, widthDp, heightDp, content.rtl) { ink ->
+        setContentDescription(android.R.id.background, glassDateSpoken(content, ahead))
         setText(R.id.glass_hebrew_date, content.hebrewDate, ink.primary)
         setTextSizeDp(R.id.glass_hebrew_date, titleDp)
         setText(R.id.glass_gregorian_date, content.gregorianDate, ink.secondary)
@@ -100,6 +101,7 @@ private fun glassDateStrip(context: Context, content: WidgetContent, sky: SkyFra
     // A row this short holds two lines under the date only if it is tall enough; the day's name wins.
     val showGregorian = content.specialDay == null || heightDp >= TwoLinesUnderStripDp
     return glassViews(context, R.layout.widget_glass_date_strip, sky, StripSky, widthDp, heightDp, content.rtl) { ink ->
+        setContentDescription(android.R.id.background, glassDateSpoken(content, ahead = emptyList()))
         setText(R.id.glass_hebrew_date, content.hebrewDate, ink.primary)
         setTextSizeDp(R.id.glass_hebrew_date, titleDp)
         setOptionalText(R.id.glass_gregorian_date, content.gregorianDate.takeIf { showGregorian })
@@ -149,6 +151,7 @@ internal fun glassZmanimViews(context: Context, content: WidgetContent, sky: Sky
         removeAllViews(R.id.glass_rows)
         val capacity = rowsThatFit(options, GlassZmanimChromeDp)
         val rows = visibleRows(content, capacity)
+        setContentDescription(android.R.id.background, zmanimSpoken(content, rows))
         rows.forEach { (index, zman) ->
             val isNext = index == content.nextIndex
             val color = when {

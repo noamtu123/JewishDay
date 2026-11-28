@@ -11,21 +11,25 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.noamtu.jewishday.core.model.nextStatusIconBoundary
 import com.noamtu.jewishday.data.AppSettingsRepository
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.JewishDayRepository
-import com.noamtu.jewishday.model.nextStatusIconBoundary
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.Clock
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Hosts the persistent Hebrew date status-bar icon as a foreground service so it survives the app
@@ -43,15 +47,29 @@ class DateStatusIconService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    // One refresh at a time: each one ends by setting the alarm, and two finishing out of order
+    // would leave the older place's alarm (and icon) in force.
+    private val refreshing = Mutex()
+
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        // While the icon shows, a new fix or a changed opinion redraws it and moves its alarm.
+        scope.launch {
+            statusIconInputChanges(
+                zmanimSettings = appSettingsRepository.settings.map { it.zmanimSettings },
+                location = currentLocationRepository.currentLocation,
+            ).collect { refreshing.withLock { refresh() } }
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         notifier.ensureChannel()
         startForegroundCompat(immediateNotification())
+        val requestedHebrew = intent.requestedShowHebrew()
         scope.launch {
-            refresh(
-                requestedHebrew = intent.requestedShowHebrew(),
-            )
+            refreshing.withLock { refresh(requestedHebrew = requestedHebrew) }
         }
         return START_STICKY
     }
@@ -97,13 +115,16 @@ class DateStatusIconService : Service() {
         try {
             val location = currentLocationRepository.currentLocationOrDefault()
             val dayInfo = jewishDayRepository.getToday(location = location, settings = settings.zmanimSettings)
-            val rendered = notifier.render(dayInfo, useHebrew = settings.useHebrewInterface)
+            val rendered = notifier.render(dayInfo)
             startForegroundCompat(notifier.buildNotification(rendered))
             notifier.cancel(DateStatusIconNotifier.SecondaryId)
             val now = clock.instant()
             // The weekday flips at midnight and the Hebrew date at sunset, so wake at whichever
             // of the two comes first.
             alarmScheduler.scheduleNext(nextStatusIconBoundary(location, settings.zmanimSettings, now))
+        } catch (cancelled: CancellationException) {
+            // The work was called off (the service or the scope is going away): not a failure.
+            throw cancelled
         } catch (exception: Exception) {
             // Keep the existing icon up and retry soon rather than disappearing it.
             Log.w(TAG, "Date status icon refresh failed; retrying later", exception)

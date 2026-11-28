@@ -3,23 +3,24 @@
 package com.noamtu.jewishday.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import com.noamtu.jewishday.model.AlotHashacharMethod
-import com.noamtu.jewishday.model.CandleLightingMethod
-import com.noamtu.jewishday.model.CustomZmanValue
-import com.noamtu.jewishday.model.ChametzMethod
-import com.noamtu.jewishday.model.ChatzotMethod
-import com.noamtu.jewishday.model.MinchaGedolaMethod
-import com.noamtu.jewishday.model.MinchaKetanaMethod
-import com.noamtu.jewishday.model.MisheyakirMethod
-import com.noamtu.jewishday.model.MotzeiShabbatMethod
-import com.noamtu.jewishday.model.PlagHaminchaMethod
-import com.noamtu.jewishday.model.RabbeinuTamMethod
-import com.noamtu.jewishday.model.SofZmanShemaMethod
-import com.noamtu.jewishday.model.SofZmanTefillahMethod
-import com.noamtu.jewishday.model.SunriseMethod
-import com.noamtu.jewishday.model.SunsetMethod
-import com.noamtu.jewishday.model.TzeitHakochavimMethod
-import com.noamtu.jewishday.model.ZmanimCalculationSettings
+import com.noamtu.jewishday.core.model.AlotHashacharMethod
+import com.noamtu.jewishday.core.model.CandleLightingMethod
+import com.noamtu.jewishday.core.model.ChametzMethod
+import com.noamtu.jewishday.core.model.ChatzotMethod
+import com.noamtu.jewishday.core.model.CustomZmanValue
+import com.noamtu.jewishday.core.model.MinchaGedolaMethod
+import com.noamtu.jewishday.core.model.MinchaKetanaMethod
+import com.noamtu.jewishday.core.model.MisheyakirMethod
+import com.noamtu.jewishday.core.model.MotzeiShabbatMethod
+import com.noamtu.jewishday.core.model.NoTzeitFallback
+import com.noamtu.jewishday.core.model.PlagHaminchaMethod
+import com.noamtu.jewishday.core.model.RabbeinuTamMethod
+import com.noamtu.jewishday.core.model.SofZmanShemaMethod
+import com.noamtu.jewishday.core.model.SofZmanTefillahMethod
+import com.noamtu.jewishday.core.model.SunriseMethod
+import com.noamtu.jewishday.core.model.SunsetMethod
+import com.noamtu.jewishday.core.model.TzeitHakochavimMethod
+import com.noamtu.jewishday.core.model.ZmanimCalculationSettings
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -49,14 +50,12 @@ class DataStoreAppSettingsRepositoryTest {
         )
 
         try {
-            // First launch follows the device language, so pin the expected default to
-            // the same resolution the repository uses rather than a hard-coded value.
-            val defaultLanguage = AppLanguage.systemDefault()
-            assertEquals(AppSettings(language = defaultLanguage), repository.settings.first())
-            assertEquals(RootUiSettings(language = defaultLanguage), repository.rootUiSettings.first())
+            // Nothing records a language until the first launch settles one (AppLanguageController).
+            assertEquals(AppSettings(), repository.settings.first())
+            assertEquals(RootUiSettings(), repository.rootUiSettings.first())
 
             repository.setHebrewDateStatusIconEnabled(true)
-            repository.setAppLanguage(AppLanguage.Hebrew)
+            repository.setAppLanguage("he")
             repository.setUse24HourTime(false)
             repository.setThemeOption(AppThemeOption.Midnight)
             repository.setCandleLightingPromptHandled(true)
@@ -64,7 +63,7 @@ class DataStoreAppSettingsRepositoryTest {
             assertEquals(
                 AppSettings(
                     hebrewDateStatusIconEnabled = true,
-                    language = AppLanguage.Hebrew,
+                    language = "he",
                     use24HourTime = false,
                     themeOption = AppThemeOption.Midnight,
                     candleLightingPromptHandled = true,
@@ -72,17 +71,11 @@ class DataStoreAppSettingsRepositoryTest {
                 repository.settings.first(),
             )
             assertEquals(
-                RootUiSettings(
-                    themeOption = AppThemeOption.Midnight,
-                    language = AppLanguage.Hebrew,
-                ),
+                RootUiSettings(themeOption = AppThemeOption.Midnight),
                 repository.rootUiSettings.first(),
             )
             assertEquals(
-                RootUiSettings(
-                    themeOption = AppThemeOption.Midnight,
-                    language = AppLanguage.Hebrew,
-                ),
+                RootUiSettings(themeOption = AppThemeOption.Midnight),
                 startupSettingsCache.read(),
             )
         } finally {
@@ -122,6 +115,7 @@ class DataStoreAppSettingsRepositoryTest {
             sunsetMethod = SunsetMethod.ElevationAdjusted,
             tzeitHakochavimMethod = TzeitHakochavimMethod.CustomMinutes,
             tzeitHakochavimCustom = CustomZmanValue(degrees = 5.9, minutes = 51, zmaniyotMinutes = 53),
+            noTzeitFallback = NoTzeitFallback.ChatzotHaLaila,
             candleLightingMethod = CandleLightingMethod.Custom,
             candleLightingCustomMinutes = 22,
             motzeiShabbatMethod = MotzeiShabbatMethod.CustomZmaniyotMinutes,
@@ -144,7 +138,8 @@ class DataStoreAppSettingsRepositoryTest {
 
     @Test
     fun existingInstallIsMovedToGlassOnceAndToldWhatItWasOn() = withRepository { repository, cache ->
-        repository.seedLanguageDefault()
+        // Every install that has launched has its language recorded.
+        repository.setAppLanguage("en")
         repository.setThemeOption(AppThemeOption.Midnight)
 
         repository.introduceGlassTheme()
@@ -162,7 +157,7 @@ class DataStoreAppSettingsRepositoryTest {
 
     @Test
     fun installThatNeverPickedAThemeWasOnBlueWhite() = withRepository { repository, _ ->
-        repository.seedLanguageDefault()
+        repository.setAppLanguage("en")
 
         repository.introduceGlassTheme()
         assertEquals(AppThemeOption.Glass, repository.settings.first().themeOption)

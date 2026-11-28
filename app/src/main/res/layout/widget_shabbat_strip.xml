@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- One row high (3x1, the default): the parsha or chag at the start, its two times at the end. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:baselineAligned="false"
     android:id="@android:id/background"
     style="@style/Widget.JewishDay.Root"
     android:gravity="center_vertical"

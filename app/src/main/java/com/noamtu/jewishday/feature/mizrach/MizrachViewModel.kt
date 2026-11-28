@@ -5,13 +5,13 @@ package com.noamtu.jewishday.feature.mizrach
 import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.noamtu.jewishday.core.model.MizrachInfo
+import com.noamtu.jewishday.core.model.defaultJerusalemLocation
+import com.noamtu.jewishday.core.model.isCompassLocationTrusted
 import com.noamtu.jewishday.data.CurrentLocationRepository
 import com.noamtu.jewishday.data.CurrentLocationState
 import com.noamtu.jewishday.data.DeveloperOverridesRepository
 import com.noamtu.jewishday.data.JewishDayRepository
-import com.noamtu.jewishday.model.MizrachInfo
-import com.noamtu.jewishday.model.defaultJerusalemLocation
-import com.noamtu.jewishday.model.isCompassLocationTrusted
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -36,9 +36,7 @@ data class MizrachUiState(
     val compassLocationTrust: CompassLocationTrust = CompassLocationTrust.NeedsBetterFix,
     /** Hidden developer switch: overlay live sensor/quality diagnostics on the compass. */
     val compassMonitoringEnabled: Boolean = false,
-) {
-    val compassLocationTrusted: Boolean get() = compassLocationTrust == CompassLocationTrust.Trusted
-}
+)
 
 @HiltViewModel
 class MizrachViewModel @Inject constructor(
