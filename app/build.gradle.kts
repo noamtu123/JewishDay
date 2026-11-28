@@ -27,8 +27,8 @@ android {
         applicationId = "com.noamtu.jewishday"
         minSdk = 26
         targetSdk = 37
-        versionCode = 20
-        versionName = "1.3.0"
+        versionCode = 21
+        versionName = "1.4.0"
 
         val locales = translationLocales(file("src/main/res"))
         buildConfigField("String[]", "APP_LOCALES", locales.joinToString(prefix = "{", postfix = "}") { "\"$it\"" })
