@@ -63,11 +63,22 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             signingConfig = signingConfigs.findByName("release")
+            // No commit ID in the APK. `just release` builds from the tagged commit anyway, but this
+            // way F-Droid's rebuild of the tag matches the published APK byte for byte however its
+            // checkout looks (a reproducible build).
+            vcsInfo.include = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
         }
+    }
+
+    // AGP otherwise adds a dependency list to the APK signing block, encrypted to Google's key,
+    // which F-Droid asks apps to leave out: nobody else can read it, and it changes the APK.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     lint {
